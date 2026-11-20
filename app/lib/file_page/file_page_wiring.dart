@@ -47,7 +47,7 @@ final filePagesProvider = Provider<FilePages>(
     reachOf: (folder) => ref.read(folderReachProvider(folder)),
     reachSettled: (folder) =>
         ref.read(folderReachProvider(folder).notifier).settled(),
-    openFiles: ref.watch(openFilesProvider),
+    openEdits: ref.watch(openEditsProvider),
     endWait: appEndWait,
     arrivals: ref.watch(fileArrivalsProvider),
     // Where nothing finds changes meanwhile, what shows next is listed

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/file_page/ui/text_edit_page.dart';
 import 'package:truce_editor/files/file_colors.dart';
 import 'package:truce_editor/files/ui/all_files_view.dart';
 import 'package:truce_editor/files/ui/file_sections.dart';
@@ -115,7 +115,7 @@ void main() {
     await pickInView(tester, 'As list');
     expect(find.byType(ListTile), findsNWidgets(2));
     await tester.openFile('Ant');
-    await tester.waitFor(find.byType(FileScreen));
+    await tester.waitFor(find.byType(TextEditPage));
   });
 
   testApp('Recently edited shows as many documents as set, All the rest', (
@@ -254,7 +254,7 @@ void main() {
 
     await tester.openFile('Plan');
 
-    final screen = find.byType(FileScreen);
+    final screen = find.byType(TextEditPage);
     await tester.waitFor(screen);
     await tester.chooseMode('Visual edit');
     final scheme = Theme.of(tester.element(screen)).colorScheme;
@@ -368,7 +368,7 @@ void main() {
 
       // Gone without leaving, as when its route is removed: its edits are
       // saved as it goes, before the folder goes.
-      final screen = tester.element(find.byType(FileScreen));
+      final screen = tester.element(find.byType(TextEditPage));
       Navigator.of(screen).removeRoute(ModalRoute.of(screen)!);
       await tester.pump();
       final removed = remove(tester);

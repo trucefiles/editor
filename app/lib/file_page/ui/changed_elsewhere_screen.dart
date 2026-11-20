@@ -9,7 +9,7 @@ import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/version_chooser.dart';
 import '../../versions/ui/version_content.dart';
 import '../changed_elsewhere_controller.dart';
-import '../file_controller.dart';
+import '../text_edit_page_controller.dart';
 
 /// Shows the open file's edits next to the version from elsewhere,
 /// in the same view as a sync conflict, so the user sees both before
@@ -19,7 +19,7 @@ class ChangedElsewhereScreen extends StatefulWidget {
   const ChangedElsewhereScreen(this.controller, {super.key});
 
   /// The open file's view model.
-  final FileController controller;
+  final TextEditPageController controller;
 
   @override
   State<ChangedElsewhereScreen> createState() => _ChangedElsewhereScreenState();
@@ -115,7 +115,7 @@ class _ChangedElsewhereScreenState extends State<ChangedElsewhereScreen> {
 /// shows them all.
 Future<void> openChangedElsewhere(
   BuildContext context,
-  FileController controller,
+  TextEditPageController controller,
 ) async {
   await controller.session.secure(SecureReason.hide);
   if (!context.mounted) return;

@@ -222,7 +222,7 @@ void main() {
     servicesOf: container.read(openFoldersProvider).servicesOf,
     storeOf: container.read(documentImageStoresProvider),
     draftsOf: container.read(draftsProvider).of,
-    openFiles: container.read(openFilesProvider),
+    openEdits: container.read(openEditsProvider),
     isDocument: (path) => path.name.endsWith('.md'),
     now: () => DateTime.now().add(later),
   );

@@ -11,7 +11,7 @@ import 'edit_file_place.dart';
 class FilePlaceChip extends ConsumerWidget {
   const FilePlaceChip(this.session, {required this.enabled, super.key});
 
-  final FileSession session;
+  final TextEditSession session;
   final bool enabled;
 
   @override

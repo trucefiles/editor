@@ -4,7 +4,7 @@ import 'package:truce_files/truce_files.dart';
 import '../../backups/ui/file_backups_screen.dart';
 import '../../backups/ui/restore_into_file_screen.dart';
 import '../../common/snack.dart';
-import '../file_controller.dart';
+import '../text_edit_page_controller.dart';
 
 /// Opens the backups of the open [file], whose title is [title];
 /// restoring one goes through [controller], into the file (while it
@@ -14,7 +14,7 @@ Future<void> openFileBackups(
   BuildContext context, {
   required ListedFile file,
   required String title,
-  required FileController controller,
+  required TextEditPageController controller,
   required ScaffoldMessengerState messenger,
 }) => Navigator.push(
   context,
@@ -37,7 +37,7 @@ Future<void> openFileBackups(
 Future<void> _compare(
   BuildContext context,
   FolderBackup backup, {
-  required FileController controller,
+  required TextEditPageController controller,
   required ScaffoldMessengerState messenger,
 }) async {
   final navigator = Navigator.of(context);

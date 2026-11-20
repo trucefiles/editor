@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/file_page/file_controller.dart';
+import 'package:truce_editor/file_page/text_edit_page_controller.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' hide Selection;
 import 'package:truce_test_support/truce_test_support.dart';
@@ -29,12 +29,12 @@ void main() {
   });
 
   /// A controller on [session], in Read at first.
-  FileController controllerOn(
-    FileSession session, {
+  TextEditPageController controllerOn(
+    TextEditSession session, {
     BackUpText? backUp,
     DeleteForUndo? delete,
   }) {
-    final controller = FileController(
+    final controller = TextEditPageController(
       session,
       reach: () => reach,
       reachSettled: () async => reach,
@@ -58,7 +58,7 @@ void main() {
 
   /// A controller on the file with unsaved edits, its folder gone, so
   /// they can be kept nowhere in it.
-  FileController editedInGoneFolder() {
+  TextEditPageController editedInGoneFolder() {
     final session = fixture.session()..type('mine ');
     final dir = fixture.dirs[0];
     final away = dir.renameSync('${dir.path}-away');
@@ -79,7 +79,7 @@ void main() {
 
   test('stops hearing of the session once disposed', () {
     final session = fixture.session(fixture.newFile);
-    FileController(
+    TextEditPageController(
       session,
       reach: () => reach,
       reachSettled: () async => reach,
@@ -216,7 +216,7 @@ void main() {
     test('as the app ends, a keep that never answers counts as not kept '
         'after the wait', () async {
       final borrowed = fixture.session()..type('mine ');
-      final session = FileSession(
+      final session = TextEditSession(
         ExistingFile(fixture.file),
         fixture.effects(ExistingFile(fixture.file)),
         _NoSecure(borrowed.editor),
@@ -333,12 +333,12 @@ void main() {
 
   group('once the document stopped (a bug)', () {
     /// A controller on a session whose file owner stopped as it wrote.
-    Future<FileController> stopped() async {
-      late FileController controller;
+    Future<TextEditPageController> stopped() async {
+      late TextEditPageController controller;
       await runZonedGuarded(() async {
         final session = markdownSession(
           ExistingFile(fixture.file),
-          FileEffects(
+          TextEditEffects(
             filesOf: (_) => throw StateError('bug'),
             draftsOf: (folder) => fixture.drafts[folder.id]!,
             create: (
@@ -437,7 +437,7 @@ void main() {
 }
 
 /// The text the file's editor shows, its rows joined.
-String textShown(FileSession session) => [
+String textShown(TextEditSession session) => [
   for (final row in (session.gate.state.content as FormattedContent).view.rows)
     if (row case TextRow(:final leaf)) textOf(leaf).text,
 ].join('\n');

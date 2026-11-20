@@ -4,18 +4,18 @@ import '../../owners/effects.dart';
 import '../../owners/machine.dart';
 import '../../owners/step_run.dart';
 import '../version.dart';
-import 'file_contract.dart';
-import 'file_state.dart';
-import 'file_work.dart';
+import 'text_file_contract.dart';
+import 'text_file_state.dart';
+import 'text_file_work.dart';
 
 /// The file owner's decision on [message] in [state], with its [work];
 /// [merge]: how the file's type merges two texts, if it does, for
 /// the user's pick of both merged.
-Step<FileState<V>, FileWork<V>, FileEvent, FileEffect<V>>
+Step<TextFileState<V>, TextFileWork<V>, TextFileEvent, TextFileEffect<V>>
 fileStep<V extends Version>(
-  FileState<V> state,
-  FileWork<V> work,
-  FileMessage<V> message, {
+  TextFileState<V> state,
+  TextFileWork<V> work,
+  TextFileMessage<V> message, {
   TextMerge? merge,
 }) {
   return _Step(state, work, merge).run(message);
@@ -27,16 +27,16 @@ fileStep<V extends Version>(
 final class _Step<V extends Version>
     extends
         StepRun<
-          FileMessage<V>,
-          FileState<V>,
-          FileWork<V>,
-          FileEvent,
-          FileEffect<V>
+          TextFileMessage<V>,
+          TextFileState<V>,
+          TextFileWork<V>,
+          TextFileEvent,
+          TextFileEffect<V>
         > {
   _Step(super.state, super.work, this.merge);
 
   final TextMerge? merge;
-  FileStatus<V> get status => state.status;
+  TextFileStatus<V> get status => state.status;
 
   bool get _done => status is KeptAsConflict || status is Closed;
 
@@ -50,7 +50,7 @@ final class _Step<V extends Version>
 
   /// The state with the editing phase and the file the work shows.
   @override
-  FileState<V> get endState => FileState(
+  TextFileState<V> get endState => TextFileState(
     status: switch (status) {
       Editing() => Editing(switch (work.io) {
         WritingFile(:final text) when text == state.text => EditPhase.writing,
@@ -69,7 +69,7 @@ final class _Step<V extends Version>
   V? get _file => work.expected?.version;
 
   @override
-  void handle(FileMessage<V> message) {
+  void handle(TextFileMessage<V> message) {
     switch (message) {
       case Edited():
         assert(
@@ -224,7 +224,7 @@ final class _Step<V extends Version>
 
   /// No edits are pending any more: in the file, in a conflict copy, or
   /// dropped. The draft goes once no I/O is under way.
-  void _settle(FileStatus<V> settled) {
+  void _settle(TextFileStatus<V> settled) {
     _work(work.copyWith(editsOver: null));
     _set(status: settled);
   }
@@ -795,11 +795,11 @@ final class _Step<V extends Version>
     return id;
   }
 
-  void _work(FileWork<V> next) => work = next;
+  void _work(TextFileWork<V> next) => work = next;
 
   /// Sets the state; a status the edits can't be written in drops the
   /// write asked.
-  void _set({FileStatus<V>? status, String? text, int? rev}) {
+  void _set({TextFileStatus<V>? status, String? text, int? rev}) {
     state = state.copyWith(status: status, text: text, rev: rev);
     if (status != null && status is! Editing && status is! SaveFailed) {
       _work(work.copyWith(folderRev: null));

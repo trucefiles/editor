@@ -3,7 +3,7 @@ import 'package:collection/collection.dart';
 import '../../common/moment.dart';
 import '../../owners/effects.dart';
 import '../version.dart';
-import 'file_contract.dart';
+import 'text_file_contract.dart';
 
 /// The one I/O under way; the owner starts the next only once it ended.
 sealed class Io<V extends Version> {
@@ -76,7 +76,7 @@ final class BackingUp extends Io<Never> {
 final class KeepingConflict<V extends Version> extends Io<V> {
   const KeepingConflict(super.id, {required this.before});
 
-  final FileStatus<V> before;
+  final TextFileStatus<V> before;
 }
 
 /// What the device holds of the edits.
@@ -114,8 +114,8 @@ enum SecureRung {
 typedef Securing = ({List<Secure> asks, SecureRung rung});
 
 /// The file owner's bookkeeping behind its status.
-final class FileWork<V extends Version> {
-  const FileWork({
+final class TextFileWork<V extends Version> {
+  const TextFileWork({
     required this.expected,
     required this.offered,
     this.editsOver,
@@ -198,7 +198,7 @@ final class FileWork<V extends Version> {
   /// only white space, is not written.
   final String start;
 
-  FileWork<V> copyWith({
+  TextFileWork<V> copyWith({
     Object? expected = _same,
     Object? offered = _same,
     Object? editsOver = _same,
@@ -215,7 +215,7 @@ final class FileWork<V extends Version> {
     Object? move = _same,
     Object? toRead = _same,
     Object? firstLine = _same,
-  }) => FileWork(
+  }) => TextFileWork(
     expected: _or(expected, this.expected),
     offered: _or(offered, this.offered),
     editsOver: _or(editsOver, this.editsOver),
@@ -236,7 +236,7 @@ final class FileWork<V extends Version> {
   );
 }
 
-/// Marks a [FileWork.copyWith] field left as it is.
+/// Marks a [TextFileWork.copyWith] field left as it is.
 const _same = Object();
 
 /// [given], or [current] where it was left as it is.

@@ -14,17 +14,23 @@ const _v3 = Version(3);
 
 /// A file machine with what it led to so far.
 final class _Run {
-  _Run(FileMachine machine) : machine = MachineRun.of(machine);
+  _Run(TextFileMachine machine) : machine = MachineRun.of(machine);
 
-  _Run.opened(String text) : this(openedFile(Seen(text, _v1)));
+  _Run.opened(String text) : this(openedTextFile(Seen(text, _v1)));
 
-  _Run.unwritten() : this(newFile());
+  _Run.unwritten() : this(newTextFile());
 
-  final MachineRun<FileMessage, FileState, FileEvent, FileEffect> machine;
+  final MachineRun<
+    TextFileMessage,
+    TextFileState,
+    TextFileEvent,
+    TextFileEffect
+  >
+  machine;
 
-  FileState get state => machine.state;
+  TextFileState get state => machine.state;
 
-  FileStatus get status => state.status;
+  TextFileStatus get status => state.status;
 
   T last<T>() => machine.last<T>();
 
@@ -34,7 +40,7 @@ final class _Run {
   Seen? _file;
 
   /// Sends [message]; a read it starts reads what [found] last found.
-  void send(FileMessage message) {
+  void send(TextFileMessage message) {
     for (final read in machine.send(message).whereType<ReadLatest>()) {
       send(LatestRead(read.id, _file));
     }
@@ -930,7 +936,7 @@ void main() {
     });
 
     test('back at the text it started with, it is not created', () {
-      final run = _Run(newFile(start: 'start'))
+      final run = _Run(newTextFile(start: 'start'))
         ..edit('started', 1, lineage: null)
         ..keep()
         ..edit('start', 2, lineage: null);

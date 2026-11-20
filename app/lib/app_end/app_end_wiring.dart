@@ -34,7 +34,7 @@ final appEndProvider = Provider<AppEnd>((ref) {
   ref.onDispose(userQuit.dispose);
   final end = AppEnd(
     keepAll: () => Future.wait([
-      ref.read(openFilesProvider).secureForExit(within: appEndWait),
+      ref.read(openEditsProvider).secureForExit(within: appEndWait),
       _keepAlertsStop(ref),
     ]),
     quit: () async {

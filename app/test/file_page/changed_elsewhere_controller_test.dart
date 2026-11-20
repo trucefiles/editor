@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/changed_elsewhere_controller.dart';
-import 'package:truce_editor/file_page/file_controller.dart';
+import 'package:truce_editor/file_page/text_edit_page_controller.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../support.dart';
@@ -9,7 +9,7 @@ import 'file_fixture.dart';
 
 void main() {
   late FileFixture fixture;
-  late FileSession session;
+  late TextEditSession session;
 
   /// The choice of a file changed elsewhere while its edits wait on the
   /// device, of a type that merges as [merge] does.
@@ -19,7 +19,7 @@ void main() {
     await fixture.editElsewhere('theirs\n');
     await session.secure(.hide);
     expect(session.status, isA<ChangedElsewhere>());
-    final file = FileController(
+    final file = TextEditPageController(
       session,
       reach: () => Reach.reachable,
       reachSettled: () async => Reach.reachable,

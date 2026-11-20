@@ -24,7 +24,7 @@ final class _HeldArrival implements FileArrival {
 void main() {
   late FileFixture fixture;
   late _HeldArrival arrival;
-  late FileSession session;
+  late TextEditSession session;
 
   setUp(() async {
     fixture = await FileFixture.create();

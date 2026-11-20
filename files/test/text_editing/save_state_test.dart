@@ -5,7 +5,7 @@ import 'package:truce_files/truce_files.dart';
 void main() {
   test('the save icon shows where the latest edits are', () {
     final theirs = Seen('', const Version(1));
-    final cases = <(FileStatus, bool), SaveState>{
+    final cases = <(TextFileStatus, bool), SaveState>{
       (const InStep(), true): SaveState.editing,
       (const Editing(.inMemory), false): SaveState.editing,
       (const Editing(.onDevice), false): SaveState.onDevice,

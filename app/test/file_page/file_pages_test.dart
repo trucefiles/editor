@@ -10,12 +10,12 @@ import 'file_fixture.dart';
 
 void main() {
   late FileFixture fixture;
-  late OpenFiles open;
+  late OpenEdits open;
   late int closings;
 
   setUp(() async {
     fixture = await FileFixture.create();
-    open = OpenFiles();
+    open = OpenEdits();
     closings = 0;
   });
 
@@ -30,7 +30,7 @@ void main() {
     draftsOf: (folder) => fixture.drafts[folder.id]!,
     reachOf: (_) => Reach.reachable,
     reachSettled: (_) async => Reach.reachable,
-    openFiles: open,
+    openEdits: open,
     fileClosed: () => closings++,
     endWait: const Duration(seconds: 1),
     arrivals: noArrivals(),

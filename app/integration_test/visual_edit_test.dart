@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/file_page/ui/text_edit_page.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import 'app_steps.dart';
@@ -320,7 +320,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Select all'), findsNothing);
-    expect(find.byType(FileScreen), findsOne);
+    expect(find.byType(TextEditPage), findsOne);
   });
 
   testApp('typed marks stay text', (tester) async {

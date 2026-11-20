@@ -25,7 +25,7 @@ final draftsProvider = Provider<DraftsByFolder>(
 );
 
 /// The files open on screen right now.
-final openFilesProvider = Provider<OpenFiles>((_) => OpenFiles());
+final openEditsProvider = Provider<OpenEdits>((_) => OpenEdits());
 
 /// What the file steps work with.
 final filesWorkProvider = Provider<FilesWork>((ref) {

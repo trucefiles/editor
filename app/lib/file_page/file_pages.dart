@@ -5,7 +5,7 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import 'file_controller.dart';
+import 'text_edit_page_controller.dart';
 
 /// Runs an action on the open file, created first for a new
 /// file; if there is none, the action doesn't run and the user is told
@@ -24,16 +24,16 @@ final class FilePage {
     this.view,
     this.session,
     this.controller,
-    this._leaveOpenFiles,
+    this._leaveOpenEdits,
     this._closed,
   );
 
   final EditableType type;
   final EditorPart part;
   final EditorView view;
-  final FileSession session;
-  final FileController controller;
-  final void Function() _leaveOpenFiles;
+  final TextEditSession session;
+  final TextEditPageController controller;
+  final void Function() _leaveOpenEdits;
   final void Function() _closed;
 
   /// Closes the page; its edits are kept first, as far as they can be.
@@ -46,7 +46,7 @@ final class FilePage {
     // without one (its route removed), and a second answer is quick. It
     // stays an open file until then, so a folder change waits for it.
     final secured = session.secure(SecureReason.close).whenComplete(() {
-      _leaveOpenFiles();
+      _leaveOpenEdits();
       session.dispose();
     });
     _closed();
@@ -76,7 +76,7 @@ final class FilePages {
     required this.draftsOf,
     required this.reachOf,
     required this.reachSettled,
-    required this.openFiles,
+    required this.openEdits,
     required this.fileClosed,
     required this.endWait,
     required this.arrivals,
@@ -92,7 +92,7 @@ final class FilePages {
   final FileDrafts Function(Folder folder) draftsOf;
   final Reach Function(FolderId folder) reachOf;
   final Future<Reach> Function(FolderId folder) reachSettled;
-  final OpenFiles openFiles;
+  final OpenEdits openEdits;
   final void Function() fileClosed;
   final FileArrivals arrivals;
 
@@ -134,7 +134,7 @@ final class FilePages {
     };
     // Made below, over the session; the editor tells view changes only
     // once the page is open, so after it is made.
-    late final FileController controller;
+    late final TextEditPageController controller;
     final editor = type.openEditor(
       (
         text: switch (file) {
@@ -155,9 +155,9 @@ final class FilePages {
         withFile: withFile,
       ),
     );
-    final session = FileSession(
+    final session = TextEditSession(
       file,
-      FileEffects(
+      TextEditEffects(
         newFile: newFile,
         filesOf: filesOf,
         draftsOf: draftsOf,
@@ -169,7 +169,7 @@ final class FilePages {
       arrivals: arrivals,
     );
     FolderId folder() => session.file.folder.id;
-    controller = FileController(
+    controller = TextEditPageController(
       session,
       reach: () => reachOf(folder()),
       reachSettled: () => reachSettled(folder()),
@@ -186,7 +186,7 @@ final class FilePages {
     controller.addListener(
       () => editor.part.showReadOnly(readOnly: controller.readOnly),
     );
-    final leaveOpenFiles = openFiles.add(
+    final leaveOpenEdits = openEdits.add(
       folder: folder,
       secure: session.secure,
       secureForExit: session.secureForExit,
@@ -197,7 +197,7 @@ final class FilePages {
       editor.view,
       session,
       controller,
-      leaveOpenFiles,
+      leaveOpenEdits,
       fileClosed,
     );
   }

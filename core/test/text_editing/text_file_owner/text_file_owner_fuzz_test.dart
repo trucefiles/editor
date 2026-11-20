@@ -18,8 +18,8 @@ final class _World {
   }) {
     if (!isNew) file = Seen('a', _version());
     owner = _Owner(switch (file) {
-      final opened? => openedFile(opened),
-      null => newFile(),
+      final opened? => openedTextFile(opened),
+      null => newTextFile(),
     }, _output);
     text = owner.state.text;
     lineage = file?.version;
@@ -35,7 +35,7 @@ final class _World {
   final bool delayed;
 
   /// Messages for the editor not yet delivered.
-  final toEditor = <FileEvent>[];
+  final toEditor = <TextFileEvent>[];
 
   /// Texts a draft's base may be: those the editor took, and those the
   /// owner wrote, which the edits after them build on.
@@ -72,7 +72,7 @@ final class _World {
   var moveAnswers = 0;
   String? deletedText;
   final conflicts = <String>[];
-  final effects = <FileEffect>[];
+  final effects = <TextFileEffect>[];
   final scans = <(Moment, Observation)>[];
   final answers = <Answer>[];
   var restoreAsked = false;
@@ -96,7 +96,7 @@ final class _World {
         _toEditor(message);
       case DropDraft():
         draft = null;
-      case final FileEffect effect:
+      case final TextFileEffect effect:
         expect(
           switch (effect) {
             KeepDraft(:final base?) => taken.contains(base),
@@ -167,7 +167,7 @@ final class _World {
 
   /// The editor takes a change from the owner: a change elsewhere only
   /// if it has no edits the owner had not seen.
-  void _toEditor(FileEvent output) {
+  void _toEditor(TextFileEvent output) {
     switch (output) {
       case Replaced(:final text, :final version, :final ackRev)
           when ackRev == rev:
@@ -262,7 +262,7 @@ final class _World {
     _ => false,
   };
 
-  void _finish(FileEffect effect) {
+  void _finish(TextFileEffect effect) {
     final endedAt = Moment.now();
     switch (effect) {
       case KeepDraft(:final id, :final text, :final file, :final firstLine):
@@ -437,16 +437,22 @@ void main() {
 /// A file machine stepped as its owner steps it: a message sent while one
 /// is handled waits for it; each step's outputs go to [_output].
 final class _Owner {
-  _Owner(FileMachine machine, this._output) : _run = MachineRun.of(machine);
+  _Owner(TextFileMachine machine, this._output) : _run = MachineRun.of(machine);
 
-  final MachineRun<FileMessage, FileState, FileEvent, FileEffect> _run;
+  final MachineRun<
+    TextFileMessage,
+    TextFileState,
+    TextFileEvent,
+    TextFileEffect
+  >
+  _run;
   final void Function(Object? output) _output;
-  final _messages = Queue<FileMessage>();
+  final _messages = Queue<TextFileMessage>();
   bool _handling = false;
 
-  FileState get state => _run.state;
+  TextFileState get state => _run.state;
 
-  void send(FileMessage message) {
+  void send(TextFileMessage message) {
     _messages.add(message);
     if (_handling) return;
     _handling = true;

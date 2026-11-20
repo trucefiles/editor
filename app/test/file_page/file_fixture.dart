@@ -55,7 +55,7 @@ final class FileFixture {
   final later = DateTime.now().add(const Duration(days: 1));
 
   /// The effects of a session that starts at [file].
-  FileEffects effects(PageFile file) => FileEffects(
+  TextEditEffects effects(PageFile file) => TextEditEffects(
     newFile: switch (file) {
       NewFile() => file,
       ExistingFile() => null,
@@ -106,7 +106,7 @@ final class FileFixture {
 
   /// A session on [file], by default on [this.file], its files arriving
   /// as [arrivals] say; disposed after the test.
-  FileSession session([
+  TextEditSession session([
     PageFile? file,
     TextMerge? merge,
     FileArrivals? arrivals,
@@ -145,7 +145,7 @@ final class FileFixture {
   }
 }
 
-extension Typing on FileSession {
+extension Typing on TextEditSession {
   /// Types [text] at the caret, as the keyboard does; with none yet, at
   /// the start, as after a tap there.
   void type(String text) => gate.send(

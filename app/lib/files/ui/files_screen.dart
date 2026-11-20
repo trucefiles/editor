@@ -12,7 +12,7 @@ import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
-import '../../file_page/ui/file_screen.dart';
+import '../../file_page/ui/text_edit_page.dart';
 import '../../file_types/file_types.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../../folder_state/folder_state_wiring.dart';
@@ -141,7 +141,7 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => FileScreen.fresh(place, made: pick),
+        builder: (_) => TextEditPage.fresh(place, made: pick),
       ),
     );
   }

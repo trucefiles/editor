@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/file_page/file_controller.dart';
+import 'package:truce_editor/file_page/text_edit_page_controller.dart';
 import 'package:truce_editor/file_page/ui/edit_state_banner.dart';
 import 'package:truce_files/truce_files.dart';
 
@@ -16,7 +16,7 @@ void main() {
       tester,
     ) async {
       late FileFixture fixture;
-      late FileSession session;
+      late TextEditSession session;
       await tester.runAsync(() async {
         fixture = await FileFixture.create();
         session = fixture.session();
@@ -25,7 +25,7 @@ void main() {
         await session.secure(.hide);
       });
       expect(session.state, isA<Stopped>());
-      final controller = FileController(
+      final controller = TextEditPageController(
         session,
         reach: () => Reach.reachable,
         reachSettled: () async => Reach.reachable,

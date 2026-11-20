@@ -87,13 +87,13 @@ void main() {
 
   test('a bug in writing stops the session; edits stay a draft', () async {
     final errors = <Object>[];
-    late FileSession session;
+    late TextEditSession session;
 
     // Made in the zone, so the error of its file owner is heard there.
     await runZonedGuarded(() async {
       session = markdownSession(
         ExistingFile(fixture.file),
-        FileEffects(
+        TextEditEffects(
           filesOf: (_) => throw StateError('bug'),
           draftsOf: (folder) => fixture.drafts[folder.id]!,
           create: (
@@ -148,12 +148,12 @@ void main() {
   test('once stopped, its text is the latest edits, also those the editor '
       'still held', () async {
     var broken = false;
-    late FileSession session;
+    late TextEditSession session;
 
     await runZonedGuarded(() async {
       session = markdownSession(
         ExistingFile(fixture.file),
-        FileEffects(
+        TextEditEffects(
           filesOf: (folder) =>
               broken ? throw StateError('bug') : fixture.files[folder.id]!,
           draftsOf: (folder) => fixture.drafts[folder.id]!,
@@ -242,12 +242,12 @@ void main() {
   test(
     "once stopped, a new document's draft is named after its edits",
     () async {
-      late FileSession session;
+      late TextEditSession session;
 
       await runZonedGuarded(() async {
         session = markdownSession(
           fixture.newFile,
-          FileEffects(
+          TextEditEffects(
             newFile: fixture.newFile,
             filesOf: (folder) => fixture.files[folder.id]!,
             draftsOf: (folder) => fixture.drafts[folder.id]!,
@@ -315,7 +315,7 @@ void main() {
 
   test('a change elsewhere without edits shows, and says so', () async {
     final session = fixture.session();
-    final notices = <FileEvent>[];
+    final notices = <TextFileEvent>[];
     session.fileNotices.listen(notices.add);
     final theirs = await fixture.editElsewhere('two\n');
 
@@ -386,7 +386,7 @@ void main() {
   group('changed elsewhere during edits', () {
     late Seen theirs;
 
-    Future<void> changeDuringEdits(FileSession session) async {
+    Future<void> changeDuringEdits(TextEditSession session) async {
       session.type('x');
       theirs = (await fixture.editElsewhere('two\n')).seen;
       expect(await session.secure(.hide), isTrue);

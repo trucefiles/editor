@@ -8,9 +8,9 @@ import '../file_title.dart';
 import '../folder_state/folder_contents.dart';
 import '../move_failure.dart';
 import '../read_version.dart';
-import 'file_effects.dart';
 import 'page_file.dart';
 import 'save_state.dart';
+import 'text_edit_effects.dart';
 
 /// Whether an open file takes edits.
 sealed class SessionState {
@@ -55,22 +55,22 @@ final class Ended extends SessionState {
 /// become the other's inputs. Their effects run inside the owners. No UI.
 /// [changes] tells of every change of where the edits are ([status],
 /// [saveState]), of [summary], and of [state].
-final class FileSession {
+final class TextEditSession {
   /// The file [opened]: one that exists, or a new one with the text it
   /// starts with; its file read and written by [effects], edited by
   /// [editor], which opened with that text. [merge]: how its type merges
   /// two texts, if it does; then a change elsewhere can be picked merged
   /// with the edits ([mergesWith]). [arrivals]: how a past version
   /// arrives as it is restored ([replaceAll]).
-  FileSession(
+  TextEditSession(
     PageFile opened,
     this._effects,
     this.editor, {
     TextMerge? merge,
     required this._arrivals,
-  }) : _file = fileOwner(switch (opened) {
-         ExistingFile(:final file) => openedFile(file.seen, merge: merge),
-         NewFile(:final start) => newFile(start: start, merge: merge),
+  }) : _file = textFileOwner(switch (opened) {
+         ExistingFile(:final file) => openedTextFile(file.seen, merge: merge),
+         NewFile(:final start) => newTextFile(start: start, merge: merge),
        }, _effects.run) {
     _heard = (unsent: editor.state.unsent, summary: summary);
     _subscriptions = [
@@ -81,8 +81,8 @@ final class FileSession {
     ];
   }
 
-  final FileEffects _effects;
-  final FileOwner<ReadVersion> _file;
+  final TextEditEffects _effects;
+  final TextFileOwner<ReadVersion> _file;
   final FileArrivals _arrivals;
 
   /// The way into the editor owner.
@@ -90,7 +90,7 @@ final class FileSession {
 
   late final List<StreamSubscription<Object>> _subscriptions;
   final _editorNotices = StreamController<EditorNotice>.broadcast(sync: true);
-  final _fileNotices = StreamController<FileEvent>.broadcast(sync: true);
+  final _fileNotices = StreamController<TextFileEvent>.broadcast(sync: true);
   final _changes = StreamController<void>.broadcast(sync: true);
 
   /// Whether the editor held edits not yet sent, and the summary it told,
@@ -110,7 +110,7 @@ final class FileSession {
   FileText? get read => _file.state.file?.read;
 
   /// Where the file stands against its file.
-  FileStatus<ReadVersion> get status => _file.state.status;
+  TextFileStatus<ReadVersion> get status => _file.state.status;
 
   /// The edits as last sent to be kept, and their rev. Once [Stopped],
   /// its text: the latest edits.
@@ -140,7 +140,7 @@ final class FileSession {
 
   /// What the user is told of the file: [Replaced], [PickNotKept],
   /// [PickMerged].
-  Stream<FileEvent> get fileNotices => _fileNotices.stream;
+  Stream<TextFileEvent> get fileNotices => _fileNotices.stream;
 
   /// Fires on every change of where the edits are, of where the file is,
   /// of [summary] (so of [title] and [path]), and of [state].
@@ -211,7 +211,7 @@ final class FileSession {
   /// compare view shows, can be picked merged; `false` once another
   /// version from elsewhere came, or the file closed.
   Future<bool> mergesWith(Seen theirs) async {
-    final answer = await ask<FileInput<ReadVersion>, MergesAnswer>(
+    final answer = await ask<TextFileInput<ReadVersion>, MergesAnswer>(
       _file.send,
       _file.events,
       (ticket) => AskMerges(ticket, seen: theirs.version),
@@ -249,13 +249,15 @@ final class FileSession {
   /// its file yet are saved first; how it went.
   Future<Result<FileText, MoveFailure>> move(MoveTarget to) async {
     late final Ticket asked;
-    await ask<FileInput<ReadVersion>, MoveAnswer>(_file.send, _file.events, (
-      ticket,
-    ) {
-      asked = ticket;
-      _effects.aimMove(ticket, to);
-      return Move(ticket);
-    });
+    await ask<TextFileInput<ReadVersion>, MoveAnswer>(
+      _file.send,
+      _file.events,
+      (ticket) {
+        asked = ticket;
+        _effects.aimMove(ticket, to);
+        return Move(ticket);
+      },
+    );
     return _effects.takeMoveResult(asked) ?? const Err(MoveNotSaved());
   }
 
@@ -309,7 +311,7 @@ final class FileSession {
   /// [edited] as the file owner takes it: while the file has no
   /// file, with its first line, which names the file. The editor told the summary of
   /// [edited]'s text with it.
-  FileInput<ReadVersion> _toFile(Edited edited) => switch (file) {
+  TextFileInput<ReadVersion> _toFile(Edited edited) => switch (file) {
     NewFile() => NewEdited(edited, firstLine: summary.firstLine),
     ExistingFile() => edited,
   };
@@ -383,7 +385,7 @@ final class FileSession {
     _changed();
   }
 
-  void _onFileEvent(FileEvent event) {
+  void _onFileEvent(TextFileEvent event) {
     switch (event) {
       case ToEditor():
         editor.send(FromFile(event));

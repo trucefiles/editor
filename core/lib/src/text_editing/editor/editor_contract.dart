@@ -9,7 +9,7 @@ library;
 import '../../filetypes/file_type_support.dart';
 import '../../owners/ask.dart';
 import '../../owners/owner.dart';
-import '../file_owner/file_contract.dart';
+import '../text_file_owner/text_file_contract.dart';
 
 /// Any file type's editor owner as the file page sees it: the
 /// page's requests go in, its notices come out, and its state tells of
@@ -81,7 +81,7 @@ final class ToFile extends EditorNotice {
   const ToFile(this.input);
 
   /// Names no version of the file: the editor only compares versions.
-  final FileInput<Never> input;
+  final TextFileInput<Never> input;
 }
 
 /// Undo step [id] is one the user is offered to undo right away: [what]

@@ -84,12 +84,12 @@ enum RestoreOutcome {
 /// device, whether a folder still shows it, and backups restored into it.
 /// No UI. Listeners hear of every change of the [session], and of its
 /// folder's reach.
-final class FileController extends ChangeNotifier {
+final class TextEditPageController extends ChangeNotifier {
   /// [reach]: the reach of the file's folder now; [reachSettled]: once
   /// a running check of it is over. [backUp]: backs up the file's
   /// text. [delete] deletes it; [settingsOf] gives a file's settings,
   /// [editSettings] changes them.
-  FileController(
+  TextEditPageController(
     this.session, {
     required this.reach,
     required this.reachSettled,
@@ -105,7 +105,7 @@ final class FileController extends ChangeNotifier {
     });
   }
 
-  final FileSession session;
+  final TextEditSession session;
   final Reach Function() reach;
   final Future<Reach> Function() reachSettled;
   final BackUpText backUp;
@@ -210,12 +210,12 @@ final class FileController extends ChangeNotifier {
     return true;
   }
 
-  /// Keeps the edits for [reason] ([FileSession.secure]); whether
+  /// Keeps the edits for [reason] ([TextEditSession.secure]); whether
   /// they are kept: in the file or a conflict copy, or on this device
   /// while the folder can't be reached (a failed save may just have
   /// started a check of the folder, so this waits for its outcome); as
   /// the app ends, on this device is enough, within [endWait]
-  /// ([FileSession.secureForExit]). Once the session stopped, whether it
+  /// ([TextEditSession.secureForExit]). Once the session stopped, whether it
   /// kept them on this device.
   Future<bool> keep(SecureReason reason) async {
     // Kept on this device by the session itself, if it could.

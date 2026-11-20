@@ -99,7 +99,7 @@ final class _Device {
     final drafts = tempDrafts();
     final session = markdownSession(
       ExistingFile(file),
-      FileEffects(
+      TextEditEffects(
         filesOf: (_) => files,
         draftsOf: (_) => drafts,
         create:
@@ -128,7 +128,7 @@ final class _Device {
 
   final Directory dir;
   final FilesOfFolder files;
-  final FileSession session;
+  final TextEditSession session;
 
   File get mainFile => File('${dir.path}/todo.md');
 

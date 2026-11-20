@@ -29,9 +29,9 @@ import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
 import '../../text_zoom/ui/document_text_zoom.dart';
 import '../../versions/merge_outcome.dart';
-import '../file_controller.dart';
 import '../file_page_wiring.dart';
 import '../file_pages.dart';
+import '../text_edit_page_controller.dart';
 import 'edit_file_place.dart';
 import 'edit_state_banner.dart';
 import 'file_backups.dart';
@@ -45,14 +45,14 @@ import 'save_indicator.dart';
 /// part shows the text (e.g. Visual edit, Markdown edit or Read of a
 /// Markdown document). Saves as the user types; a new file is
 /// created as the user leaves it or the app is hidden.
-class FileScreen extends ConsumerStatefulWidget {
+class TextEditPage extends ConsumerStatefulWidget {
   /// The page of [file], as read just before.
-  FileScreen(FileText file, {super.key})
+  TextEditPage(FileText file, {super.key})
     : _open = ((pages, withFile) => pages.open(file, withFile: withFile)),
       _isNew = false;
 
   /// A new file [made], to go into [place].
-  FileScreen.fresh(
+  TextEditPage.fresh(
     FilePlace place, {
     required NewFileChoice<EditableType> made,
     super.key,
@@ -67,10 +67,10 @@ class FileScreen extends ConsumerStatefulWidget {
   final bool _isNew;
 
   @override
-  ConsumerState<FileScreen> createState() => _FileScreenState();
+  ConsumerState<TextEditPage> createState() => _TextEditPageState();
 }
 
-class _FileScreenState extends ConsumerState<FileScreen> {
+class _TextEditPageState extends ConsumerState<TextEditPage> {
   late final FilePage _page;
   late final StreamSubscription<void> _partChanges;
   late final AppLifecycleListener _lifecycle;
@@ -78,8 +78,8 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   final _messenger = GlobalKey<ScaffoldMessengerState>();
   final _pull = GlobalKey<PullToRefreshState>();
 
-  FileSession get _session => _page.session;
-  FileController get _controller => _page.controller;
+  TextEditSession get _session => _page.session;
+  TextEditPageController get _controller => _page.controller;
   PageEditor get _editor => _session.editor;
 
   /// Where the file is now: it changes when the user moves it, or
@@ -150,7 +150,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     }
   }
 
-  void _onFileNotice(FileEvent notice) {
+  void _onFileNotice(TextFileEvent notice) {
     final messenger = _messenger.currentState;
     switch (notice) {
       case Replaced(by: ReplacedBy.elsewhere):
@@ -162,7 +162,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
     }
   }
 
-  /// Leaves once the edits are kept (see [FileController.mayGo]).
+  /// Leaves once the edits are kept (see [TextEditPageController.mayGo]).
   /// While the folder can't be reached, they stay on this device and go
   /// into the file at the next start.
   Future<void> _leave() async {
@@ -249,7 +249,7 @@ class _FileScreenState extends ConsumerState<FileScreen> {
   }
 
   /// Runs [action] on the file (see
-  /// [FileController.withFile]).
+  /// [TextEditPageController.withFile]).
   Future<void> _withFile(
     FutureOr<void> Function(ListedFile file) action,
   ) async {

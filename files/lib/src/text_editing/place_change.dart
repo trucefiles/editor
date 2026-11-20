@@ -4,8 +4,8 @@ import '../file_place.dart';
 import '../file_text.dart';
 import '../move_failure.dart';
 import '../new_file_name.dart';
-import 'file_effects.dart';
 import 'page_file.dart';
+import 'text_edit_effects.dart';
 
 /// A place and name the user picked for a file, the name as typed;
 /// [newSubfolder]: the place's subfolder is a new one, made with the

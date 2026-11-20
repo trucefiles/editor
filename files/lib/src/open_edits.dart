@@ -2,7 +2,7 @@ import 'package:truce_core/truce_core.dart';
 
 /// The files open on screen right now, so that removing a folder or
 /// ending the app first keeps their edits where they last.
-final class OpenFiles {
+final class OpenEdits {
   final _open = <Object, _OpenFile>{};
 
   /// Adds an open file, now in the folder [folder] gives, whose edits

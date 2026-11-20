@@ -45,7 +45,7 @@
 ///     what changed ([FolderStateOwner]).
 /// 14. `files`: an open file, kept on the device and in
 ///     the folder in step with changes elsewhere, by its owner
-///     ([FileOwner]); and what every type's editor shares: the page's
+///     ([TextFileOwner]); and what every type's editor shares: the page's
 ///     requests and notices ([EditorRequest], [EditorNotice]), the save
 ///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
 ///     ([EditorSteps]); any file type, any plugin.
@@ -92,18 +92,6 @@ export 'src/conflicts/copies/stamped_copy_names.dart';
 export 'src/conflicts/copies/with_conflict_copies.dart';
 export 'src/conflicts/default_conflict_service.dart';
 export 'src/conflicts/text_merge.dart';
-export 'src/files/editor/editor_book.dart';
-export 'src/files/editor/editor_contract.dart';
-export 'src/files/editor/editor_steps.dart';
-export 'src/files/editor/history/edit_history.dart';
-export 'src/files/editor/history/text_change.dart';
-export 'src/files/editor/history/text_edit.dart';
-export 'src/files/editor/history/text_step.dart';
-export 'src/files/editor/history/typing.dart';
-export 'src/files/editor/history/undoable_edit.dart';
-export 'src/files/editor/save_clock.dart';
-export 'src/files/file_owner/file_owner.dart';
-export 'src/files/version.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
@@ -158,5 +146,17 @@ export 'src/text/extended_autolinks.dart';
 export 'src/text/line_match.dart';
 export 'src/text/lines.dart';
 export 'src/text/text_file.dart';
+export 'src/text_editing/editor/editor_book.dart';
+export 'src/text_editing/editor/editor_contract.dart';
+export 'src/text_editing/editor/editor_steps.dart';
+export 'src/text_editing/editor/history/edit_history.dart';
+export 'src/text_editing/editor/history/text_change.dart';
+export 'src/text_editing/editor/history/text_edit.dart';
+export 'src/text_editing/editor/history/text_step.dart';
+export 'src/text_editing/editor/history/typing.dart';
+export 'src/text_editing/editor/history/undoable_edit.dart';
+export 'src/text_editing/editor/save_clock.dart';
+export 'src/text_editing/text_file_owner/text_file_owner.dart';
+export 'src/text_editing/version.dart';
 export 'src/versions/resolution.dart';
 export 'src/versions/resolve_error.dart';

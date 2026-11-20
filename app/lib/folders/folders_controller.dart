@@ -21,7 +21,7 @@ final folderListOwnerProvider = Provider<FolderListOwner>((ref) {
     FolderListWork(
       store: ref.watch(folderListStoreProvider),
       plugins: ref.watch(folderPluginsProvider),
-      secureOpen: ref.read(openFilesProvider).secureIn,
+      secureOpen: ref.read(openEditsProvider).secureIn,
       forgetDrafts: (folder) => ref.read(draftsProvider).of(folder).forget(),
       countDrafts: (folder) => ref.read(draftsProvider).of(folder).count(),
     ),

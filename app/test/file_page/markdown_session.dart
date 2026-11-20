@@ -9,13 +9,13 @@ import '../support.dart';
 /// whose file [effects] reads and writes, its editor in [mode]; [merge]
 /// as a type that merges would give it; [arrivals] as the app's types
 /// would, by default none.
-FileSession markdownSession(
+TextEditSession markdownSession(
   PageFile opened,
-  FileEffects effects, {
+  TextEditEffects effects, {
   EditMode mode = EditMode.visual,
   TextMerge? merge,
   FileArrivals? arrivals,
-}) => FileSession(
+}) => TextEditSession(
   opened,
   effects,
   MarkdownPageEditor(
@@ -37,7 +37,7 @@ FileSession markdownSession(
   arrivals: arrivals ?? noArrivals(),
 );
 
-extension MarkdownSession on FileSession {
+extension MarkdownSession on TextEditSession {
   /// The way into the session's Markdown editor owner.
   EditorGate get gate => (editor as MarkdownPageEditor).gate;
 }

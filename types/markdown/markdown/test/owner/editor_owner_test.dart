@@ -608,7 +608,7 @@ void main() {
   });
 
   test('with a file owner, a change elsewhere after a save shows', () {
-    final file = MachineRun.of(openedFile(const Seen('a', v1)));
+    final file = MachineRun.of(openedTextFile(const Seen('a', v1)));
     late final EditorRun editor;
     // What the file holds for the reads the file owner starts.
     var onDisk = const Seen('a', v1);

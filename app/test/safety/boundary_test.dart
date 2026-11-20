@@ -147,7 +147,7 @@ void main() {
     final a = (await files.open(path('a.md'))).value;
     var secured = false;
     container
-        .read(openFilesProvider)
+        .read(openEditsProvider)
         .add(
           folder: () => folder.id,
           secure: (_) async {

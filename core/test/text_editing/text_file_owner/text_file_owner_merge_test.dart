@@ -11,19 +11,25 @@ const _v3 = Version(3);
 final class _Run {
   _Run(String text)
     : machine = MachineRun.of(
-        openedFile(Seen(text, _v1), merge: const FakeTextMerge()),
+        openedTextFile(Seen(text, _v1), merge: const FakeTextMerge()),
       );
 
-  final MachineRun<FileMessage, FileState, FileEvent, FileEffect> machine;
+  final MachineRun<
+    TextFileMessage,
+    TextFileState,
+    TextFileEvent,
+    TextFileEffect
+  >
+  machine;
 
-  FileState get state => machine.state;
-  FileStatus get status => state.status;
+  TextFileState get state => machine.state;
+  TextFileStatus get status => state.status;
   T last<T>() => machine.last<T>();
   List<T> all<T>() => machine.all<T>();
 
   Seen? _file;
 
-  void send(FileMessage message) {
+  void send(TextFileMessage message) {
     for (final read in machine.send(message).whereType<ReadLatest>()) {
       send(LatestRead(read.id, _file));
     }
@@ -114,7 +120,7 @@ void main() {
     test('merges nothing while no one asks, whatever comes', () {
       final merge = _CountingMerge();
       final run = MachineRun.of(
-        openedFile(const Seen('a:1\n', _v1), merge: merge),
+        openedTextFile(const Seen('a:1\n', _v1), merge: merge),
       )..send(const Edited('a:1\nb:1\n', rev: 1, lineage: _v1, picks: 0));
       run.send(DraftKept(run.last<KeepDraft>().id, kept: true));
       for (final read
@@ -205,7 +211,7 @@ void main() {
   });
 
   test('a type that does not merge never merges a pick', () {
-    final run = MachineRun.of(openedFile(const Seen('a:1\n', _v1)));
+    final run = MachineRun.of(openedTextFile(const Seen('a:1\n', _v1)));
     run
       ..send(const Edited('a:1\nb:1\n', rev: 1, lineage: _v1, picks: 0))
       ..send(DraftKept(run.last<KeepDraft>().id, kept: true));

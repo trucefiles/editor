@@ -18,7 +18,7 @@ enum SaveState {
 
 /// The [SaveState] of a file whose file stands at [status]; [unsent]:
 /// the editor holds edits not yet sent to be kept.
-SaveState saveStateOf(FileStatus status, {required bool unsent}) =>
+SaveState saveStateOf(TextFileStatus status, {required bool unsent}) =>
     switch (status) {
       _ when unsent => SaveState.editing,
       Editing(phase: EditPhase.inMemory) => SaveState.editing,

@@ -41,10 +41,10 @@ typedef MoveTarget = ({FilePlace place, String title, bool newSubfolder});
 /// keeps conflict copies; answers each effect with the result the owner gets.
 /// Each effect names the file it acts on; where it names none (a new
 /// file's), it acts where the new file goes.
-final class FileEffects {
+final class TextEditEffects {
   /// [newFile]: where a new file goes; `null` for a file
   /// opened from its file.
-  FileEffects({
+  TextEditEffects({
     this._newFile,
     required this._filesOf,
     required this._draftsOf,
@@ -82,41 +82,47 @@ final class FileEffects {
   /// Does [effect]; its result for the file owner, `null` for an effect
   /// without one. Draft work starts before this returns, so drafts are
   /// kept and dropped in the order asked.
-  Future<FileResult<ReadVersion>?> run(FileEffect<ReadVersion> effect) =>
-      switch (effect) {
-        KeepDraft(
-          :final id,
-          :final base,
-          :final text,
-          :final file,
-          :final firstLine,
-        ) =>
-          _keepDraft(id, base, text, whereOf(file), firstLine: firstLine),
-        DropDraft(:final file) => _dropDraft(whereOf(file)),
-        Write(:final id, :final text, :final over, :final backUpFirst) =>
-          _wrote(id, _write(text, over.version.read, backUpFirst: backUpFirst)),
-        Create(:final id, :final text, :final firstLine) => _wrote(
-          id,
-          _createFile(text, firstLine: firstLine),
-        ),
-        Restore(:final id, :final text, :final where) => _wrote(
-          id,
-          _restore(text, where.version.read),
-        ),
-        ReadLatest(:final id, :final at) => _readLatest(id, at.version.read),
-        MoveFile(:final id, :final ticket, :final from) => _moveFile(
-          id,
-          ticket,
-          from.version.read,
-        ),
-        BackUpBoth(:final id, :final theirs, :final mine) => _backUpBoth(
-          id,
-          theirs.version.read,
-          mine,
-        ),
-        KeepAsConflict(:final id, :final text, :final nextTo) =>
-          _keepAsConflict(id, text, nextTo.version.read),
-      };
+  Future<TextFileResult<ReadVersion>?> run(
+    TextFileEffect<ReadVersion> effect,
+  ) => switch (effect) {
+    KeepDraft(
+      :final id,
+      :final base,
+      :final text,
+      :final file,
+      :final firstLine,
+    ) =>
+      _keepDraft(id, base, text, whereOf(file), firstLine: firstLine),
+    DropDraft(:final file) => _dropDraft(whereOf(file)),
+    Write(:final id, :final text, :final over, :final backUpFirst) => _wrote(
+      id,
+      _write(text, over.version.read, backUpFirst: backUpFirst),
+    ),
+    Create(:final id, :final text, :final firstLine) => _wrote(
+      id,
+      _createFile(text, firstLine: firstLine),
+    ),
+    Restore(:final id, :final text, :final where) => _wrote(
+      id,
+      _restore(text, where.version.read),
+    ),
+    ReadLatest(:final id, :final at) => _readLatest(id, at.version.read),
+    MoveFile(:final id, :final ticket, :final from) => _moveFile(
+      id,
+      ticket,
+      from.version.read,
+    ),
+    BackUpBoth(:final id, :final theirs, :final mine) => _backUpBoth(
+      id,
+      theirs.version.read,
+      mine,
+    ),
+    KeepAsConflict(:final id, :final text, :final nextTo) => _keepAsConflict(
+      id,
+      text,
+      nextTo.version.read,
+    ),
+  };
 
   /// The user picked where a new file goes; its draft goes
   /// along.
@@ -167,7 +173,7 @@ final class FileEffects {
     (null, null) => throw StateError('A document without file or place.'),
   };
 
-  Future<FileResult<ReadVersion>> _keepDraft(
+  Future<TextFileResult<ReadVersion>> _keepDraft(
     EffectId id,
     String? base,
     String text,
@@ -206,14 +212,14 @@ final class FileEffects {
     return _draftsOf(where.folder).keep(draft);
   }
 
-  Future<FileResult<ReadVersion>?> _dropDraft(PageFile where) async {
+  Future<TextFileResult<ReadVersion>?> _dropDraft(PageFile where) async {
     _draft = null;
     _draftFirstLine = null;
     await _draftsOf(where.folder).remove(_draftId);
     return null;
   }
 
-  Future<FileResult<ReadVersion>> _wrote(
+  Future<TextFileResult<ReadVersion>> _wrote(
     EffectId id,
     Future<WriteOutcome<ReadVersion>> write,
   ) async {
@@ -221,11 +227,13 @@ final class FileEffects {
     return Wrote(id, outcome, endedAt: Moment.now());
   }
 
-  Future<FileResult<ReadVersion>> _readLatest(EffectId id, FileText at) async =>
-      switch (await _filesOf(at.folder).reload(at.listed)) {
-        Ok(value: final now) => LatestRead(id, now.seen),
-        Err() => LatestRead(id, null),
-      };
+  Future<TextFileResult<ReadVersion>> _readLatest(
+    EffectId id,
+    FileText at,
+  ) async => switch (await _filesOf(at.folder).reload(at.listed)) {
+    Ok(value: final now) => LatestRead(id, now.seen),
+    Err() => LatestRead(id, null),
+  };
 
   Future<WriteOutcome<ReadVersion>> _write(
     String text,
@@ -288,7 +296,7 @@ final class FileEffects {
     };
   }
 
-  Future<FileResult<ReadVersion>> _moveFile(
+  Future<TextFileResult<ReadVersion>> _moveFile(
     EffectId id,
     Ticket ticket,
     FileText from,
@@ -314,7 +322,7 @@ final class FileEffects {
   /// The file now holds [file].
   WriteOutcome<ReadVersion> _written(FileText file) => Written(file.seen);
 
-  Future<FileResult<ReadVersion>> _backUpBoth(
+  Future<TextFileResult<ReadVersion>> _backUpBoth(
     EffectId id,
     FileText file,
     String mine,
@@ -323,7 +331,7 @@ final class FileEffects {
     return BackedUp(id, ok: backedUp is Ok);
   }
 
-  Future<FileResult<ReadVersion>> _keepAsConflict(
+  Future<TextFileResult<ReadVersion>> _keepAsConflict(
     EffectId id,
     String text,
     FileText nextTo,

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
-import 'file_controller.dart';
+import 'text_edit_page_controller.dart';
 
 /// The choice between the open file's edits and the version from
 /// elsewhere, for the compare screen: what shows, whether both can be
@@ -23,12 +23,12 @@ class ChangedElsewhereController extends ChangeNotifier {
     _askMerges();
   }
 
-  final FileController _file;
-  late final StreamSubscription<FileEvent> _notices;
+  final TextEditPageController _file;
+  late final StreamSubscription<TextFileEvent> _notices;
   final _notKept = StreamController<void>.broadcast();
   var _disposed = false;
 
-  FileSession get _session => _file.session;
+  TextEditSession get _session => _file.session;
 
   /// The version a pick was sent against, while it is carried out.
   Seen<ReadVersion>? _picking;

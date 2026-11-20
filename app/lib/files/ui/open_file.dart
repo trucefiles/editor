@@ -4,7 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/snack.dart';
-import '../../file_page/ui/file_screen.dart';
+import '../../file_page/ui/text_edit_page.dart';
 import '../file_actions.dart';
 import 'open_failure_text.dart';
 
@@ -21,7 +21,7 @@ Future<void> openFile(
     case Ok(value: final opened):
       await Navigator.push(
         context,
-        MaterialPageRoute<void>(builder: (_) => FileScreen(opened)),
+        MaterialPageRoute<void>(builder: (_) => TextEditPage(opened)),
       );
     case Err(:final error):
       showSnack(context, "This file can't be opened. ${error.text}");
