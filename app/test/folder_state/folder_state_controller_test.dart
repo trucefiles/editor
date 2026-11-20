@@ -94,22 +94,24 @@ void main() {
     await start([folderAt(dir, id: 'f1')]);
     final drafts = FileDrafts(Directory(storage.draftsPath(folderId('f1'))));
     await drafts.keep(
-      FileDraft(
-        id: '1',
-        path: path('plan.md'),
-        base: '# Plan\nv1\n',
-        text: '# Plan\nmine\n',
+      Draft(
+        DraftHead(
+          id: '1',
+          path: path('plan.md'),
+          of: OwnDraft(fingerprintOf(utf8.encode('# Plan\nv1\n'))),
+        ),
+        utf8.encode('# Plan\nmine\n'),
       ),
     );
     // Written before this run started.
-    File('${storage.draftsPath(folderId('f1'))}/1.json')
+    File('${storage.draftsPath(folderId('f1'))}/1.draft')
         .setLastModifiedSync(DateTime(2000));
 
     final found = await scans();
 
     expect(names(found), ['plan.md']);
     expect(File('${dir.path}/plan.md').readAsStringSync(), '# Plan\nmine\n');
-    expect(await drafts.all(before: DateTime.now()), isEmpty);
+    expect(await drafts.heads(before: DateTime.now()), isEmpty);
   });
 
   test('finds documents, marks and conflicts several levels deep', () async {

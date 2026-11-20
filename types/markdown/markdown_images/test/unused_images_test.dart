@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
@@ -8,18 +12,32 @@ import 'support.dart';
 
 void main() {
   late ImageFolder folder;
-  late List<FileDraft>? drafts;
+  late Directory draftsDir;
+  late FileDrafts drafts;
 
   setUp(() {
     folder = ImageFolder('f1');
-    drafts = [];
+    draftsDir = Directory('${tempFolder().path}/drafts');
+    drafts = FileDrafts(draftsDir);
   });
+
+  Future<void> leaveDraft(String file, String text) => drafts.keep(
+    Draft(
+      DraftHead(
+        id: DraftHead.newId(),
+        path: path(file),
+        of: const OwnDraft(''),
+      ),
+      utf8.encode(text),
+    ),
+  );
 
   /// The cleanup, two hours after the images were put.
   UnusedImages cleanup() => UnusedImages(
     folder.store,
     folder.services,
-    drafts: () async => drafts,
+    drafts: drafts,
+    oldDrafts: OldDrafts(draftsDir),
     isDocument: (path) => path.name.endsWith('.md'),
     now: () =>
         DateTime.fromMillisecondsSinceEpoch(0).add(const Duration(hours: 2)),
@@ -50,13 +68,18 @@ void main() {
       'a.fake-copy-20261101-120000.md',
       '![](document-images/$nameA)',
     );
-    drafts = [
-      FileDraft(
-        id: '1',
-        path: path('b.md'),
-        text: '![](document-images/$nameB)',
-      ),
-    ];
+    await leaveDraft('b.md', '![](document-images/$nameB)');
+
+    expect((await cleanup().find()).value, isEmpty);
+  });
+
+  test('an image a draft of an older app version shows stays', () async {
+    folder.putImage(nameA);
+    File('${draftsDir.path}/1.json')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        jsonEncode({'path': 'b.md', 'text': '![](document-images/$nameA)'}),
+      );
 
     expect((await cleanup().find()).value, isEmpty);
   });
@@ -66,13 +89,7 @@ void main() {
     folder.putImage(nameA);
     folder.files.put('a.md', 'see $nameA, `![](document-images/$nameA)`');
     folder.files.put('b.txt', '![](document-images/$nameA)');
-    drafts = [
-      FileDraft(
-        id: '1',
-        path: path('c.txt'),
-        text: '![](document-images/$nameA)',
-      ),
-    ];
+    await leaveDraft('c.txt', '![](document-images/$nameA)');
 
     expect(names((await cleanup().find()).value), [nameA]);
   });
@@ -83,7 +100,8 @@ void main() {
     final fresh = UnusedImages(
       folder.store,
       folder.services,
-      drafts: () async => drafts,
+      drafts: drafts,
+      oldDrafts: OldDrafts(draftsDir),
       isDocument: (path) => path.name.endsWith('.md'),
       now: () =>
           DateTime.fromMillisecondsSinceEpoch(0)
@@ -104,7 +122,8 @@ void main() {
 
   test('refuses if a draft can not be read', () async {
     folder.putImage(nameA);
-    drafts = null;
+    await leaveDraft('b.md', 'text');
+    File('${draftsDir.path}/2.draft').writeAsStringSync('broken');
 
     expect((await cleanup().find()).error, CleanupRefused.notAllRead);
   });

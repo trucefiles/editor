@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
@@ -60,10 +61,17 @@ void main() {
     )).value;
 
     await effects.run(
-      KeepDraft(id, base: 'one\n', text: 'x', file: copy.seen.version),
+      KeepDraft(
+        id,
+        base: copy.seen.version,
+        text: 'x',
+        file: copy.seen.version,
+      ),
     );
 
-    expect((await fixture.draftsIn('f2')).single.path, path('b.md'));
+    final [kept] = await fixture.draftsIn('f2');
+    expect((kept.path, kept.text), (path('b.md'), 'x'));
+    expect((kept.of as OwnDraft).part, copy.fingerprint);
     expect(await fixture.draftsIn('f1'), isEmpty);
     await effects.run(DropDraft(file: copy.seen.version));
     expect(await fixture.draftsIn('f2'), isEmpty);
@@ -132,12 +140,12 @@ void main() {
       ),
     );
 
-    final recovery = DraftRecovery(
+    await recoverFolderDrafts(
       fixture.drafts[folderId('f1')]!,
-      files: fixture.files[folderId('f1')]!,
-      types: appFileTypes(),
+      fixture.bytes[folderId('f1')]!,
+      recoverOwn: recoverEdits,
+      before: fixture.later,
     );
-    expect(await recovery.recover(before: fixture.later), 1);
 
     expect(fixture.onDisk('2026/Milk.md'), 'Milk');
     expect(fixture.onDisk('Milk.md'), isNull);

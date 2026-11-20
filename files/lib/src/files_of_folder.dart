@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -67,17 +68,69 @@ final class FilesOfFolder {
     RelPath? subfolder,
     required Uint8List bytes,
     bool newSubfolder = false,
-  }) async {
-    final extension = type.newFileExtension;
-    final created = await _createNamed(title, extension, (
-      folder: subfolder,
-      isNew: newSubfolder,
-    ), bytes);
-    if (created case Err(error: StoreError.notFound) when subfolder != null) {
-      return _createNamed(title, extension, (
-        folder: null,
-        isNew: false,
-      ), bytes);
+  }) => _createNew(
+    title,
+    type.newFileExtension,
+    (folder: subfolder, isNew: newSubfolder),
+    bytes,
+    (path) => _store.create(path, bytes),
+  );
+
+  /// The new file a draft at [path] waits for, holding [bytes], written as
+  /// [create] would: named after [path]'s name, in its folder
+  /// ([newSubfolder]: a new one to make), else at the top level. A file at
+  /// one of the names tried that already holds [bytes] is that file,
+  /// written before the app was ended: it is not written twice.
+  Future<Result<FileBytes, StoreError>> createOnce(
+    RelPath path,
+    Uint8List bytes, {
+    bool newSubfolder = false,
+  }) {
+    final (:base, :extension) = splitFileName(path.name);
+    return _createNew(
+      base,
+      extension,
+      (folder: path.parent, isNew: newSubfolder),
+      bytes,
+      (at) async => switch (await _store.create(at, bytes)) {
+        Err(error: StoreError.alreadyExists) => await _holding(at, bytes),
+        final created => created,
+      },
+    );
+  }
+
+  /// The file at [path] if it holds [bytes]; else [StoreError.alreadyExists].
+  Future<Result<FileEntry, StoreError>> _holding(
+    RelPath path,
+    Uint8List bytes,
+  ) async => switch (await _store.read(path)) {
+    Ok(:final value)
+        when const ListEquality<int>().equals(value.bytes, bytes) =>
+      Ok(FileEntry(path, version: value.version, modified: value.modified)),
+    _ => const Err(StoreError.alreadyExists),
+  };
+
+  /// Writes a new file by [write] at the first free name after [title] in
+  /// [subfolder] (see [_named]); if [subfolder] is gone, at the folder's
+  /// top level: the file is kept, and the deleted subfolder never comes
+  /// back.
+  Future<Result<FileBytes, StoreError>> _createNew(
+    String title,
+    String extension,
+    _Subfolder subfolder,
+    Uint8List bytes,
+    Future<Result<FileEntry, StoreError>> Function(RelPath path) write,
+  ) async {
+    final created = await _named(title, extension, subfolder, write, bytes);
+    if (created case Err(error: StoreError.notFound)
+        when subfolder.folder != null) {
+      return _named(
+        title,
+        extension,
+        (folder: null, isNew: false),
+        write,
+        bytes,
+      );
     }
     return created;
   }

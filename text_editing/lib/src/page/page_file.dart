@@ -4,6 +4,7 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../files/file_text.dart';
 import '../files/text_file_type.dart';
+import '../text/text_file.dart';
 
 /// Where an open file is: one that exists, or the place a new
 /// file goes once it is created.
@@ -56,6 +57,9 @@ final class NewFile extends PageFile {
   /// The file's name without its extension, for a file whose text
   /// starts with [firstLine] (as its type reads it).
   String titleFor(String firstLine) => name ?? firstLine;
+
+  /// [text] in the byte style a new file of [type] is written in.
+  TextFile styleFor(String text) => type.newFile.withText(text);
 
   /// The file in [folder] for a file whose text starts with
   /// [firstLine].

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
@@ -73,6 +75,23 @@ void main() {
 
     await files.save(opened, 'a\nc');
     expect(raw.files.textOf('a.md'), 'a\r\nc');
+  });
+
+  test("a file's fingerprint is of its bytes, as in its file, also once "
+      'written', () async {
+    // As the fake store keeps it: one character per byte.
+    const bytes = '\xEF\xBB\xBFa\r\nb\nc\r';
+    raw.files.put('a.md', bytes);
+
+    final opened = (await files.open(path('a.md'))).value;
+    expect(opened.fingerprint, fingerprintOf(latin1.encode(bytes)));
+
+    final saved = (await files.save(opened, 'a\nx\nc\n')).value;
+    expect(
+      saved.fingerprint,
+      fingerprintOf(latin1.encode(raw.files.textOf('a.md')!)),
+    );
+    expect(saved.fingerprint, isNot(opened.fingerprint));
   });
 
   test('a file that is no text opens as NotText', () async {

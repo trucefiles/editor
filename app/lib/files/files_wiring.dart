@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_core/truce_core.dart' show FolderId;
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
@@ -25,6 +27,13 @@ final draftsProvider = Provider<DraftsByFolder>(
   (ref) => DraftsByFolder(ref.watch(appStorageProvider).draftsPath),
 );
 
+/// The drafts an older app version left in each folder's drafts
+/// folder, until they are recovered.
+final oldDraftsProvider = Provider<OldDrafts Function(FolderId folder)>((ref) {
+  final storage = ref.watch(appStorageProvider);
+  return (folder) => OldDrafts(Directory(storage.draftsPath(folder)));
+});
+
 /// The files open on screen right now.
 final openEditsProvider = Provider<OpenEdits>((_) => OpenEdits());
 
@@ -38,8 +47,10 @@ final filesWorkProvider = Provider<FilesWork>((ref) {
     settings: ref.watch(fileSettingsProvider.notifier),
     conflictWaits: (key) => conflictWaitsIn(folderState.state, key),
     folders: () => settledFolders(folderList),
-    recoverDrafts: recoverDraftsWith(
-      ref.watch(draftsProvider),
+    drafts: ref.watch(draftsProvider),
+    recoverOwnDraft: recoverEdits,
+    recoverOldDrafts: recoverOldDraftsWith(
+      ref.watch(oldDraftsProvider),
       ref.watch(fileTypesProvider),
     ),
     types: ref.watch(fileTypesProvider),

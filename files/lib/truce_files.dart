@@ -1,5 +1,5 @@
 /// The files in the folders: their files (as bytes), steps and owner,
-/// settings, previews, search, backups, conflicts and compare.
+/// drafts, settings, previews, search, backups, conflicts and compare.
 ///
 /// Pure Dart, no UI; knows no sync tool and no file type, which the
 /// app wires in.
@@ -13,6 +13,9 @@ export 'src/conflicts/conflict_compare.dart';
 export 'src/conflicts/conflict_sides.dart';
 export 'src/conflicts/folder_conflicts.dart';
 export 'src/delete_failure.dart';
+export 'src/drafts/draft.dart';
+export 'src/drafts/draft_recovery.dart';
+export 'src/drafts/file_drafts.dart';
 export 'src/file_arrival.dart';
 export 'src/file_bytes.dart';
 export 'src/file_card_summary.dart';

@@ -17,18 +17,19 @@
 /// - `files`: a file read as text ([FileText]), text files on top of a
 ///   folder's bytes ([TextFiles]), and a text type's side of a shown type
 ///   ([TextFileType]).
-/// - `drafts`: edits kept on this device until they are in their file
-///   ([FileDrafts]), and putting them in after an app end
-///   ([DraftRecovery]).
+/// - `drafts`: putting edits a page kept as a draft of a saved file into
+///   it after an app end ([recoverEdits], by the version's fingerprint),
+///   and the drafts of older app versions ([OldDraftRecovery]).
 /// - `page`: the open file's page model: its session ([TextEditSession])
 ///   and file effects ([TextEditEffects]).
 ///
 /// Pure Dart, no UI; knows no sync tool and no single file type.
 library;
 
-export 'src/drafts/draft_recovery.dart';
-export 'src/drafts/file_draft.dart';
-export 'src/drafts/file_drafts.dart';
+export 'src/drafts/edits_recovery.dart';
+export 'src/drafts/fingerprint.dart';
+export 'src/drafts/old_draft.dart';
+export 'src/drafts/old_draft_recovery.dart';
 export 'src/editor/editor_book.dart';
 export 'src/editor/editor_contract.dart';
 export 'src/editor/editor_steps.dart';

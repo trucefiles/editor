@@ -336,9 +336,10 @@ sealed class TextFileEffect<V extends Version> {
   const TextFileEffect();
 }
 
-/// Keep [text], edited from the file's [base], on this device, as the
-/// draft of the [file] the edits go over; both `null` for a new
-/// file, whose draft goes where its file will. Answered by
+/// Keep [text], edited from the file's version [base], on this device,
+/// as the draft of the [file] the edits go over; both `null` for a new
+/// file, whose draft goes where its file will. At the next start the
+/// edits go into the file only if it is still [base]. Answered by
 /// [DraftKept].
 final class KeepDraft<V extends Version> extends TextFileEffect<V> {
   const KeepDraft(
@@ -350,7 +351,7 @@ final class KeepDraft<V extends Version> extends TextFileEffect<V> {
   });
 
   final EffectId id;
-  final String? base;
+  final V? base;
   final String text;
   final V? file;
 

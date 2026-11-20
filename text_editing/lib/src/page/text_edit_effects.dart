@@ -1,11 +1,10 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../drafts/file_draft.dart';
-import '../drafts/file_drafts.dart';
 import '../files/file_text.dart';
 import '../files/read_version.dart';
 import '../files/text_files.dart';
@@ -58,7 +57,7 @@ final class TextEditEffects {
   final FileMover _mover;
 
   /// One draft per open file; names it in its folder's drafts.
-  final _draftId = FileDraft.newId();
+  final _draftId = DraftHead.newId();
 
   /// Where a new file goes: the place the user last gave;
   /// `null` for a file opened from its file.
@@ -71,13 +70,10 @@ final class TextEditEffects {
 
   /// The draft kept last, until it is dropped: moved along when a new
   /// file's place changes, and what the last draft builds on once the
-  /// owner stopped.
-  FileDraft? _draft;
-
-  /// The first line of a new file's [_draft], which names it. Kept,
-  /// not taken from the draft's path: that holds the user's name when
-  /// they gave one.
-  String? _draftFirstLine;
+  /// owner stopped. A new file's keeps the first line that names it, not
+  /// taken from the draft's path: that holds the user's name when they
+  /// gave one.
+  ({FileText? base, String text, String? firstLine})? _kept;
 
   /// Does [effect]; its result for the file owner, `null` for an effect
   /// without one. Draft work starts before this returns, so drafts are
@@ -92,7 +88,7 @@ final class TextEditEffects {
       :final file,
       :final firstLine,
     ) =>
-      _keepDraft(id, base, text, whereOf(file), firstLine: firstLine),
+      _keepDraft(id, base?.read, text, whereOf(file), firstLine: firstLine),
     DropDraft(:final file) => _dropDraft(whereOf(file)),
     Write(:final id, :final text, :final over, :final backUpFirst) => _wrote(
       id,
@@ -124,19 +120,24 @@ final class TextEditEffects {
     ),
   };
 
-  /// The user picked where a new file goes; its draft goes
-  /// along.
+  /// The user picked where a new file goes; its draft goes along: kept
+  /// at the new place first, and dropped from another folder only once
+  /// kept, so it is always kept somewhere.
   void place(NewFile to) {
     final from = _newFile;
     _newFile = to;
-    final draft = _draft;
-    if (draft == null) return;
-    if (from != null && from.folder.id != to.folder.id) {
-      // Not awaited: the queue of the draft's id keeps the order.
-      _draftsOf(from.folder).remove(_draftId);
-    }
+    final kept = _kept;
+    if (kept == null) return;
     // With the first line it was kept with, as its text has not changed.
-    _keep(draft.base, draft.text, to, firstLine: _draftFirstLine);
+    // Not awaited: the queue of the draft's id keeps the order.
+    unawaited(
+      _keep(kept.base, kept.text, to, firstLine: kept.firstLine).then((ok) {
+        // Not once the draft went back to [from]'s folder meanwhile.
+        if (ok && from != null && from.folder.id != _newFile?.folder.id) {
+          unawaited(_draftsOf(from.folder).remove(_draftId));
+        }
+      }),
+    );
   }
 
   /// The user moves the file to [to], by the [Move] with [ticket]:
@@ -159,8 +160,8 @@ final class TextEditEffects {
     required ReadVersion? file,
     required String firstLine,
   }) async {
-    final base = _draft?.base ?? file?.read.text;
-    if (text == (base ?? '')) return true;
+    final base = _kept?.base ?? file?.read;
+    if (text == (base?.text ?? '')) return true;
     return _keep(base, text, whereOf(file), firstLine: firstLine);
   }
 
@@ -175,7 +176,7 @@ final class TextEditEffects {
 
   Future<TextFileResult<ReadVersion>> _keepDraft(
     EffectId id,
-    String? base,
+    FileText? base,
     String text,
     PageFile where, {
     required String? firstLine,
@@ -186,35 +187,44 @@ final class TextEditEffects {
     firstLine: firstLine,
   ).then((kept) => DraftKept(id, kept: kept));
 
-  /// Keeps [text] over [base] as the draft of the file [where] is; a
-  /// new file's named after its [firstLine]. Whether it is kept.
+  /// Keeps [text], edited from [base], as the draft of the file [where]
+  /// is: the edited text in [base]'s byte style, over [base]'s
+  /// fingerprint (by default the file's as [where] holds it); a new
+  /// file's as it will be written, named after its [firstLine]. Whether
+  /// it is kept.
   Future<bool> _keep(
-    String? base,
+    FileText? base,
     String text,
     PageFile where, {
     required String? firstLine,
   }) {
-    final draft = FileDraft(
-      id: _draftId,
-      path: switch (where) {
-        ExistingFile(:final path) => path,
-        NewFile() => where.pathFor(firstLine!),
-      },
-      base: base,
-      text: text,
-      newSubfolder: switch (where) {
-        NewFile(:final newSubfolder) => newSubfolder,
-        ExistingFile() => false,
-      },
-    );
-    _draft = draft;
-    _draftFirstLine = firstLine;
+    _kept = (base: base, text: text, firstLine: firstLine);
+    final draft = switch (where) {
+      ExistingFile(:final file, :final path) => _editsDraft(
+        path,
+        base ?? file,
+        text,
+      ),
+      NewFile(:final newSubfolder) => Draft(
+        DraftHead(
+          id: _draftId,
+          path: where.pathFor(firstLine!),
+          of: NewFileDraft(newSubfolder: newSubfolder),
+        ),
+        where.styleFor(text).encode(text),
+      ),
+    };
     return _draftsOf(where.folder).keep(draft);
   }
 
+  /// The draft of [text], edited from [base], of the file at [path].
+  Draft _editsDraft(RelPath path, FileText base, String text) => Draft(
+    DraftHead(id: _draftId, path: path, of: OwnDraft(base.fingerprint)),
+    base.textFile.encode(text),
+  );
+
   Future<TextFileResult<ReadVersion>?> _dropDraft(PageFile where) async {
-    _draft = null;
-    _draftFirstLine = null;
+    _kept = null;
     await _draftsOf(where.folder).remove(_draftId);
     return null;
   }
@@ -265,7 +275,7 @@ final class TextEditEffects {
   }) async {
     final file = _newFile;
     if (file == null) return const WriteFailed();
-    final style = file.type.newFile.withText(text);
+    final style = file.styleFor(text);
     return switch (await _create(
       file.place,
       type: file.type,

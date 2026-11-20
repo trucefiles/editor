@@ -194,7 +194,7 @@ final class _Step<V extends Version>
     effects.add(
       KeepDraft(
         id,
-        base: (work.editsOver ?? work.expected)?.text,
+        base: (work.editsOver ?? work.expected)?.version,
         text: state.text,
         file: _file,
         firstLine: _file == null ? work.firstLine : null,
