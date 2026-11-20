@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart' show findExtendedAutolinks;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A stretch of an event's text: plain, or a [link] it makes by what it
 /// says.

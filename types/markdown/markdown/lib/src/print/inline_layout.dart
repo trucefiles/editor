@@ -3,7 +3,7 @@
 /// take a text's layout, so they agree by construction.
 library;
 
-import 'package:truce_core/truce_core.dart' show anyLineBreak;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../read/syntax/block_starts.dart';
 import '../tree/blocks.dart';

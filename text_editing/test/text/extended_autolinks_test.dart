@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// The links in [text], as the text each shows and where it leads.
 List<(String, String)> _links(String text) => [

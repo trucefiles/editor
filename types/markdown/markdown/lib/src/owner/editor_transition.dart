@@ -1,5 +1,4 @@
-import 'package:truce_core/truce_core.dart'
-    show EffectId, Step, StepRun, lineAt, lineStart;
+import 'package:truce_core/truce_core.dart' show EffectId, Step, StepRun;
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../doc/doc_nodes.dart';

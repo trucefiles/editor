@@ -6,6 +6,7 @@ import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
+import '../support/edit_to.dart';
 import 'editor_run.dart';
 
 void main() {

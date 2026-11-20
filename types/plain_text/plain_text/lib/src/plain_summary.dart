@@ -1,4 +1,3 @@
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// What lists show of a plain text: its first line with words as the

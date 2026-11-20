@@ -6,8 +6,8 @@ sealed class Observation {
   const Observation();
 }
 
-/// The file is there, in [version]. A version the owner hasn't seen it
-/// reads itself ([ReadLatest]).
+/// The file is there, in [version]. An open file reads a version it
+/// hasn't seen itself.
 final class Found extends Observation {
   const Found(this.version);
 

@@ -3,7 +3,9 @@
 /// it.
 ///
 /// Parts, bottom up:
-/// - `text`: a file's text in its own byte style ([TextFile]), a file
+/// - `text`: a file's text in its own byte style ([TextFile]), a text's
+///   lines ([splitLines]), the links plain text makes by what it says
+///   ([findExtendedAutolinks]), a file
 ///   version with its text ([Seen]), what lists show of a text
 ///   ([TextSummary]), and how a type merges two texts ([TextMerge]).
 /// - `editor`: what every text type's editor shares: the page's requests
@@ -51,6 +53,8 @@ export 'src/page/place_change.dart';
 export 'src/page/save_state.dart';
 export 'src/page/text_edit_effects.dart';
 export 'src/page/text_edit_session.dart';
+export 'src/text/extended_autolinks.dart';
+export 'src/text/lines.dart';
 export 'src/text/seen.dart';
 export 'src/text/text_file.dart';
 export 'src/text/text_merge.dart';

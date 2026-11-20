@@ -1,4 +1,3 @@
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A [TextMerge] over texts of `key:value` lines, one unit per key: a key

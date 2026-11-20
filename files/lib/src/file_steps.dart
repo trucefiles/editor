@@ -24,7 +24,7 @@ final class FilesWork {
     required this.settings,
     required this.conflictWaits,
     required this.folders,
-    required this.recoverLeftEdits,
+    required this.recoverDrafts,
     required this.types,
     required this.arrivals,
   });
@@ -42,11 +42,11 @@ final class FilesWork {
   /// The folders once their list loaded; none if it can't be read.
   final Future<List<Folder>> Function() folders;
 
-  /// Puts the edits the last run left on this device, written before
-  /// [before], into the files of [files]' folder (e.g. a text type's
-  /// drafts).
+  /// Puts the drafts written before [before] into the files of [files]'
+  /// folder: edits the last run left on this device. The app plugs in
+  /// how.
   final Future<void> Function(FilesOfFolder files, {required DateTime before})
-  recoverLeftEdits;
+  recoverDrafts;
   final ShownFileTypes types;
 
   /// How files arrive as they move or are restored.
@@ -54,7 +54,7 @@ final class FilesWork {
 }
 
 /// The steps of the user's actions on files: create, new subfolder,
-/// move or rename, delete and undo, color, and recovering the edits left by
+/// move or rename, delete and undo, color, and recovering the drafts of
 /// the last run. Run one at a time by the files owner, so their side
 /// steps (mark, settings, backups) never mix.
 base class FileSteps {
@@ -254,12 +254,12 @@ base class FileSteps {
         );
   }
 
-  /// Recovers the edits left in every folder before [before] (see
-  /// [FilesWork.recoverLeftEdits]). Recovers none if the folders can't be
+  /// Recovers the drafts of every folder written before [before] (see
+  /// [FilesWork.recoverDrafts]). Recovers none if the folders can't be
   /// loaded.
-  Future<void> recoverLeftEdits({required DateTime before}) async {
+  Future<void> recoverDrafts({required DateTime before}) async {
     for (final folder in await _work.folders()) {
-      await _work.recoverLeftEdits(_files.of(folder), before: before);
+      await _work.recoverDrafts(_files.of(folder), before: before);
     }
   }
 

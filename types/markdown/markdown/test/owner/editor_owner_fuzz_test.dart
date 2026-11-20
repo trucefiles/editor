@@ -9,6 +9,7 @@ import 'package:truce_test_support/truce_test_support.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support/document_corpus.dart';
+import '../support/edit_to.dart';
 
 /// Random user inputs, save timers and changes from the file owner on an
 /// editor owner; after each, the selection shows, and once nothing is

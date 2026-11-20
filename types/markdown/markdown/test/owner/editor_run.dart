@@ -6,6 +6,8 @@ import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
+import '../support/edit_to.dart';
+
 const v1 = Version(1);
 const v2 = Version(2);
 

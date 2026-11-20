@@ -2,8 +2,7 @@
 /// can break lines between.
 library;
 
-import 'package:truce_core/truce_core.dart'
-    show anyLineBreak, findExtendedAutolinks;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../read/syntax/characters.dart';
 import '../read/syntax/link_syntax.dart';

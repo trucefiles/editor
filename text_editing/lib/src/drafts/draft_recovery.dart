@@ -93,7 +93,7 @@ final class DraftRecovery {
   }
 }
 
-/// The files steps' recovery of the edits left by the last run: each
+/// The files steps' recovery of the drafts left by the last run: each
 /// folder's drafts from [drafts], put into its files as [DraftRecovery]
 /// does, by their [types].
 Future<void> Function(FilesOfFolder files, {required DateTime before})

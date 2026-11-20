@@ -38,7 +38,7 @@ final filesWorkProvider = Provider<FilesWork>((ref) {
     settings: ref.watch(fileSettingsProvider.notifier),
     conflictWaits: (key) => conflictWaitsIn(folderState.state, key),
     folders: () => settledFolders(folderList),
-    recoverLeftEdits: recoverDraftsWith(
+    recoverDrafts: recoverDraftsWith(
       ref.watch(draftsProvider),
       ref.watch(fileTypesProvider),
     ),

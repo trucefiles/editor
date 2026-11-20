@@ -30,8 +30,7 @@
 /// 7. `restore`: putting a backup back, kept like any choice between two
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
-/// 9. `text`: a text's lines ([splitLines]); the links plain text makes
-///    by what it says ([findExtendedAutolinks]).
+/// 9. `text`: lines matched between two texts ([oldLinesOf]).
 /// 10. `marks`: colors of files, synced inside the folder
 ///     ([FileMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
@@ -134,8 +133,6 @@ export 'src/storage/rel_path.dart';
 export 'src/storage/setting_store.dart';
 export 'src/storage/subfolder_names.dart';
 export 'src/storage/write_reporting_store.dart';
-export 'src/text/extended_autolinks.dart';
 export 'src/text/line_match.dart';
-export 'src/text/lines.dart';
 export 'src/versions/resolution.dart';
 export 'src/versions/resolve_error.dart';

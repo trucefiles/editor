@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart' show splitLines;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import 'syntax/block_starts.dart';
 

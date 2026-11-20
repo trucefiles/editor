@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 void main() {
   test('breaks lines at \\n, \\r\\n and a lone \\r', () {

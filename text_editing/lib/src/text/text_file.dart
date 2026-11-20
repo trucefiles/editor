@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 
+import 'lines.dart';
+
 /// A UTF-8 text file decoded for editing.
 ///
 /// Editors work on [text] with `\n` line breaks only. [encode] puts the

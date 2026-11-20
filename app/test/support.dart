@@ -23,7 +23,6 @@ export 'package:truce_test_support/truce_test_support.dart'
         ResultUnwrap,
         WriteCreatingFolders,
         bytesOf,
-        editTo,
         folderId,
         path,
         tempFolder;
@@ -275,3 +274,7 @@ Future<Folder> addFolderOf(
 
 /// No file type does anything as its files move or are restored.
 FileArrivals noArrivals() => FileArrivals(appFileTypes().detector);
+
+/// The edit that makes [after] of [before], as an editor sends it.
+TextEdit editTo(String before, String after) =>
+    TextEdit(before, textChange(before, after));

@@ -24,10 +24,10 @@ final class FilesOfFolder {
 
   final Folder _folder;
   final FolderServices _services;
+  final ShownFileTypes _types;
 
   /// The folder these files are in.
   Folder get folder => _folder;
-  final ShownFileTypes _types;
 
   FileStore get _store => _services.store;
 
