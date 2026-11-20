@@ -79,7 +79,17 @@ final class _ShownSteps {
       case PlaceShown(:final ticket):
         out.emit(Placed(ticket, await _place(input, out)));
       case SecureShown(:final ticket, :final reason):
-        out.emit(Secured(ticket, kept: await _secure(reason, out)));
+        final kept = await _secure(reason, out);
+        out.emit(
+          Secured(
+            ticket,
+            kept: kept,
+            onDevice: switch (out.state) {
+              WaitingNew(kept: NewKept.onDevice) => true,
+              _ => false,
+            },
+          ),
+        );
       case KeepNew():
         if (out.state case WaitingNew(:final file)) await _keepNew(file, out);
       case DropNew():

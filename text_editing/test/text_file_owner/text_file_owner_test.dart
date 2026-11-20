@@ -1007,6 +1007,7 @@ void main() {
         ..keep()
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isFalse);
+      expect(run.last<Answer>().onDevice, isTrue);
       expect(run.all<DropDraft>(), isEmpty);
     });
 
@@ -1017,6 +1018,7 @@ void main() {
         ..secure(SecureReason.hide)
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isFalse);
+      expect(run.last<Answer>().onDevice, isFalse);
       expect(run.all<KeepAsConflict>(), isEmpty);
     });
 

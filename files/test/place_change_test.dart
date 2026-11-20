@@ -58,6 +58,20 @@ void main() {
     expect(change(place: same, name: 'Plan', read: saved), isA<SamePlace>());
   });
 
+  test('a typed name without the number of the name now renames', () {
+    final numbered = ListedFile(
+      folder: work,
+      path: path('Trip 2024.jpg'),
+      type: const FakeFileType(),
+      version: const FileVersion(1),
+      modified: DateTime(2026, 11, 2),
+    );
+
+    final renamed = change(place: topOf(work), name: 'Trip', read: numbered);
+
+    expect((renamed as MoveTo).to.title, 'Trip');
+  });
+
   test('another place or name moves, an empty name as unnamed', () {
     final moved = change(place: topOf(home), read: saved);
     final renamed = change(

@@ -154,11 +154,14 @@ final class Placed extends ShownEvent implements Answering {
 /// The answer to [SecureShown]: whether the file is kept somewhere
 /// lasting.
 final class Secured extends ShownEvent implements Answering {
-  const Secured(this.ticket, {required this.kept});
+  const Secured(this.ticket, {required this.kept, required this.onDevice});
 
   @override
   final Ticket ticket;
   final bool kept;
+
+  /// Whether a new file waits on this device as a draft.
+  final bool onDevice;
 }
 
 /// A new file was written into its folder, as [file].

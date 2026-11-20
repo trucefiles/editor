@@ -225,7 +225,7 @@ final class TextEditPageController extends ChangeNotifier {
     return switch (reason) {
       SecureReason.exit => session.secureForExit(within: endWait),
       SecureReason.close || SecureReason.hide => keptOrOutOfReach(
-        session.secure(reason),
+        session.secureResult(reason),
         reachSettled,
       ),
     };

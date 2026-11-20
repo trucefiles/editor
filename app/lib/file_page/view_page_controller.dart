@@ -34,7 +34,7 @@ final class ViewPageController extends ChangeNotifier {
     _following = [
       _owner.changes.listen((_) => notifyListeners()),
       _owner.events.listen((event) {
-        if (event is NewWritten) written = event.file;
+        if (event is NewWritten) _added = true;
       }),
     ];
   }
@@ -49,9 +49,13 @@ final class ViewPageController extends ChangeNotifier {
   final Duration endWait;
   late final List<StreamSubscription<Object>> _following;
 
-  /// The new file this page added, once it is written; `null` before,
-  /// and for a file opened from its folder.
-  ListedFile? written;
+  /// Whether this page added the file, and it was written.
+  bool _added = false;
+
+  /// The new file this page added, as it is now: once written, and while
+  /// it is still there (not deleted, moved elsewhere by others or gone);
+  /// `null` before, and for a file opened from its folder.
+  ListedFile? get written => _added ? listed : null;
 
   ShownState get state => _owner.state;
 
@@ -166,25 +170,26 @@ final class ViewPageController extends ChangeNotifier {
   /// or as the app ends (within [endWait]).
   Future<bool> keep(SecureReason reason) async {
     if (reason == SecureReason.exit) return keepForExit(within: endWait);
+    final folder = this.folder;
     final secured = _secure(reason);
-    return switch (folder) {
-      final folder? => keptOrOutOfReach(secured, () => reachSettled(folder)),
-      null => secured,
-    };
+    if (folder == null) return (await secured).kept;
+    return keptOrOutOfReach(secured, () => reachSettled(folder));
   }
 
   /// Keeps a new file as the app ends: on this device is enough; whether
   /// it was kept within [within], so a folder that hangs never holds the
   /// app.
   Future<bool> keepForExit({required Duration within}) =>
-      _secure(SecureReason.exit).timeout(within, onTimeout: () => false);
+      _secure(SecureReason.exit)
+          .then((secured) => secured.kept)
+          .timeout(within, onTimeout: () => false);
 
-  Future<bool> _secure(SecureReason reason) =>
-      answerOf<ShownInput, Secured, bool>(
+  Future<SecureResult> _secure(SecureReason reason) =>
+      answerOf<ShownInput, Secured, SecureResult>(
         _owner,
         (ticket) => SecureShown(ticket, reason),
-        read: (answer) => answer.kept,
-        orElse: false,
+        read: (answer) => (kept: answer.kept, onDevice: answer.onDevice),
+        orElse: (kept: false, onDevice: false),
       );
 
   /// Whether the user may go for [reason] (leave, quit the app): once a
@@ -221,10 +226,13 @@ final class ViewPageController extends ChangeNotifier {
       Err() => null,
     };
     if (bytes == null) return const AlreadyGone();
-    return switch (await delete(file, bytes)) {
-      Ok(:final value) => DeletedForUndo(value),
-      Err(:final error) => DeleteRefused(error),
-    };
+    switch (await delete(file, bytes)) {
+      case Ok(:final value):
+        _added = false;
+        return DeletedForUndo(value);
+      case Err(:final error):
+        return DeleteRefused(error);
+    }
   }
 
   /// Keeps a new file as the page closes; then the owner ends.

@@ -17,6 +17,11 @@ final _nothingMoved = isA<Ok<ListedFile?, MoveFailure>>().having(
   isNull,
 );
 
+/// Drafts in a place that is a file, so none can be kept there.
+FileDrafts refusingDrafts() => FileDrafts(
+  Directory('${(File('${tempFolder().path}/file')..createSync()).path}/d'),
+);
+
 void main() {
   final folder = folderAt(Directory('/pictures'), id: 'pictures');
   final picture = Uint8List.fromList([1, 2, 3]);
@@ -25,6 +30,7 @@ void main() {
   late List<Uint8List> deleted;
   late List<String> moved;
   var createFails = false;
+  var draftsRefused = false;
   var reach = Reach.reachable;
 
   setUp(() {
@@ -33,12 +39,13 @@ void main() {
     deleted = [];
     moved = [];
     createFails = false;
+    draftsRefused = false;
     reach = Reach.reachable;
   });
 
   ShownWork work() => ShownWork(
     reload: (file) async => Ok(FileBytes(file, picture)),
-    draftsOf: (_) => drafts,
+    draftsOf: (_) => draftsRefused ? refusingDrafts() : drafts,
     create:
         (
           place, {
@@ -106,6 +113,34 @@ void main() {
     expect(page.title, 'Photo');
   });
 
+  test(
+    'a new image written early, then deleted, is not told as saved',
+    () async {
+      final page = newPhoto();
+      expect(await page.keep(SecureReason.hide), isTrue);
+
+      expect(await page.deleteFile(), isA<DeletedForUndo>());
+
+      expect(page.written, isNull);
+    },
+  );
+
+  test(
+    'a new image written early, then moved, is told where it is now',
+    () async {
+      final page = newPhoto();
+      expect(await page.keep(SecureReason.hide), isTrue);
+
+      await page.placeAt((
+        place: topOf(folder),
+        name: 'Cat',
+        newSubfolder: false,
+      ));
+
+      expect(page.written?.path, path('Cat.jpg'));
+    },
+  );
+
   test('while its folder is out of reach, it waits on the device', () async {
     final page = newPhoto();
     await eventually(() async => (await draftPaths()).isNotEmpty);
@@ -116,6 +151,22 @@ void main() {
 
     expect(page.written, isNull);
     expect(await draftPaths(), [path('Photo.jpg')]);
+  });
+
+  test('kept nowhere, it is not counted as waiting while its folder is out '
+      'of reach', () async {
+    draftsRefused = true;
+    createFails = true;
+    reach = Reach.unreachable;
+    final page = newPhoto();
+    await eventually(
+      () async => switch (page.state) {
+        WaitingNew(kept: NewKept.nowhere) => true,
+        _ => false,
+      },
+    );
+
+    expect(await page.keep(SecureReason.close), isFalse);
   });
 
   test('if it can be written nowhere, the user may drop it', () async {

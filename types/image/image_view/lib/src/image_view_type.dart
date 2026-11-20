@@ -19,14 +19,18 @@ final class ImageViewType extends ImageFileType implements ViewType {
   @override
   IconData get icon => Icons.image_outlined;
 
-  /// Decoded at most at the screen's size times the zoom limit, so a
-  /// zoomed picture stays sharp while a huge one never fills memory.
+  /// How far a shown picture zooms in and stays sharp: it is decoded at
+  /// most at the screen's size times this, so a huge one never fills
+  /// memory; deeper zoom gets a little soft.
+  static const sharpZoom = 3.0;
+
+  /// Decoded at most at the screen's size times [sharpZoom].
   @override
   Widget view(ShownContent content, {required String label}) => Builder(
     builder: (context) {
       final screen =
           MediaQuery.sizeOf(context) * MediaQuery.devicePixelRatioOf(context);
-      final most = screen * ZoomableImage.maxZoom;
+      final most = screen * sharpZoom;
       return ZoomableImage(
         ResizeImage(
           ContentImage(content),
@@ -71,13 +75,14 @@ class ImageThumbnail extends StatelessWidget {
       aspectRatio: shape,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final width =
-              constraints.maxWidth * MediaQuery.devicePixelRatioOf(context);
+          final pixels = MediaQuery.devicePixelRatioOf(context);
           return Image(
-            image: ResizeImage(
-              ContentImage(content),
-              width: width.ceil(),
-              allowUpscaling: false,
+            image: ContentImage(
+              content,
+              cover: (
+                width: (constraints.maxWidth * pixels).ceil(),
+                height: (constraints.maxHeight * pixels).ceil(),
+              ),
             ),
             semanticLabel: label,
             fit: BoxFit.cover,

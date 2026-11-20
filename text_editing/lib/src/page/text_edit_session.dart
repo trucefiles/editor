@@ -152,15 +152,19 @@ final class TextEditSession {
 
   /// Keeps the edits somewhere lasting now, for [reason]; whether they
   /// are kept. A new file is created now, unless it is empty.
-  /// The question goes to the editor, which sends its text first; the
-  /// file owner answers.
-  Future<bool> secure(SecureReason reason) async {
+  Future<bool> secure(SecureReason reason) async =>
+      (await secureResult(reason)).kept;
+
+  /// Keeps the edits as [secure] does; whether they are kept, and else
+  /// whether this device holds them. The question goes to the editor,
+  /// which sends its text first; the file owner answers.
+  Future<SecureResult> secureResult(SecureReason reason) async {
     final answer = await ask<EditorRequest, Answer>(
       editor.send,
       _file.events,
       (ticket) => SecureEditor(ticket, reason),
     );
-    return answer?.kept ?? false;
+    return (kept: answer?.kept ?? false, onDevice: answer?.onDevice ?? false);
   }
 
   /// Keeps typing that waits for a draft on this device now (e.g. the

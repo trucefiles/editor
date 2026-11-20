@@ -14,8 +14,8 @@ final class ViewPage {
   final void Function() _closed;
 
   /// Closes the page; a new file is written first, as far as it can be.
-  /// Completes with the new file this page added, once written; `null`
-  /// if it added none.
+  /// Completes with the new file this page added, as it is now
+  /// ([ViewPageController.written]); `null` if there is none.
   Future<ListedFile?> close() async {
     _closed();
     try {

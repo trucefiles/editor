@@ -279,11 +279,14 @@ final class Picked extends ToEditor {
 
 /// The answer to [Secure]: whether the edits are kept somewhere lasting.
 final class Answer extends TextFileEvent implements Answering {
-  const Answer(this.ticket, {required this.kept});
+  const Answer(this.ticket, {required this.kept, required this.onDevice});
 
   @override
   final Ticket ticket;
   final bool kept;
+
+  /// Whether this device's draft holds the edits as they are now.
+  final bool onDevice;
 }
 
 /// The answer to [Move]: whether the move was started ([MoveFile]), and
