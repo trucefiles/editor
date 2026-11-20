@@ -10,10 +10,6 @@ import '../files/text_files.dart';
 import '../text_file_owner/text_file_contract.dart';
 import 'page_file.dart';
 
-/// Where the user moves an open file: to [place], named after
-/// [title]; [newSubfolder]: [place]'s subfolder is a new one to make.
-typedef MoveTarget = ({FilePlace place, String title, bool newSubfolder});
-
 /// The effect handler of one open file owner (see
 /// `text_file_contract.dart`): keeps and drops its draft on this device,
 /// reads, writes, creates, moves and restores its file, backs it up and
@@ -26,18 +22,17 @@ final class TextEditEffects {
   TextEditEffects({
     this._newFile,
     required this._filesOf,
-    required this._draftsOf,
+    required FileDrafts Function(Folder folder) draftsOf,
     required this._create,
     required this._mover,
-  });
+  }) : _draft = PageDraft(draftsOf);
 
   final TextFiles Function(Folder folder) _filesOf;
-  final FileDrafts Function(Folder folder) _draftsOf;
   final FileCreator _create;
   final FileMover _mover;
 
-  /// One draft per open file; names it in its folder's drafts.
-  final _draftId = DraftHead.newId();
+  /// One draft per open file, in the folder of the file it waits for.
+  final PageDraft _draft;
 
   /// Where a new file goes: the place the user last gave;
   /// `null` for a file opened from its file.
@@ -69,7 +64,7 @@ final class TextEditEffects {
       :final firstLine,
     ) =>
       _keepDraft(id, base?.read, text, whereOf(file), firstLine: firstLine),
-    DropDraft(:final file) => _dropDraft(whereOf(file)),
+    DropDraft() => _dropDraft(),
     Write(:final id, :final text, :final over, :final backUpFirst) => _wrote(
       id,
       _write(text, over.version.read, backUpFirst: backUpFirst),
@@ -101,23 +96,15 @@ final class TextEditEffects {
   };
 
   /// The user picked where a new file goes; its draft goes along: kept
-  /// at the new place first, and dropped from another folder only once
-  /// kept, so it is always kept somewhere.
+  /// at the new place, and dropped from another folder only once kept
+  /// there, so it is always kept somewhere.
   void place(NewFile to) {
-    final from = _newFile;
     _newFile = to;
     final kept = _kept;
     if (kept == null) return;
     // With the first line it was kept with, as its text has not changed.
-    // Not awaited: the queue of the draft's id keeps the order.
-    unawaited(
-      _keep(kept.base, kept.text, to, firstLine: kept.firstLine).then((ok) {
-        // Not once the draft went back to [from]'s folder meanwhile.
-        if (ok && from != null && from.folder.id != _newFile?.folder.id) {
-          unawaited(_draftsOf(from.folder).remove(_draftId));
-        }
-      }),
-    );
+    // Not awaited: the draft's turns keep the order.
+    unawaited(_keep(kept.base, kept.text, to, firstLine: kept.firstLine));
   }
 
   /// The user moves the file to [to], by the [Move] with [ticket]:
@@ -187,25 +174,25 @@ final class TextEditEffects {
       ),
       NewFile(:final newSubfolder) => Draft(
         DraftHead(
-          id: _draftId,
+          id: _draft.id,
           path: where.pathFor(firstLine!),
           of: NewFileDraft(newSubfolder: newSubfolder),
         ),
         where.styleFor(text).encode(text),
       ),
     };
-    return _draftsOf(where.folder).keep(draft);
+    return _draft.keep(where.folder, draft);
   }
 
   /// The draft of [text], edited from [base], of the file at [path].
   Draft _editsDraft(RelPath path, FileText base, String text) => Draft(
-    DraftHead(id: _draftId, path: path, of: OwnDraft(base.fingerprint)),
+    DraftHead(id: _draft.id, path: path, of: OwnDraft(base.fingerprint)),
     base.textFile.encode(text),
   );
 
-  Future<TextFileResult<ReadVersion>?> _dropDraft(PageFile where) async {
+  Future<TextFileResult<ReadVersion>?> _dropDraft() async {
     _kept = null;
-    await _draftsOf(where.folder).remove(_draftId);
+    await _draft.drop();
     return null;
   }
 

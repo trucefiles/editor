@@ -251,6 +251,33 @@ final class TextEditSession {
   /// Drops the edits that could be kept nowhere.
   void discard() => _file.send(const Discard());
 
+  /// Takes the place and name the user [picked]: a new file only changes
+  /// where its file will go; one with a file is moved or renamed. The
+  /// file as moved, `null` where it did not move; why not, if it can't.
+  Future<Result<ListedFile?, MoveFailure>> placeAt(PickedPlace picked) async {
+    final now = file;
+    final change = PlaceChange.of(
+      picked,
+      isNew: now is NewFile,
+      saved: read?.listed,
+      unnamed: summary.firstLine,
+    );
+    return switch ((change, now)) {
+      (final NewPlace to, final NewFile from) => switch (await place(
+        from.placedAt(to),
+      )) {
+        Ok() => const Ok(null),
+        Err(:final error) => Err(error),
+      },
+      (NewPlace(), ExistingFile()) || (SamePlace(), _) => const Ok(null),
+      (CantMove(:final failure), _) => Err(failure),
+      (MoveTo(:final to), _) => switch (await move(to)) {
+        Ok(:final value) => Ok(value.listed),
+        Err(:final error) => Err(error),
+      },
+    };
+  }
+
   /// Moves or renames the file to [to], with every edit: those not in
   /// its file yet are saved first; how it went.
   Future<Result<FileBytes, MoveFailure>> move(MoveTarget to) async {

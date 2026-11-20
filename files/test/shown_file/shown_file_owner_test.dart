@@ -59,6 +59,9 @@ final class _Work {
   final created = <({FilePlace place, String title, String extension})>[];
   final moved = <({FilePlace place, String title})>[];
   bool draftsRefused = false;
+
+  /// Folders whose drafts can't be kept.
+  final refusedIn = <FolderId>{};
   bool createFails = false;
   Result<FileBytes, MoveFailure>? moveResult;
 
@@ -67,7 +70,8 @@ final class _Work {
     Directory('${(File('${tempFolder().path}/file')..createSync()).path}/d'),
   );
 
-  FileDrafts draftsIn(Folder folder) => draftsRefused
+  FileDrafts draftsIn(Folder folder) =>
+      draftsRefused || refusedIn.contains(folder.id)
       ? _refusing
       : drafts.putIfAbsent(
           folder.id,
@@ -179,14 +183,6 @@ void main() {
       expect(owner.state, ShownListed(_listed(_work, 'b.md')));
     });
 
-    test('a move to where it is does nothing', () async {
-      final owner = shownFileOwner(_listed(_home, 'a.md'), work.work);
-
-      expect(await _place(owner, _home, title: 'a'), isNull);
-
-      expect(work.moved, isEmpty);
-    });
-
     test('a move that fails says why, and the file stays', () async {
       final file = _listed(_home, 'a.md');
       final owner = shownFileOwner(file, work.work);
@@ -280,6 +276,67 @@ void main() {
       expect(await work.draftPaths(_work), [path('Cat.jpg')]);
       expect(await work.draftPaths(_home), isEmpty);
       expect(work.created, isEmpty);
+    });
+
+    group('moved to a folder that refuses its draft', () {
+      /// The new file, kept in home, then placed in work, which refuses
+      /// its draft and its write.
+      Future<ShownFileOwner> placedInRefusingWork() async {
+        final owner = newShownFileOwner(_photo(_home), work.work);
+        await _kept(owner);
+        work
+          ..refusedIn.add(_work.id)
+          ..createFails = true;
+        await _place(owner, _work, title: 'Cat');
+        work
+          ..refusedIn.clear()
+          ..createFails = false;
+        return owner;
+      }
+
+      test('stays kept where it was', () async {
+        work
+          ..refusedIn.add(_work.id)
+          ..createFails = true;
+        final owner = newShownFileOwner(_photo(_home), work.work);
+        await _kept(owner);
+        await _place(owner, _work, title: 'Cat');
+
+        expect((owner.state as WaitingNew).kept, NewKept.nowhere);
+        expect(await work.draftPaths(_home), [path('Photo.jpg')]);
+      });
+
+      test('kept there later, it is dropped where it was', () async {
+        final owner = await placedInRefusingWork();
+        final onDevice = owner.changes.firstWhere(
+          (state) => state is WaitingNew && state.kept == NewKept.onDevice,
+        );
+        owner.send(const KeepNew());
+        await onDevice;
+
+        expect(await work.draftPaths(_work), [path('Cat.jpg')]);
+        expect(await work.draftPaths(_home), isEmpty);
+      });
+
+      test('written, no draft is left anywhere', () async {
+        final owner = await placedInRefusingWork();
+
+        expect(await _secure(owner, SecureReason.close), isTrue);
+
+        expect(work.created.single.place.folder, _work);
+        expect(await work.draftPaths(_home), isEmpty);
+        expect(await work.draftPaths(_work), isEmpty);
+      });
+
+      test('dropped, no draft is left anywhere', () async {
+        final owner = await placedInRefusingWork();
+
+        owner.send(const DropNew());
+        expect(await _secure(owner, SecureReason.close), isTrue);
+
+        expect(await work.draftPaths(_home), isEmpty);
+        expect(await work.draftPaths(_work), isEmpty);
+      });
     });
 
     test('dropped, its draft goes and nothing is written', () async {

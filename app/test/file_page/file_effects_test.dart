@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
@@ -119,6 +121,54 @@ void main() {
     final moved = (await fixture.draftsIn('f2')).single;
     expect((moved.path, moved.text), (path('Eggs.md'), 'Milk'));
     expect(await fixture.draftsIn('f1'), isEmpty);
+  });
+
+  group("a new document's draft, placed in a folder that refuses it", () {
+    late TextEditEffects effects;
+    late FileDrafts second;
+
+    /// Drafts in a place that is a file, so none can be kept there.
+    FileDrafts refusing() => FileDrafts(
+      Directory('${(File('${tempFolder().path}/file')..createSync()).path}/d'),
+    );
+
+    Future<void> keep(String text) => effects.run(
+      KeepDraft(id, base: null, text: text, file: null, firstLine: text),
+    );
+
+    setUp(() async {
+      effects = fixture.effects(fixture.newFile);
+      await keep('Milk');
+      second = fixture.drafts[folderId('f2')]!;
+      fixture.drafts[folderId('f2')] = refusing();
+      effects.place(
+        NewFile((
+          folder: fixture.folders[1],
+          subfolder: null,
+        ), type: appNewTextType()),
+      );
+      // The refused keep has run once the next one, queued after it, has.
+      await keep('Milk');
+      fixture.drafts[folderId('f2')] = second;
+    });
+
+    test('stays kept where it was', () async {
+      expect((await fixture.draftsIn('f1')).single.path, path('Milk.md'));
+    });
+
+    test('kept there later, it is dropped where it was', () async {
+      await keep('Milk and eggs');
+
+      expect(await fixture.draftsIn('f1'), isEmpty);
+      expect((await fixture.draftsIn('f2')).single.text, 'Milk and eggs');
+    });
+
+    test('dropped, no draft is left anywhere', () async {
+      await effects.run(const DropDraft(file: null));
+
+      expect(await fixture.draftsIn('f1'), isEmpty);
+      expect(await fixture.draftsIn('f2'), isEmpty);
+    });
   });
 
   test("a new document's draft, recovered at the next start, goes into the "

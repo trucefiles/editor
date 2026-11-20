@@ -3,8 +3,8 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../drafts/draft.dart';
 import '../drafts/file_drafts.dart';
+import '../drafts/page_draft.dart';
 import '../file_bytes.dart';
-import '../file_place.dart';
 import '../folder_state/folder_contents.dart';
 import '../listed_file.dart';
 import '../move_failure.dart';
@@ -58,10 +58,10 @@ FolderId? folderOfShown(ShownState state) => switch (state) {
 /// app; then it is written. Its own writes end at moments, so a listing
 /// that started before one never undoes it.
 final class _ShownSteps {
-  _ShownSteps(this._work);
+  _ShownSteps(this._work) : _draft = PageDraft(_work.draftsOf);
 
   final ShownWork _work;
-  final _draftId = DraftHead.newId();
+  final PageDraft _draft;
 
   /// When the last own write ended; listings seen before it are old.
   Moment? _wroteAt;
@@ -83,9 +83,9 @@ final class _ShownSteps {
       case KeepNew():
         if (out.state case WaitingNew(:final file)) await _keepNew(file, out);
       case DropNew():
-        if (out.state case WaitingNew(:final file)) {
+        if (out.state is WaitingNew) {
           out.state = const ShownDropped();
-          await _work.draftsOf(file.place.folder).remove(_draftId);
+          await _draft.drop();
         }
     }
   }
@@ -124,18 +124,17 @@ final class _ShownSteps {
     }
   }
 
-  Future<bool> _keepDraft(NewShownFile file) => _work
-      .draftsOf(file.place.folder)
-      .keep(
-        Draft(
-          DraftHead(
-            id: _draftId,
-            path: file.path,
-            of: NewFileDraft(newSubfolder: file.newSubfolder),
-          ),
-          file.bytes,
-        ),
-      );
+  Future<bool> _keepDraft(NewShownFile file) => _draft.keep(
+    file.place.folder,
+    Draft(
+      DraftHead(
+        id: _draft.id,
+        path: file.path,
+        of: NewFileDraft(newSubfolder: file.newSubfolder),
+      ),
+      file.bytes,
+    ),
+  );
 
   /// Writes [file] into its folder; whether it is there.
   Future<bool> _write(
@@ -154,7 +153,7 @@ final class _ShownSteps {
       _wroteAt = Moment.now();
       out.state = ShownListed(written.listed);
       out.emit(NewWritten(written.listed));
-      await _work.draftsOf(file.place.folder).remove(_draftId);
+      await _draft.drop();
       return true;
     }
     return false;
@@ -188,7 +187,7 @@ final class _ShownSteps {
           title: ask.title,
           newSubfolder: ask.newSubfolder,
         );
-        await _moveNew(file, to, out);
+        await _keepNew(to, out);
         return null;
       case ShownListed(:final file):
         return _move(file, ask, out);
@@ -197,27 +196,13 @@ final class _ShownSteps {
     }
   }
 
-  /// A new file goes to [to] instead of [from]: kept there first, and
-  /// dropped from [from]'s folder only once kept, so it is always kept
-  /// somewhere.
-  Future<void> _moveNew(
-    NewShownFile from,
-    NewShownFile to,
-    OwnerOutlet<ShownState, ShownEvent> out,
-  ) async {
-    await _keepNew(to, out);
-    if (out.state case WaitingNew(kept: NewKept.nowhere)) return;
-    if (from.place.folder.id != to.place.folder.id) {
-      await _work.draftsOf(from.place.folder).remove(_draftId);
-    }
-  }
-
+  /// Moves [file] where [ask] says, as the user picked it; why not, if
+  /// it can't.
   Future<MoveFailure?> _move(
     ListedFile file,
     PlaceShown ask,
     OwnerOutlet<ShownState, ShownEvent> out,
   ) async {
-    if (_isAt(file, ask.place, ask.title)) return null;
     final FileBytes read;
     switch (await _work.reload(file)) {
       case Ok(:final value):
@@ -245,10 +230,4 @@ final class _ShownSteps {
       Err(:final error) => error,
     };
   }
-
-  /// Whether [file] is at [place], named after [title] already.
-  bool _isAt(ListedFile file, FilePlace place, String title) =>
-      place.folder.id == file.folder.id &&
-      place.subfolder == file.path.parent &&
-      isNamedAfter(file.path.name, title);
 }

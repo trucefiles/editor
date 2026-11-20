@@ -10,12 +10,20 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../support.dart';
 
+/// A pick that moved nothing, and nothing failed.
+final _nothingMoved = isA<Ok<ListedFile?, MoveFailure>>().having(
+  (ok) => ok.value,
+  'moved',
+  isNull,
+);
+
 void main() {
   final folder = folderAt(Directory('/pictures'), id: 'pictures');
   final picture = Uint8List.fromList([1, 2, 3]);
   late FileDrafts drafts;
   late List<String> created;
   late List<Uint8List> deleted;
+  late List<String> moved;
   var createFails = false;
   var reach = Reach.reachable;
 
@@ -23,6 +31,7 @@ void main() {
     drafts = tempDrafts();
     created = [];
     deleted = [];
+    moved = [];
     createFails = false;
     reach = Reach.reachable;
   });
@@ -44,8 +53,10 @@ void main() {
             FileBytes(listedFile(folder, name: '$title$extension'), bytes),
           );
         },
-    move: (file, place, {required title, required newSubfolder}) async =>
-        Ok(file),
+    move: (file, place, {required title, required newSubfolder}) async {
+      moved.add(title);
+      return Ok(FileBytes(listedFile(folder, name: '$title.jpg'), file.bytes));
+    },
   );
 
   ViewPageController controllerOf(ShownFileOwner owner) {
@@ -148,6 +159,44 @@ void main() {
     expect(await page.deleteFile(), isA<DeletedForUndo>());
 
     expect(deleted, [picture]);
+  });
+
+  group('a place and name picked', () {
+    PickedPlace named(String name) =>
+        (place: topOf(folder), name: name, newSubfolder: false);
+
+    test('with an empty name, a new image keeps its name', () async {
+      final page = newPhoto();
+
+      expect(await page.placeAt(named(' ')), _nothingMoved);
+
+      expect(page.title, 'Photo');
+      expect(created, isEmpty);
+    });
+
+    test('the same place and name does nothing', () async {
+      final page = controllerOf(
+        shownFileOwner(listedFile(folder, name: 'a.jpg'), work()),
+      );
+
+      expect(await page.placeAt(named('a')), _nothingMoved);
+
+      expect(moved, isEmpty);
+    });
+
+    test('another name renames the image, and says where it is', () async {
+      final page = controllerOf(
+        shownFileOwner(listedFile(folder, name: 'a.jpg'), work()),
+      );
+
+      final placed = await page.placeAt(named('Cat'));
+
+      expect(
+        (placed as Ok<ListedFile?, MoveFailure>).value?.path,
+        path('Cat.jpg'),
+      );
+      expect(moved, ['Cat']);
+    });
   });
 
   test('a newer version shows as other content', () async {

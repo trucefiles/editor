@@ -58,6 +58,15 @@ final class NewFile extends PageFile {
   /// starts with [firstLine] (as its type reads it).
   String titleFor(String firstLine) => name ?? firstLine;
 
+  /// It, going where [to] says instead.
+  NewFile placedAt(NewPlace to) => NewFile(
+    to.place,
+    type: type,
+    start: start,
+    name: to.name,
+    newSubfolder: to.newSubfolder,
+  );
+
   /// [text] in the byte style a new file of [type] is written in.
   TextFile styleFor(String text) => type.newFile.withText(text);
 

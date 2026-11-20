@@ -32,7 +32,7 @@ import '../file_page_wiring.dart';
 import '../text_edit_page_controller.dart';
 import '../view_page_controller.dart';
 import '../view_pages.dart';
-import 'edit_shown_place.dart';
+import 'edit_place.dart';
 import 'file_place_chip.dart';
 import 'file_place_spot.dart';
 
@@ -206,6 +206,20 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
         ),
       );
 
+  /// Asks the user for another place or name of the file, then takes it.
+  Future<void> _editPlace() async {
+    final at = _controller.place;
+    if (at == null) return;
+    final title = _controller.title;
+    await editPlace(
+      context,
+      ref,
+      at: (folder: at.folder, subfolder: at.path.parent),
+      nameField: (name: title, hint: title),
+      take: _controller.placeAt,
+    );
+  }
+
   void _refresh() => unawaited(_pull.currentState!.refresh());
 
   Widget _menu(BuildContext context, {required FilePlaceSpot placeSpot}) {
@@ -215,7 +229,7 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
       itemBuilder: (_) => [
         if (placeSpot == FilePlaceSpot.menu)
           PopupMenuItem(
-            value: () => unawaited(editShownPlace(context, ref, _controller)),
+            value: () => unawaited(_editPlace()),
             child: const Text('$placeLabel…'),
           ),
         PopupMenuItem(
@@ -315,10 +329,7 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
                 child: FilePlaceChip(
                   place.folder,
                   place.path,
-                  onPressed: acts
-                      ? () =>
-                            unawaited(editShownPlace(context, ref, _controller))
-                      : null,
+                  onPressed: acts ? () => unawaited(_editPlace()) : null,
                 ),
               ),
             ),

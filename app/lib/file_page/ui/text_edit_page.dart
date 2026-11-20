@@ -33,7 +33,7 @@ import '../../versions/merge_outcome.dart';
 import '../file_page_wiring.dart';
 import '../file_pages.dart';
 import '../text_edit_page_controller.dart';
-import 'edit_file_place.dart';
+import 'edit_place.dart';
 import 'edit_state_banner.dart';
 import 'file_backups.dart';
 import 'file_place_chip.dart';
@@ -305,7 +305,7 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
       ..._page.view.menu(context, settings.view),
       if (placeSpot == FilePlaceSpot.menu)
         PopupMenuItem(
-          value: () => unawaited(editFilePlace(context, ref, _session)),
+          value: () => unawaited(_editPlace()),
           child: const Text('$placeLabel…'),
         ),
       PopupMenuItem(
@@ -324,6 +324,19 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
         child: const Text('Delete file'),
       ),
     ],
+  );
+
+  /// Asks the user for another place or name of the file, then takes it.
+  Future<void> _editPlace() => editPlace(
+    context,
+    ref,
+    at: (folder: _session.file.folder, subfolder: _session.path.parent),
+    nameField: nameFieldOf(
+      _session.file,
+      _session.path,
+      _session.summary.firstLine,
+    ),
+    take: _session.placeAt,
   );
 
   void _refresh() => unawaited(_pull.currentState!.refresh());
@@ -482,7 +495,7 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
                   _folder,
                   path,
                   onPressed: _session.file is NewFile || !readOnly
-                      ? () => unawaited(editFilePlace(context, ref, _session))
+                      ? () => unawaited(_editPlace())
                       : null,
                 ),
               ),

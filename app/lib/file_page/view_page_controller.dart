@@ -115,19 +115,47 @@ final class ViewPageController extends ChangeNotifier {
     null => FileMark.none,
   };
 
-  /// Moves the file to [place], named after [title]; for a new one,
-  /// only where it goes. Why not, if it can't.
-  Future<MoveFailure?> moveTo(
-    FilePlace place, {
-    required String title,
-    required bool newSubfolder,
-  }) => answerOf<ShownInput, Placed, MoveFailure?>(
-    _owner,
-    (ticket) =>
-        PlaceShown(ticket, place, title: title, newSubfolder: newSubfolder),
-    read: (answer) => answer.failure,
-    orElse: const MoveNotSaved(),
-  );
+  /// Takes the place and name the user [picked]: a new file only
+  /// changes where it goes; one in its folder is moved or renamed. An
+  /// empty name keeps the name it has. The file as moved, `null` where
+  /// it did not move; why not, if it can't.
+  Future<Result<ListedFile?, MoveFailure>> placeAt(PickedPlace picked) async {
+    final title = this.title;
+    final change = PlaceChange.of(
+      picked,
+      isNew: state is WaitingNew,
+      saved: listed,
+      unnamed: title,
+    );
+    final MoveTarget to;
+    switch (change) {
+      case NewPlace(:final place, :final name, :final newSubfolder):
+        to = (place: place, title: name ?? title, newSubfolder: newSubfolder);
+      case MoveTo(to: final target):
+        to = target;
+      case SamePlace():
+        return const Ok(null);
+      case CantMove(:final failure):
+        return Err(failure);
+    }
+    return switch (await _place(to)) {
+      final failure? => Err(failure),
+      null => Ok(change is MoveTo ? listed : null),
+    };
+  }
+
+  Future<MoveFailure?> _place(MoveTarget to) =>
+      answerOf<ShownInput, Placed, MoveFailure?>(
+        _owner,
+        (ticket) => PlaceShown(
+          ticket,
+          to.place,
+          title: to.title,
+          newSubfolder: to.newSubfolder,
+        ),
+        read: (answer) => answer.failure,
+        orElse: const MoveNotSaved(),
+      );
 
   /// Tries again to keep a new file that could be kept nowhere.
   void retry() => _owner.send(const KeepNew());
