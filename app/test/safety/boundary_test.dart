@@ -123,7 +123,7 @@ void main() {
     await files.backUpBeforeEdit(saved);
     final created = (await actions.create(
       (folder: folder, subfolder: null),
-      type: markdown,
+      extension: markdown.newFileExtension,
       title: 'New',
       bytes: utf8.encode('# New'),
     )).value;

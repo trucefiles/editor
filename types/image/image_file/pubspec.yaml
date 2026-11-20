@@ -1,0 +1,15 @@
+name: truce_image_file
+description: Pictures as files of their own for Truce (JPEG, PNG, GIF, WebP, BMP), looked at, not edited. Pure Dart, no UI.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  truce_core: any
+  truce_files: any
+
+dev_dependencies:
+  test: ^1.31.0
+  truce_lints: any

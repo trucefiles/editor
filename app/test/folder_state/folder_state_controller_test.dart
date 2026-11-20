@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/file_types/file_types.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -238,11 +237,7 @@ void main() {
     await container
         .read(fileAccessProvider)
         .of(folder)
-        .create(
-          'New',
-          type: container.read(fileTypesProvider).forNew,
-          bytes: utf8.encode('# New'),
-        );
+        .create('New', extension: '.md', bytes: utf8.encode('# New'));
 
     await eventually(
       () => names(shown.read().requireValue.shown).contains('New.md'),

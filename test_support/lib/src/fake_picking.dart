@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_images/truce_images.dart';
 
 /// A PNG picture of one pixel.
@@ -17,6 +16,9 @@ final class FakePicking implements ImagePicking {
 
   Uint8List? picked;
 
+  /// The name of the file [picked] came from, if any.
+  String? name;
+
   @override
   final List<ImageSource> sources;
 
@@ -26,10 +28,13 @@ final class FakePicking implements ImagePicking {
   Completer<void>? waits;
 
   @override
-  Future<Uint8List?> pick(ImageSource source) async {
+  Future<PickedImage?> pick(ImageSource source) async {
     asked.add(source);
     await waits?.future;
-    return picked;
+    return switch (picked) {
+      final bytes? => (bytes: bytes, name: name),
+      null => null,
+    };
   }
 
   @override

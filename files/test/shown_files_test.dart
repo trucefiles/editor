@@ -112,7 +112,7 @@ void main() {
       types: _types,
     );
 
-    expect((await searchable.read())!.text, 'teal');
+    expect((await searchable.read!())!.text, 'teal');
   });
   test('documents are read again only once they change', () async {
     put('a.md', 'k:1');

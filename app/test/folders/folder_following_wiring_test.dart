@@ -100,7 +100,7 @@ void main() {
         '.obsidian/workspace.json',
         '.a.md.swp',
         'a.md~',
-        'picture.png',
+        'manual.pdf',
         'notes.txt',
         'sub/a.md',
         'a.sync-conflict-20261003-134809-ABCDEFG.md',

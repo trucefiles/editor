@@ -13,8 +13,9 @@ final class Searchable<Item> {
   /// What matches without reading the item.
   final List<String> names;
 
-  /// Its text and title as they are now; `null` if it can't be read.
-  final Future<SearchText?> Function() read;
+  /// Its text and title as they are now, `null` if it can't be read;
+  /// `null` here if it has nothing to read: only its [names] match.
+  final Future<SearchText?> Function()? read;
 }
 
 /// An item's text as a search sees it.

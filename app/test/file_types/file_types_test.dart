@@ -8,6 +8,7 @@ import 'package:truce_editor/common/time_texts.dart';
 import 'package:truce_editor/file_types/file_types.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_image_view/truce_image_view.dart';
 
 import '../support.dart';
 
@@ -29,11 +30,12 @@ END:VCALENDAR
 void main() {
   setUpAll(initializeDateFormatting);
 
-  test('the app handles Markdown, plain text and calendars', () {
+  test('the app handles Markdown, plain text, calendars and images', () {
     final types = appFileTypes();
     expect(types.of(path('a.md')), isA<MarkdownEditableType>());
     expect(types.of(path('a.txt')), isA<PlainTextEditableType>());
     expect(types.of(path('a.ics')), isA<CalendarEditableType>());
+    expect(types.of(path('a.JPG')), isA<ImageViewType>());
     expect(types.of(path('a.pdf')), isNull);
   });
 
@@ -41,7 +43,7 @@ void main() {
     final types = appFileTypes();
     expect(
       [for (final made in types.newFileChoices) made.label],
-      ['Document', 'Plain text', 'Calendar', 'Health calendar'],
+      ['Document', 'Plain text', 'Calendar', 'Health calendar', 'Image'],
     );
     expect(types.forNew, isA<MarkdownEditableType>());
   });

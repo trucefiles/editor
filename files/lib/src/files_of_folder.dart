@@ -57,20 +57,21 @@ final class FilesOfFolder {
     );
   }
 
-  /// New file of [type] in [subfolder] (the folder's top level if
-  /// `null`), named after [title], holding [bytes]; [newSubfolder] makes
-  /// [subfolder] first. If [subfolder] is gone, the file goes to the
+  /// New file in [subfolder] (the folder's top level if `null`), named
+  /// after [title] with [extension] (with its dot, e.g. a type's
+  /// [NewFileExtension.newFileExtension] or a picture's own), holding
+  /// [bytes]; [newSubfolder] makes [subfolder] first. If [subfolder] is gone, the file goes to the
   /// folder's top level: it is kept, and the deleted subfolder never
   /// comes back.
   Future<Result<FileBytes, StoreError>> create(
     String title, {
-    required ShownFileType type,
+    required String extension,
     RelPath? subfolder,
     required Uint8List bytes,
     bool newSubfolder = false,
   }) => _createNew(
     title,
-    type.newFileExtension,
+    extension,
     (folder: subfolder, isNew: newSubfolder),
     bytes,
     (path) => _store.create(path, bytes),

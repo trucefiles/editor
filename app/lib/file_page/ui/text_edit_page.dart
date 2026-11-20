@@ -479,8 +479,11 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
                 alignment: AlignmentDirectional.centerStart,
                 // A new file can still go to another folder.
                 child: FilePlaceChip(
-                  _session,
-                  enabled: _session.file is NewFile || !readOnly,
+                  _folder,
+                  path,
+                  onPressed: _session.file is NewFile || !readOnly
+                      ? () => unawaited(editFilePlace(context, ref, _session))
+                      : null,
                 ),
               ),
             ),

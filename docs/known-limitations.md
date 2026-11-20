@@ -36,6 +36,15 @@ Accepted behavior that is not planned to change, grouped by topic.
   images come back from their backups, which can make `document-images`
   again if you deleted it.
 
+## Images
+
+- **Deleting an image frees no phone space for 7 days.** Its backup is kept
+  that long, so you can still bring it back.
+- **Moving or renaming an image breaks links to it.** A document that shows
+  the image by its path no longer finds it there.
+- **On Android, a photo can be lost if the phone closes Truce while the
+  camera is open.**
+
 ## Calendars
 
 - **On Linux, alerts ring only while Truce runs.** Turn on "Start at login"
@@ -61,5 +70,8 @@ Accepted behavior that is not planned to change, grouped by topic.
   them on this device and writes them once the folder is back.
 - **A subfolder that can't be read hides its documents.** They are not
   treated as deleted; they show again once it can be read.
+- **A new image waits on this device while its folder can't be reached.**
+  If you remove that folder from Truce before it is back, the image goes
+  with it.
 - **A drive that is not plugged in can make its folder look empty.** Its
   documents then look deleted instead of the folder looking unreachable.

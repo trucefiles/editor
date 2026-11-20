@@ -24,12 +24,19 @@ final class FakeShownType implements ShownFileType {
   ];
 
   @override
-  FileCardSummary cardSummary(FileBytes read) =>
+  FileCardSummary Function(FileBytes read) get cardSummary => _cardSummary;
+
+  FileCardSummary _cardSummary(FileBytes read) =>
       FileCardSummary(title: _linesOf(read.bytes).first, preview: (_) => '');
 
-  /// The values, not the keys.
   @override
-  SearchText searchText(FileBytes read) => (
+  SearchText Function(FileBytes read) get searchText => _searchText;
+
+  @override
+  bool get edited => true;
+
+  /// The values, not the keys.
+  SearchText _searchText(FileBytes read) => (
     title: _linesOf(read.bytes).first,
     text: [for (final line in _linesOf(read.bytes)) line.split(':').last]
         .join('\n'),

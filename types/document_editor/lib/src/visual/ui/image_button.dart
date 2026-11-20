@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../image_insert.dart';
-import '../image_picking.dart';
+
+import 'package:truce_images/truce_images.dart';
 
 /// The toolbar's Image button: with one source it picks from it at once,
 /// with more it asks which first ("Choose image", "Take photo"); a

@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
-import 'image_fakes.dart';
-
 void main() {
   testWidgets('an image that could not be read is read again as it shows '
       'again', (tester) async {

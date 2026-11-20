@@ -99,7 +99,7 @@ void main() {
           draftsOf: (folder) => fixture.drafts[folder.id]!,
           create: (
             _, {
-            required type,
+            required extension,
             required title,
             required bytes,
             newSubfolder = false,
@@ -160,7 +160,7 @@ void main() {
           draftsOf: (folder) => fixture.drafts[folder.id]!,
           create: (
             _, {
-            required type,
+            required extension,
             required title,
             required bytes,
             newSubfolder = false,
@@ -254,7 +254,7 @@ void main() {
             draftsOf: (folder) => fixture.drafts[folder.id]!,
             create: (
               _, {
-              required type,
+              required extension,
               required title,
               required bytes,
               newSubfolder = false,

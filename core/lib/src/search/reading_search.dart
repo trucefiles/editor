@@ -17,11 +17,14 @@ final class ReadingSearch<Item> implements OpenSearch<Item> {
     int readsAtOnce = 4,
     this.changesEvery = const Duration(milliseconds: 150),
   }) : _items = List.unmodifiable(items),
-       _haystacks = [for (final item in items) haystackOf(item.names, null)] {
+       _haystacks = [for (final item in items) haystackOf(item.names, null)],
+       // Those with nothing to read are done from the start.
+       _done = items.where((item) => item.read == null).length {
     final pool = Pool(readsAtOnce);
     _reads = Future.wait([
       for (final (index, item) in _items.indexed)
-        pool.withResource(() => _read(index, item)),
+        if (item.read case final read?)
+          pool.withResource(() => _read(index, item.names, read)),
     ]).whenComplete(pool.close);
   }
 
@@ -35,7 +38,7 @@ final class ReadingSearch<Item> implements OpenSearch<Item> {
   late final Future<void> _reads;
   final _changes = StreamController<void>.broadcast();
   Timer? _toldSoon;
-  var _done = 0;
+  int _done;
   var _closed = false;
 
   @override
@@ -59,11 +62,15 @@ final class ReadingSearch<Item> implements OpenSearch<Item> {
     ];
   }
 
-  Future<void> _read(int index, Searchable<Item> item) async {
+  Future<void> _read(
+    int index,
+    List<String> names,
+    Future<SearchText?> Function() read,
+  ) async {
     if (_closed) return;
-    final text = await item.read();
+    final text = await read();
     if (_closed) return;
-    _haystacks[index] = haystackOf(item.names, text);
+    _haystacks[index] = haystackOf(names, text);
     _done++;
     _tell();
   }

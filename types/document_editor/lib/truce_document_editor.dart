@@ -50,7 +50,6 @@ export 'src/ui/document_image.dart';
 export 'src/ui/empty_document_hint.dart';
 export 'src/ui/list_marker.dart';
 export 'src/visual/image_insert.dart';
-export 'src/visual/image_picking.dart';
 export 'src/visual/library/attributed_text.dart';
 export 'src/visual/library/image_tap_handler.dart';
 export 'src/visual/library/ime_batches.dart';

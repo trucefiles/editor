@@ -216,7 +216,7 @@ void _populate(Directory base) {
   write('Documents/a.md', '# A\n');
   write('Documents/sub/b.md', '# B\n- [ ] item\n');
   write('Documents/sub/deeper/c.md', '# C\n');
-  write('Documents/sub/picture.png', 'not text');
+  write('Documents/sub/manual.pdf', 'not a handled file');
   write('Documents/readme.txt', 'plain text');
   write('Documents/.hidden/h.md', '# Hidden\n');
   write('Documents/.syncthing.a.md.tmp', 'Syncthing at work');

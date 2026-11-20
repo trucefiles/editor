@@ -81,13 +81,13 @@ final class FileFixture {
   /// Creates a file in the fixture's folders.
   Future<Result<FileBytes, StoreError>> createFile(
     FilePlace place, {
-    required ShownFileType type,
+    required String extension,
     required String title,
     required Uint8List bytes,
     bool newSubfolder = false,
   }) => this.bytes[place.folder.id]!.create(
     title,
-    type: type,
+    extension: extension,
     subfolder: place.subfolder,
     newSubfolder: newSubfolder,
     bytes: bytes,

@@ -106,13 +106,13 @@ final class _Device {
         create:
             (
               place, {
-              required type,
+              required extension,
               required title,
               required bytes,
               newSubfolder = false,
             }) => files.create(
               title,
-              type: type,
+              extension: extension,
               subfolder: place.subfolder,
               newSubfolder: newSubfolder,
               bytes: bytes,

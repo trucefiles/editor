@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
@@ -10,25 +9,6 @@ import '../files/read_version.dart';
 import '../files/text_files.dart';
 import '../text_file_owner/text_file_contract.dart';
 import 'page_file.dart';
-
-/// Creates a file of [type] holding [bytes] at [place], named
-/// after [title]; first [place]'s subfolder if it is new ([newSubfolder]).
-typedef FileCreator = Future<Result<FileBytes, StoreError>> Function(
-  FilePlace place, {
-  required ShownFileType type,
-  required String title,
-  required Uint8List bytes,
-  bool newSubfolder,
-});
-
-/// Moves a file, as last saved, to [place], named after
-/// [title]; first [place]'s subfolder if it is new ([newSubfolder]).
-typedef FileMover = Future<Result<FileBytes, MoveFailure>> Function(
-  FileBytes file,
-  FilePlace place, {
-  required String title,
-  required bool newSubfolder,
-});
 
 /// Where the user moves an open file: to [place], named after
 /// [title]; [newSubfolder]: [place]'s subfolder is a new one to make.
@@ -278,7 +258,7 @@ final class TextEditEffects {
     final style = file.styleFor(text);
     return switch (await _create(
       file.place,
-      type: file.type,
+      extension: file.type.newFileExtension,
       title: file.titleFor(firstLine),
       bytes: style.encode(text),
       newSubfolder: file.newSubfolder,

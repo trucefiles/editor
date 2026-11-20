@@ -5,4 +5,5 @@
 library;
 
 export 'src/image_kind.dart';
+export 'src/image_picking.dart';
 export 'src/prepare_image.dart';

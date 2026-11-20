@@ -4,9 +4,9 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:truce_common_ui/truce_common_ui.dart' show ImageViewer;
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
+import 'package:truce_images/truce_images.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
-
-import 'image_fakes.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 /// Adding, showing and pasting images in the document views.
 void main() {

@@ -30,6 +30,12 @@ final class PreviewNotShown extends CardPreview {
   const PreviewNotShown();
 }
 
+/// Its type shows no part of what files of it hold on cards, so it was
+/// never read; the card shows the file name only.
+final class NotPreviewed extends CardPreview {
+  const NotPreviewed();
+}
+
 /// The file could not be read now; the card shows the file name only.
 final class PreviewUnreadable extends CardPreview {
   const PreviewUnreadable();
@@ -40,20 +46,26 @@ final class PreviewUnreadable extends CardPreview {
 String cardTitle(ListedFile file, CardPreview preview) => switch (preview) {
   Previewed(:final summary) => summary.title,
   PreviewReading() ||
+  NotPreviewed() ||
   PreviewNotShown() ||
   PreviewUnreadable() => nameTitle(file.path),
 };
 
 /// [file]'s preview, read from its file in [files] and worked out by
-/// its type in [types]; never throws.
+/// its type in [types]; not read where its type shows none of it. Never
+/// throws.
 Future<CardPreview> readPreview(
   ListedFile file,
   FileAccess files,
   ShownFileTypes types,
-) async => switch (await files.of(file.folder).reload(file)) {
-  Ok(value: final read) => switch (types.ofFile(read.type).cardSummary(read)) {
-    final summary? => Previewed(summary),
-    null => const PreviewNotShown(),
-  },
-  Err() => const PreviewUnreadable(),
-};
+) async {
+  final summaryOf = types.ofFile(file.type).cardSummary;
+  if (summaryOf == null) return const NotPreviewed();
+  return switch (await files.of(file.folder).reload(file)) {
+    Ok(value: final read) => switch (summaryOf(read)) {
+      final summary? => Previewed(summary),
+      null => const PreviewNotShown(),
+    },
+    Err() => const PreviewUnreadable(),
+  };
+}

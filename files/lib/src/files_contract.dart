@@ -13,7 +13,6 @@ import 'file_bytes.dart';
 import 'file_place.dart';
 import 'listed_file.dart';
 import 'move_failure.dart';
-import 'shown_file_type.dart';
 import 'undoable_delete.dart';
 
 // Inputs.
@@ -25,21 +24,21 @@ sealed class FilesInput implements Asking {
   final Ticket ticket;
 }
 
-/// Create a file of [type] holding [bytes] at [place], named after
-/// [title]; first [place]'s subfolder if it is a new one the user asked
-/// for ([newSubfolder]).
+/// Create a file holding [bytes] at [place], named after [title] with
+/// [extension] (with its dot); first [place]'s subfolder if it is a new
+/// one the user asked for ([newSubfolder]).
 final class CreateFile extends FilesInput {
   const CreateFile(
     super.ticket,
     this.place, {
-    required this.type,
+    required this.extension,
     required this.title,
     required this.bytes,
     this.newSubfolder = false,
   });
 
   final FilePlace place;
-  final ShownFileType type;
+  final String extension;
   final String title;
   final Uint8List bytes;
   final bool newSubfolder;

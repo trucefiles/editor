@@ -3,7 +3,9 @@ import 'package:truce_markdown/truce_markdown.dart'
     show BlockKind, EditKey, FormatState, TextFormat;
 
 import '../image_insert.dart';
-import '../image_picking.dart';
+
+import 'package:truce_images/truce_images.dart';
+
 import '../visual_actions.dart';
 import 'image_button.dart';
 

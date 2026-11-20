@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -12,6 +13,7 @@ import '../../common/snack.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../conflicts/ui/conflicts_screen.dart';
 import '../../conflicts/ui/orphan_card.dart';
+import '../../file_page/ui/file_view_page.dart';
 import '../../file_page/ui/text_edit_page.dart';
 import '../../file_types/file_types.dart';
 import '../../folder_state/folder_state_controller.dart';
@@ -137,12 +139,34 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
       ref.read(fileTypesProvider).newFileChoices,
     );
     if (pick == null || !mounted) return;
+    final page = switch (pick.type) {
+      final ViewType type => await _newShown(type, pick.kind, place),
+      EditableType() => TextEditPage.fresh(place, made: pick),
+    };
+    if (page == null || !mounted) return;
     ref.read(fileActionsProvider).reveal(place, pick.type.support.type);
     await Navigator.push(
       context,
-      MaterialPageRoute<void>(
-        builder: (_) => TextEditPage.fresh(place, made: pick),
-      ),
+      MaterialPageRoute<void>(builder: (_) => page),
+    );
+  }
+
+  /// The page of a new file of [type] the user makes ([ViewType.makeNew]),
+  /// to go into [place]; `null` if they made none.
+  Future<Widget?> _newShown(
+    ViewType type,
+    NewFileKind kind,
+    FilePlace place,
+  ) async {
+    final made = await type.makeNew(
+      context,
+      kind,
+      hint: (message) => showSnack(context, message),
+    );
+    if (made == null) return null;
+    return FileViewPage.fresh(
+      NewShownFile(place, name: made.name, bytes: made.bytes),
+      type: type,
     );
   }
 }
@@ -230,9 +254,11 @@ class _PinnedAndRecent extends ConsumerWidget {
     final home = ref.watch(
       deviceSettingsProvider.select((s) => s.requireValue.home),
     );
+    final types = ref.watch(fileTypesProvider);
     final recent = recentOf(
       files,
       isPinned: (file) => settings.settingsOf(file.key).pinned,
+      counts: (file) => home.uneditedInRecent || types.ofFile(file.type).edited,
       count: home.recentCount,
       // Checked on each listing; no timer moves files out while shown.
       since: home.recentSince(DateTime.now()),

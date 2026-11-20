@@ -52,6 +52,11 @@ runs:
       working-directory: types/plain_text/plain_text
       run: dart test
 
+    - name: Test image files
+      shell: bash
+      working-directory: types/image/image_file
+      run: dart test
+
     - name: Test calendar
       shell: bash
       working-directory: types/calendar/calendar
@@ -116,6 +121,11 @@ runs:
     - name: Test calendar editor
       shell: bash
       working-directory: types/calendar/calendar_editor
+      run: flutter test
+
+    - name: Test image view
+      shell: bash
+      working-directory: types/image/image_view
       run: flutter test
 
     - name: Test app

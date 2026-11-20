@@ -15,7 +15,6 @@ import 'file_settings_keeper.dart';
 import 'files_of_folder.dart';
 import 'listed_file.dart';
 import 'move_failure.dart';
-import 'shown_file_type.dart';
 import 'shown_file_types.dart';
 import 'undoable_delete.dart';
 
@@ -87,13 +86,13 @@ base class FileSteps {
       _backupsOf(from.folder)
           .moveAll(from: from.path, to: to.path, into: _backupsOf(to.folder));
 
-  /// Creates a file of [type] holding [bytes] at [place], named after
-  /// [title]; [newSubfolder]: [place]'s subfolder is a new one the user
-  /// asked for, made first. Like every write of the app, the folder state
+  /// Creates a file holding [bytes] at [place], named after [title] with
+  /// [extension] (see [FilesOfFolder.create]); [newSubfolder]: [place]'s
+  /// subfolder is a new one the user asked for, made first. Like every write of the app, the folder state
   /// sees it at once.
   Future<Result<FileBytes, StoreError>> create(
     FilePlace place, {
-    required ShownFileType type,
+    required String extension,
     required String title,
     required Uint8List bytes,
     bool newSubfolder = false,
@@ -101,7 +100,7 @@ base class FileSteps {
       .of(place.folder)
       .create(
         title,
-        type: type,
+        extension: extension,
         subfolder: place.subfolder,
         newSubfolder: newSubfolder,
         bytes: bytes,

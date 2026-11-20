@@ -55,6 +55,24 @@ class RecentAgeTile extends ConsumerWidget {
   }
 }
 
+/// Settings row: whether files only looked at in the app (images) show
+/// in Recently edited too.
+class UneditedInRecentTile extends ConsumerWidget {
+  const UneditedInRecentTile({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => SwitchListTile(
+    title: const Text('Show images in Recently edited'),
+    value: ref.watch(
+      deviceSettingsProvider.select(
+        (s) => s.requireValue.home.uneditedInRecent,
+      ),
+    ),
+    onChanged: (on) =>
+        _changeHome(ref, (home) => home.copyWith(uneditedInRecent: on)),
+  );
+}
+
 Future<void> _changeHome(
   WidgetRef ref,
   HomeSettings Function(HomeSettings home) change,

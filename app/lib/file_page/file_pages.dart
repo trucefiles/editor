@@ -102,28 +102,33 @@ final class FilePages {
 
   /// The page of [file], as read just before; the editor runs actions
   /// on its file through [withFile].
-  FilePage open(FileText file, {required WithFile withFile}) =>
-      switch (types.ofFile(file.type)) {
-        final EditableType type => _open(
-          type,
-          ExistingFile(file),
-          view: settingsOf(file.key).view,
-          withFile: withFile,
-        ),
-      };
+  FilePage open(FileText file, {required WithFile withFile}) => _open(
+    _editable(types.ofFile(file.type)),
+    ExistingFile(file),
+    view: settingsOf(file.key).view,
+    withFile: withFile,
+  );
 
   /// The page of a new file [made], to go into [place].
   FilePage openNew(
     FilePlace place, {
     required NewFileChoice<FilePageType> made,
     required WithFile withFile,
-  }) => switch (made.type) {
-    final EditableType type => _open(
+  }) {
+    final type = _editable(made.type);
+    return _open(
       type,
       NewFile(place, type: type, start: made.kind.startText),
       view: FileSettings.defaults.view,
       withFile: withFile,
-    ),
+    );
+  }
+
+  /// [type], which opens on the text editing page: whoever opens a page
+  /// picks it by the file's type.
+  static EditableType _editable(FilePageType type) => switch (type) {
+    final EditableType type => type,
+    ViewType() => throw StateError('A view type opens on the view page.'),
   };
 
   /// The page of a file of [type] whose [file] is where it starts,

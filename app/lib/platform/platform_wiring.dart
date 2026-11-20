@@ -3,8 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar_alerts/truce_calendar_alerts.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_document_editor/truce_document_editor.dart'
-    show ImagePicking, ImageSource;
+import 'package:truce_images/truce_images.dart' show ImagePicking, ImageSource;
 
 import '../alerts/alarm_controls.dart';
 import '../alerts/alert_permissions.dart';

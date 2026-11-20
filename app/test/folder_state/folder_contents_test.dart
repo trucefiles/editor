@@ -120,7 +120,7 @@ void main() {
           // Listed as a Markdown file would be, but not one by its name.
           ListedFile(
             folder: work,
-            path: path('kept/photo.png'),
+            path: path('kept/manual.pdf'),
             type: kept.type,
             version: kept.version,
             modified: kept.modified,

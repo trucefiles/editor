@@ -60,6 +60,9 @@ final class TestApp {
   /// file's bytes, `null` for none picked.
   Uint8List? calendarToImport;
 
+  /// What the user picks as an image to add; set before [launch].
+  FakePicking picking = FakePicking(null);
+
   /// Starts the app, with the locale data and device settings that `main`
   /// loads, in US English whatever the machine's locale, so layouts (e.g.
   /// which day a month's grid starts on) are the same on every machine.
@@ -79,6 +82,7 @@ final class TestApp {
           calendarFilePickerProvider.overrideWithValue(
             () async => Ok(calendarToImport),
           ),
+          imagePickingProvider.overrideWithValue(picking),
         ],
         child: const TruceApp(),
       ),
@@ -123,6 +127,9 @@ final class TestApp {
     final file = this.file(name)..parent.createSync(recursive: true);
     file.writeAsBytesSync(base64.decode(_pictures[width]!));
   }
+
+  /// The picture [writePicture] writes [width] pixels wide.
+  static Uint8List picture(int width) => base64.decode(_pictures[width]!);
 
   /// [name] may lead through subfolders.
   Directory folder(String name) => Directory('${files.path}/$name');

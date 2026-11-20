@@ -104,7 +104,7 @@ final class FileActions {
   /// See [FileSteps.create].
   Future<Result<FileBytes, StoreError>> create(
     FilePlace place, {
-    required ShownFileType type,
+    required String extension,
     required String title,
     required Uint8List bytes,
     bool newSubfolder = false,
@@ -113,7 +113,7 @@ final class FileActions {
     (ticket) => CreateFile(
       ticket,
       place,
-      type: type,
+      extension: extension,
       title: title,
       bytes: bytes,
       newSubfolder: newSubfolder,

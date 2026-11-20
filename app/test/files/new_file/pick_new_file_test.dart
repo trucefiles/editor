@@ -33,7 +33,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       [for (final choice in choices) choice.label],
-      ['Document', 'Plain text', 'Calendar', 'Health calendar'],
+      ['Document', 'Plain text', 'Calendar', 'Health calendar', 'Image'],
     );
     await tester.tap(find.text('Health calendar'));
     await tester.pumpAndSettle();
