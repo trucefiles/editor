@@ -1,20 +1,6 @@
 import 'package:truce_core/truce_core.dart'
-    show
-        EditorBook,
-        EditorNotice,
-        EditorSteps,
-        EffectId,
-        SentText,
-        OfferedUndo,
-        ShownStep,
-        Step,
-        StepRun,
-        TextStep,
-        TextSummary,
-        UndoOffered,
-        lineAt,
-        lineStart,
-        textChange;
+    show EffectId, Step, StepRun, lineAt, lineStart;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';

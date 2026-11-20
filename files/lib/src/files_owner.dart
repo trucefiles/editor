@@ -10,20 +10,23 @@ export 'files_contract.dart';
 typedef FilesOwner = Owner<FilesInput, Null, FilesAnswer>;
 
 /// The app's files owner, and the answer to its first input: putting
-/// the drafts left by the last run into their files.
-typedef Files = ({FilesOwner owner, Future<DraftsRecovered?> draftsRecovered});
+/// the edits left by the last run into their files.
+typedef Files = ({
+  FilesOwner owner,
+  Future<LeftEditsRecovered?> leftEditsRecovered,
+});
 
 /// The app's files owner by [steps], started: its first input
-/// recovers the drafts written before [startedAt], when the app started;
+/// recovers the edits left before [startedAt], when the app started;
 /// later ones belong to open files.
 Files startFiles(FileSteps steps, {required DateTime startedAt}) {
   final owner = filesOwner(steps);
   return (
     owner: owner,
-    draftsRecovered: ask<FilesInput, DraftsRecovered>(
+    leftEditsRecovered: ask<FilesInput, LeftEditsRecovered>(
       owner.send,
       owner.events,
-      (ticket) => RecoverDrafts(ticket, before: startedAt),
+      (ticket) => RecoverLeftEdits(ticket, before: startedAt),
     ),
   );
 }
@@ -80,6 +83,8 @@ Future<FilesAnswer> _run(FileSteps steps, FilesInput input) => switch (input) {
         .then((result) => RestoredAsNew(ticket, result)),
   SetMark(:final ticket, file: final file, :final mark) =>
     steps.setMark(file, mark).then((result) => MarkSet(ticket, result)),
-  RecoverDrafts(:final ticket, :final before) =>
-    steps.recoverDrafts(before: before).then((_) => DraftsRecovered(ticket)),
+  RecoverLeftEdits(:final ticket, :final before) =>
+    steps
+        .recoverLeftEdits(before: before)
+        .then((_) => LeftEditsRecovered(ticket)),
 };

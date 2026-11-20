@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart' show TextSummary;
+import 'package:truce_text_editing/truce_text_editing.dart' show TextSummary;
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';

@@ -17,7 +17,7 @@ void main() {
         loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
       ],
     );
-    final recovered = container.read(filesProvider).draftsRecovered;
+    final recovered = container.read(filesProvider).leftEditsRecovered;
 
     container.dispose();
 

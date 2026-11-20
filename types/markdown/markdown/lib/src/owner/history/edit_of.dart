@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart' show ShownStep, TextStep, Typing;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../doc/origin.dart';
 import '../../edit/commands/acted_on.dart';

@@ -2,6 +2,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown_images/truce_markdown_images.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// The user's cleanup of a folder's unused document images: open
 /// documents of the folder keep their edits first, so every link is in

@@ -6,6 +6,7 @@ import 'package:truce_editor/file_page/text_edit_page_controller.dart';
 import 'package:truce_editor/file_page/ui/edit_state_banner.dart';
 import 'package:truce_editor/versions/ui/version_pane.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../support.dart';
 import '../file_fixture.dart';

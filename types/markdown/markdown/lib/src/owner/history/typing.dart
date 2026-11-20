@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart' show Typing, typingFrom, typingIn;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../edit/commands/text_commands.dart' show ordered;
 import '../../edit/keys/key_map.dart';

@@ -9,6 +9,7 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ManualTimers, folderId, path;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// When the tests' edits are made.
 final editedAt = DateTime.utc(2026, 11, 1, 12);

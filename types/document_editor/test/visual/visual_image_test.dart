@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_test_support/truce_test_support.dart';
 

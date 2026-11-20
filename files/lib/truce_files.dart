@@ -1,8 +1,5 @@
 /// The files in the folders: their files (as bytes), steps and owner,
-/// settings, previews, search, backups, conflicts and compare; and the
-/// text editing kit for types whose files are text (text files, drafts,
-/// the open file's page model: session, file effects, the editor
-/// contract).
+/// settings, previews, search, backups, conflicts and compare.
 ///
 /// Pure Dart, no UI; knows no sync tool and no file type, which the
 /// app wires in.
@@ -16,12 +13,9 @@ export 'src/conflicts/conflict_compare.dart';
 export 'src/conflicts/conflict_sides.dart';
 export 'src/conflicts/folder_conflicts.dart';
 export 'src/delete_failure.dart';
-export 'src/draft_recovery.dart';
 export 'src/file_arrival.dart';
 export 'src/file_bytes.dart';
 export 'src/file_card_summary.dart';
-export 'src/file_draft.dart';
-export 'src/file_drafts.dart';
 export 'src/file_merge.dart';
 export 'src/file_place.dart';
 export 'src/file_reads.dart';
@@ -48,24 +42,13 @@ export 'src/new_file_name.dart';
 export 'src/new_file_place/new_file_place.dart';
 export 'src/open_edits.dart';
 export 'src/open_failure.dart';
+export 'src/open_file/observation.dart';
+export 'src/open_file/version.dart';
 export 'src/previews/card_preview.dart';
 export 'src/previews/card_previews.dart';
 export 'src/search/file_search.dart';
 export 'src/shown_file_type.dart';
 export 'src/shown_file_types.dart';
-export 'src/text_editing/editor_part.dart';
-export 'src/text_editing/file_text.dart';
-export 'src/text_editing/fixed_view_editor_part.dart';
-export 'src/text_editing/page_file.dart';
-export 'src/text_editing/place_change.dart';
-export 'src/text_editing/read_version.dart';
-export 'src/text_editing/save_state.dart';
-export 'src/text_editing/text_bytes_merge.dart';
-export 'src/text_editing/text_edit_effects.dart';
-export 'src/text_editing/text_edit_session.dart';
-export 'src/text_editing/text_file_type.dart';
-export 'src/text_editing/text_files.dart';
 export 'src/undoable_delete.dart';
 export 'src/versions/compared_lines.dart';
-export 'src/versions/version_text.dart';
 export 'src/view_settings.dart';

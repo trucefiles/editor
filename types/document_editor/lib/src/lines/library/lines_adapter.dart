@@ -1,8 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart'
-    show TextChange, TextEdit, splitLines, textChange, unchangedEnds;
+import 'package:truce_core/truce_core.dart' show splitLines, unchangedEnds;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../library/document_patch.dart';
 import '../../library/own_clipboard.dart';

@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart' show FromFile, Replaced, Version;
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A line adapter on the Markdown edit of an editor owner of [text].
 final class _Markdown {

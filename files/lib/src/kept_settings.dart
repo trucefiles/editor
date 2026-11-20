@@ -1,10 +1,9 @@
-import 'package:truce_core/truce_core.dart';
-
 import 'file_settings.dart';
 import 'file_settings_store.dart';
 import 'folder_state/folder_files.dart';
 import 'kept_file_settings.dart';
 import 'listed_file.dart';
+import 'open_file/observation.dart';
 
 /// Every file's settings this device keeps, by
 /// [FileSettingsStore.storeKey]. The functions below are the rules on

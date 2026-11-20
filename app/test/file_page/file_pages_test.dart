@@ -4,6 +4,8 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/file_pages.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';

@@ -10,9 +10,11 @@ import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ManualTimers, folderId, path;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A plain text document's editor owner in memory, as its line editor
 /// gets it: records the texts it sends to be kept.

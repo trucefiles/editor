@@ -25,6 +25,7 @@ dependencies:
   truce_markdown: any
   truce_markdown_images: any
   truce_plain_text: any
+  truce_text_editing: any
 
 dev_dependencies:
   flutter_test:

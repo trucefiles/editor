@@ -98,6 +98,11 @@ runs:
       working-directory: files
       run: dart test
 
+    - name: Test text editing kit
+      shell: bash
+      working-directory: text_editing
+      run: dart test
+
     - name: Test common UI
       shell: bash
       working-directory: common_ui

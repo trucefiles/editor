@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// Backs up [text], the open file's text now.
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);

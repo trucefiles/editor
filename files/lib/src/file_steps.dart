@@ -5,10 +5,8 @@ import 'package:truce_folders/truce_folders.dart';
 
 import 'backups/folder_backups.dart';
 import 'delete_failure.dart';
-import 'draft_recovery.dart';
 import 'file_arrival.dart';
 import 'file_bytes.dart';
-import 'file_drafts.dart';
 import 'file_place.dart';
 import 'file_settings_keeper.dart';
 import 'files_of_folder.dart';
@@ -16,7 +14,6 @@ import 'listed_file.dart';
 import 'move_failure.dart';
 import 'shown_file_type.dart';
 import 'shown_file_types.dart';
-import 'text_editing/text_files.dart';
 import 'undoable_delete.dart';
 
 /// What the file steps work with, from the app's wiring.
@@ -27,7 +24,7 @@ final class FilesWork {
     required this.settings,
     required this.conflictWaits,
     required this.folders,
-    required this.drafts,
+    required this.recoverLeftEdits,
     required this.types,
     required this.arrivals,
   });
@@ -45,7 +42,11 @@ final class FilesWork {
   /// The folders once their list loaded; none if it can't be read.
   final Future<List<Folder>> Function() folders;
 
-  final DraftsByFolder drafts;
+  /// Puts the edits the last run left on this device, written before
+  /// [before], into the files of [files]' folder (e.g. a text type's
+  /// drafts).
+  final Future<void> Function(FilesOfFolder files, {required DateTime before})
+  recoverLeftEdits;
   final ShownFileTypes types;
 
   /// How files arrive as they move or are restored.
@@ -53,7 +54,7 @@ final class FilesWork {
 }
 
 /// The steps of the user's actions on files: create, new subfolder,
-/// move or rename, delete and undo, color, and recovering the drafts of
+/// move or rename, delete and undo, color, and recovering the edits left by
 /// the last run. Run one at a time by the files owner, so their side
 /// steps (mark, settings, backups) never mix.
 base class FileSteps {
@@ -253,15 +254,12 @@ base class FileSteps {
         );
   }
 
-  /// Recovers the drafts of every folder written before [before] (see
-  /// [DraftRecovery]). Recovers none if the folders can't be loaded.
-  Future<void> recoverDrafts({required DateTime before}) async {
+  /// Recovers the edits left in every folder before [before] (see
+  /// [FilesWork.recoverLeftEdits]). Recovers none if the folders can't be
+  /// loaded.
+  Future<void> recoverLeftEdits({required DateTime before}) async {
     for (final folder in await _work.folders()) {
-      await DraftRecovery(
-        _work.drafts.of(folder.id),
-        files: TextFiles(_files.of(folder)),
-        types: _work.types,
-      ).recover(before: before);
+      await _work.recoverLeftEdits(_files.of(folder), before: before);
     }
   }
 

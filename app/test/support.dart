@@ -16,6 +16,7 @@ import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, path, tempFolder;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 export 'package:truce_test_support/truce_test_support.dart'
     show

@@ -11,6 +11,7 @@ dependencies:
   truce_files: any
   truce_folders: any
   truce_markdown: any
+  truce_text_editing: any
 
 dev_dependencies:
   test: ^1.31.0

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart' show TextFile;
 import 'package:truce_editor/files/ui/file_card.dart';
 import 'package:truce_editor/files/ui/file_grid.dart';
 import 'package:truce_editor/folders/ui/folder_badge.dart';
@@ -14,6 +13,7 @@ import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
 import 'package:truce_editor/theme/app_theme.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../support.dart';
 

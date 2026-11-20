@@ -3,10 +3,11 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart'
-    show Err, FolderId, Ok, Result, StoreError, TextMerge;
+    show Err, FolderId, Ok, Result, StoreError;
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 import 'markdown_session.dart';

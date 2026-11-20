@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart' show UndoableEdit;
+import 'package:truce_text_editing/truce_text_editing.dart' show UndoableEdit;
 
 import '../model/calendar.dart';
 import '../model/calendar_unit.dart';

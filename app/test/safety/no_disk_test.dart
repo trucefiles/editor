@@ -12,10 +12,10 @@ import 'package:truce_editor/plugins/plugins_wiring.dart';
 import 'package:truce_editor/settings/device_settings.dart';
 import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
-import 'package:truce_files/truce_files.dart' show TextFiles;
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show FakeFolder, FakePlugin;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 

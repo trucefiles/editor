@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_files/truce_files.dart' show TextFiles;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../app_end/app_end_wiring.dart';
 import '../file_types/file_types.dart';

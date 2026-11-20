@@ -4,6 +4,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 void main() {
   const type = PlainTextFileType();

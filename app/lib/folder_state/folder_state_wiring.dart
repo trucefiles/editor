@@ -38,7 +38,7 @@ final folderListingProvider = Provider<void>((ref) {
   StreamSubscription<void>? lists;
   ref.onDispose(() => unawaited(lists?.cancel()));
   unawaited(
-    ref.read(filesProvider).draftsRecovered.then((_) {
+    ref.read(filesProvider).leftEditsRecovered.then((_) {
       if (!ref.mounted) return;
       void tell(FolderListState list) => owner.send(
         FoldersChanged({

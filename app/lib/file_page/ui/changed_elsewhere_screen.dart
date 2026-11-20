@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../backups/ui/both_backed_up_text.dart';
 import '../../common/snack.dart';

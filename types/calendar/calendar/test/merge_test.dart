@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import 'samples.dart';
 

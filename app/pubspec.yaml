@@ -44,6 +44,7 @@ dependencies:
   truce_syncthing: any
   truce_syncthing_ui: any
   timezone: ^0.11.2
+  truce_text_editing: any
   url_launcher: ^6.3.3
   workmanager: 0.10.10
 

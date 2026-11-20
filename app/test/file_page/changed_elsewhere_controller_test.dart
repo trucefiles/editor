@@ -3,6 +3,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/file_page/changed_elsewhere_controller.dart';
 import 'package:truce_editor/file_page/text_edit_page_controller.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';

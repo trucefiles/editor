@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:test/test.dart' show addTearDown;
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 RelPath path(String raw) => RelPath.parse(raw)!;
 

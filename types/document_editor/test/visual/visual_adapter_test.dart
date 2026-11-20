@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart'
-    show Edited, SecureEditor, SecureReason, Ticket, ToFile, Version;
+import 'package:truce_core/truce_core.dart' show Ticket;
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A Visual edit adapter on an editor owner of [text].
 final class _Visual {

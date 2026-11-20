@@ -8,8 +8,8 @@ library;
 
 import 'dart:typed_data';
 
-import 'package:truce_core/truce_core.dart'
-    show EditorNotice, EditorRequest, EditorStatus, EffectId, Wait;
+import 'package:truce_core/truce_core.dart' show EffectId, Wait;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../edit/calendar_edit.dart';
 import '../edit/calendar_import.dart';

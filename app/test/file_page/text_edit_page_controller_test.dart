@@ -8,6 +8,7 @@ import 'package:truce_editor/file_page/text_edit_page_controller.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' hide Selection;
 import 'package:truce_test_support/truce_test_support.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart' show eventually, noArrivals;
 import 'file_fixture.dart';

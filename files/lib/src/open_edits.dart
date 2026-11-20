@@ -1,4 +1,5 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 /// The files open for editing right now, so that removing a folder or
 /// ending the app first keeps their edits where they last.

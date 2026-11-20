@@ -1,9 +1,10 @@
 /// A test run of one editor owner, shared by the owner's test suites.
 library;
 
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
 import 'package:truce_test_support/truce_test_support.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 const v1 = Version(1);
 const v2 = Version(2);

@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../edit/stamp.dart';
 import '../model/calendar.dart';

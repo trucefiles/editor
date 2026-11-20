@@ -12,6 +12,7 @@ dependencies:
     sdk: flutter
   truce_core: any
   truce_files: any
+  truce_text_editing: any
 
 dev_dependencies:
   truce_lints: any

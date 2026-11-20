@@ -18,6 +18,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart' show SpyFileStore;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 

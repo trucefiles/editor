@@ -104,10 +104,10 @@ final class SetMark extends FilesInput {
   final FileMark mark;
 }
 
-/// Put the drafts written before [before] into their files; the owner's
+/// Put the edits left before [before] into their files; the owner's
 /// first input, before the first scan.
-final class RecoverDrafts extends FilesInput {
-  const RecoverDrafts(super.ticket, {required this.before});
+final class RecoverLeftEdits extends FilesInput {
+  const RecoverLeftEdits(super.ticket, {required this.before});
 
   final DateTime before;
 }
@@ -157,6 +157,6 @@ final class MarkSet extends FilesAnswer {
   final Result<void, StoreError> result;
 }
 
-final class DraftsRecovered extends FilesAnswer {
-  const DraftsRecovered(super.ticket);
+final class LeftEditsRecovered extends FilesAnswer {
+  const LeftEditsRecovered(super.ticket);
 }
