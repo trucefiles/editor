@@ -47,8 +47,8 @@
   events and tasks of all your calendars. Changes from two devices merge
   one by one, with one tap.
 - Images: in documents, from a file or the camera, and as files of their
-  own (JPEG, PNG, GIF, WebP, BMP) to look at. Location data is taken
-  out, and large ones can be made smaller.
+  own (JPEG, PNG, GIF, WebP, BMP) to look at. Location data can be
+  taken out, and large ones made smaller.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -60,7 +60,6 @@
 
 - Assisted merge for Markdown and text: Truce suggests a merged version
   of a conflict for you to accept (calendars merge with one tap already).
-- Alerts that ring for events and tasks.
 - More kinds of files beyond Markdown, plain text, calendars and images.
 - Windows, macOS and iOS.
 
