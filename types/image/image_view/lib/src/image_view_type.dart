@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_file_page/truce_file_page.dart';
@@ -24,13 +26,18 @@ final class ImageViewType extends ImageFileType implements ViewType {
   /// memory; deeper zoom gets a little soft.
   static const sharpZoom = 3.0;
 
-  /// Decoded at most at the screen's size times [sharpZoom].
+  /// The most pixels a shown picture is decoded at on each side, on any
+  /// screen (about 64 MB at most).
+  static const largestSide = 4096.0;
+
+  /// Decoded at most at the screen's size times [sharpZoom], and never
+  /// past [largestSide].
   @override
   Widget view(ShownContent content, {required String label}) => Builder(
     builder: (context) {
       final screen =
           MediaQuery.sizeOf(context) * MediaQuery.devicePixelRatioOf(context);
-      final most = screen * sharpZoom;
+      final most = (screen * sharpZoom).bounded(largestSide);
       return ZoomableImage(
         ResizeImage(
           ContentImage(content),
@@ -95,4 +102,10 @@ class ImageThumbnail extends StatelessWidget {
       ),
     ),
   );
+}
+
+extension on Size {
+  /// This size, each side at most [side].
+  Size bounded(double side) =>
+      Size(math.min(width, side), math.min(height, side));
 }
