@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -101,7 +102,7 @@ void main() {
     final before = outside();
     final folder = await start('notes/work');
     final actions = container.read(fileActionsProvider);
-    final files = container.read(fileAccessProvider).of(folder);
+    final files = TextFiles(container.read(fileAccessProvider).of(folder));
     final markdown = appFileTypes().forNew;
 
     final found = await scanned();
@@ -123,14 +124,17 @@ void main() {
       (folder: folder, subfolder: null),
       type: markdown,
       title: 'New',
-      text: '# New',
+      bytes: utf8.encode('# New'),
     )).value;
     await actions.setMark(created.listed, const FileMark(color: 'teal'));
     final moved = (await actions.move(created, (
       folder: folder,
       subfolder: path('inbox'),
     ))).value;
-    final deleted = (await actions.delete(moved, '# New')).value;
+    final deleted = (await actions.delete(
+      moved.listed,
+      utf8.encode('# New'),
+    )).value;
     await actions.undoDelete(deleted);
     await container.read(allBackupsProvider.future);
     await scanned();
@@ -143,7 +147,7 @@ void main() {
   test('removing a folder while a file is open keeps its edits first, then '
       'the folder takes no write', () async {
     final folder = await start('notes/work');
-    final files = container.read(fileAccessProvider).of(folder);
+    final files = TextFiles(container.read(fileAccessProvider).of(folder));
     final a = (await files.open(path('a.md'))).value;
     var secured = false;
     container

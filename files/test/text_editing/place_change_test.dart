@@ -4,7 +4,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
-final class _Type implements ShownFileType {
+final class _Type with TextTypeBytes implements TextFileType {
   const _Type();
 
   @override
@@ -20,14 +20,17 @@ final class _Type implements ShownFileType {
   List<NewFileKind> get newKinds => const [];
 
   @override
-  String searchText(FileText read) => read.text;
+  TextSummary<Object?> summary(String text, {required int maxLines}) =>
+      throw UnimplementedError();
 
   @override
-  FileCardSummary cardSummary(FileText read) =>
-      FileCardSummary(title: read.summary.firstLine, preview: (_) => '');
+  String searchTextOf(FileText read) => read.text;
 
   @override
-  TextMerge? get merge => null;
+  FileCardSummary cardSummaryOf(FileText read) => throw UnimplementedError();
+
+  @override
+  TextMerge? get textMerge => null;
 }
 
 Folder _folder(String id) =>

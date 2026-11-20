@@ -1,5 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
+import 'file_merge.dart';
 import 'new_file_choice.dart';
 import 'shown_file_type.dart';
 
@@ -43,11 +44,11 @@ final class ShownFileTypes<T extends ShownFileType> {
   };
 
   /// The app's type of a file whose file is of [type].
-  T ofFile(FileTypeSupport<Object?> type) => _byId[type.type]!;
+  T ofFile(FileTypeSupport type) => _byId[type.type]!;
 
-  /// How texts of the file at [path] merge; `null` if they don't, or the
-  /// app doesn't handle it.
-  TextMerge? mergeOf(RelPath path) => of(path)?.merge;
+  /// How versions of the file at [path] merge; `null` if they don't, or
+  /// the app doesn't handle it.
+  FileMerge? mergeOf(RelPath path) => of(path)?.merge;
 
   /// Whether the app handles the file at [path].
   bool handles(RelPath path) => of(path) != null;

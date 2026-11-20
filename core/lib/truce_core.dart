@@ -157,6 +157,7 @@ export 'src/text_editing/editor/history/typing.dart';
 export 'src/text_editing/editor/history/undoable_edit.dart';
 export 'src/text_editing/editor/save_clock.dart';
 export 'src/text_editing/text_file_owner/text_file_owner.dart';
+export 'src/text_editing/text_summary.dart';
 export 'src/text_editing/version.dart';
 export 'src/versions/resolution.dart';
 export 'src/versions/resolve_error.dart';

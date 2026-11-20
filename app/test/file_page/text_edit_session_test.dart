@@ -100,7 +100,7 @@ void main() {
             _, {
             required type,
             required title,
-            required text,
+            required bytes,
             newSubfolder = false,
           }) => throw StateError('bug'),
           mover: (_, _, {required title, required newSubfolder}) =>
@@ -161,7 +161,7 @@ void main() {
             _, {
             required type,
             required title,
-            required text,
+            required bytes,
             newSubfolder = false,
           }) => throw StateError('bug'),
           mover: (_, _, {required title, required newSubfolder}) =>
@@ -255,7 +255,7 @@ void main() {
               _, {
               required type,
               required title,
-              required text,
+              required bytes,
               newSubfolder = false,
             }) => throw StateError('bug'),
             mover: (_, _, {required title, required newSubfolder}) =>
@@ -452,7 +452,7 @@ void main() {
     session.type('x');
     await session.secure(.hide);
 
-    expect(moved, isA<Ok<FileText, MoveFailure>>());
+    expect(moved, isA<Ok<FileBytes, MoveFailure>>());
     expect(fixture.onDisk('a.md'), isNull);
     expect(fixture.onDisk('a.md', index: 1), 'xone\n');
   });
@@ -472,7 +472,7 @@ void main() {
       final kept = await session.secure(.close);
 
       expect(kept, isTrue);
-      expect(await moved, isA<Ok<FileText, MoveFailure>>());
+      expect(await moved, isA<Ok<FileBytes, MoveFailure>>());
       expect(fixture.onDisk('a.md'), isNull);
       expect(fixture.onDisk('a.md', index: 1), 'xone\n');
       await eventually(() async => (await fixture.draftsIn('f1')).isEmpty);

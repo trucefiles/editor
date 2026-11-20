@@ -91,16 +91,22 @@ final calendarReadsProvider = Provider<FileReads<ReadCalendar>>(
 
 /// [read] as the tab keeps a calendar it shows: whole, else by its name
 /// alone; `null` if it is no calendar.
-ReadCalendar? readCalendar(FileText read) => switch (read.summary) {
-  CalendarSummary(:final calendar?) => (
-    calendar: calendar,
-    title: titleOf(read.summary, read.path),
-  ),
-  _ => switch (readCalendarTitle(read)) {
-    final title? => (calendar: null, title: title),
-    null => null,
-  },
+ReadCalendar? readCalendar(FileBytes read) => switch (FileText.of(read)) {
+  final text? => _readCalendar(text),
+  null => null,
 };
+
+/// [read] as the tab keeps a calendar it shows (see [readCalendar]).
+ReadCalendar? _readCalendar(FileText read) {
+  final summary = CalendarSummary(read.text);
+  return switch (summary.calendar) {
+    final calendar? => (calendar: calendar, title: titleOf(summary, read.path)),
+    null => switch (_calendarTitle(read)) {
+      final title? => (calendar: null, title: title),
+      null => null,
+    },
+  };
+}
 
 /// The titles of the tab's calendars it doesn't show, read from their
 /// names alone (no events), kept while the app runs; a file that is no
@@ -111,11 +117,17 @@ final calendarTitlesProvider = Provider<FileReads<String>>(
 
 /// The title of the calendar [read], from its head alone; `null` if it is
 /// none.
-String? readCalendarTitle(FileText read) =>
-    switch (CalendarHead.read(read.text)) {
-      final head? => ownTitleOr(calendarTitle(head), read.path),
-      null => null,
-    };
+String? readCalendarTitle(FileBytes read) => switch (FileText.of(read)) {
+  final text? => _calendarTitle(text),
+  null => null,
+};
+
+/// The title of the calendar [read], from its head alone; `null` if it is
+/// none.
+String? _calendarTitle(FileText read) => switch (CalendarHead.read(read.text)) {
+  final head? => ownTitleOr(calendarTitle(head), read.path),
+  null => null,
+};
 
 /// Whether the shown folders hold a calendar: the tab shows only then.
 final hasCalendarsProvider = Provider<bool>(

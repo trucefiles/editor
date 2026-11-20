@@ -3,13 +3,14 @@
 /// sent, so two actions on one file never mix their steps.
 library;
 
+import 'dart:typed_data';
+
 import 'package:truce_core/truce_core.dart';
 
 import 'backups/folder_backups.dart';
-import 'backups/restore_as_new_failure.dart';
 import 'delete_failure.dart';
+import 'file_bytes.dart';
 import 'file_place.dart';
-import 'file_text.dart';
 import 'listed_file.dart';
 import 'move_failure.dart';
 import 'shown_file_type.dart';
@@ -24,7 +25,7 @@ sealed class FilesInput implements Asking {
   final Ticket ticket;
 }
 
-/// Create a file of [type] holding [text] at [place], named after
+/// Create a file of [type] holding [bytes] at [place], named after
 /// [title]; first [place]'s subfolder if it is a new one the user asked
 /// for ([newSubfolder]).
 final class CreateFile extends FilesInput {
@@ -33,14 +34,14 @@ final class CreateFile extends FilesInput {
     this.place, {
     required this.type,
     required this.title,
-    required this.text,
+    required this.bytes,
     this.newSubfolder = false,
   });
 
   final FilePlace place;
   final ShownFileType type;
   final String title;
-  final String text;
+  final Uint8List bytes;
   final bool newSubfolder;
 }
 
@@ -56,18 +57,18 @@ final class MoveFileTo extends FilesInput {
     this.newSubfolder = false,
   });
 
-  final FileText file;
+  final FileBytes file;
   final FilePlace place;
   final String? title;
   final bool newSubfolder;
 }
 
-/// Delete [file], holding [text], so it can be undone.
+/// Delete [file], holding [bytes], so it can be undone.
 final class DeleteFile extends FilesInput {
-  const DeleteFile(super.ticket, this.file, this.text);
+  const DeleteFile(super.ticket, this.file, this.bytes);
 
-  final FileText file;
-  final String text;
+  final ListedFile file;
+  final Uint8List bytes;
 }
 
 /// Write [deleted] back as it was.
@@ -123,13 +124,13 @@ sealed class FilesAnswer implements Answering {
 final class FileCreated extends FilesAnswer {
   const FileCreated(super.ticket, this.result);
 
-  final Result<FileText, StoreError> result;
+  final Result<FileBytes, StoreError> result;
 }
 
 final class FileMoved extends FilesAnswer {
   const FileMoved(super.ticket, this.result);
 
-  final Result<FileText, MoveFailure> result;
+  final Result<FileBytes, MoveFailure> result;
 }
 
 final class FileDeleted extends FilesAnswer {
@@ -147,7 +148,7 @@ final class DeleteUndone extends FilesAnswer {
 final class RestoredAsNew extends FilesAnswer {
   const RestoredAsNew(super.ticket, this.result);
 
-  final Result<FileText, RestoreAsNewFailure> result;
+  final Result<FileBytes, StoreError> result;
 }
 
 final class MarkSet extends FilesAnswer {

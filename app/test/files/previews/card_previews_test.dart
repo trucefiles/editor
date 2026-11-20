@@ -119,15 +119,15 @@ void main() {
     final read = cards.read(newer);
 
     expect(cards.lastKnown(newer), previewed);
-    reads[newer]!.complete(const PreviewNotText());
+    reads[newer]!.complete(const PreviewNotShown());
     await read;
-    expect(cards.lastKnown(doc('a.md')), isA<PreviewNotText>());
+    expect(cards.lastKnown(doc('a.md')), isA<PreviewNotShown>());
     expect(cards.known(doc('a.md')), isNull);
 
     unawaited(cards.read(doc('b.md')));
     reads[doc('b.md')]!.complete(previewed);
     await pumpEventQueue();
-    expect(cards.known(newer), isA<PreviewNotText>(), reason: 'kept: 2 files');
+    expect(cards.known(newer), isA<PreviewNotShown>(), reason: 'kept: 2 files');
   });
 
   test('reads a few at a time, the one asked last first', () async {

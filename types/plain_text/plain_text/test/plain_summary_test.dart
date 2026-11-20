@@ -3,7 +3,7 @@ import 'package:truce_plain_text/truce_plain_text.dart';
 
 void main() {
   PlainSummary summary(String text, {int maxLines = 10}) =>
-      const PlainTextSupport().summary(text, maxLines: maxLines);
+      PlainSummary(text, maxLines: maxLines);
 
   test('the first line with words is the title', () {
     expect(summary('\n  Shopping  \nmilk').title, 'Shopping');

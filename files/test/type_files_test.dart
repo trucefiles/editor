@@ -5,7 +5,7 @@ import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
 /// A made-up type that merges: files of `key:value` lines.
-final class _KeyValueType implements ShownFileType {
+final class _KeyValueType with TextTypeBytes implements TextFileType {
   const _KeyValueType();
 
   @override
@@ -24,18 +24,38 @@ final class _KeyValueType implements ShownFileType {
     NewFileKind('Named', start: 'name:'),
   ];
 
+  @override
+  TextSummary<Object?> summary(String text, {required int maxLines}) =>
+      _FirstLine(text);
+
   /// The values, not the keys.
   @override
-  String searchText(FileText read) =>
+  String searchTextOf(FileText read) =>
       [for (final line in read.text.split('\n')) line.split(':').last]
           .join('\n');
 
   @override
-  FileCardSummary cardSummary(FileText read) =>
-      FileCardSummary(title: read.summary.firstLine, preview: (_) => '');
+  FileCardSummary cardSummaryOf(FileText read) => FileCardSummary(
+    title: _FirstLine(read.text).firstLine,
+    preview: (_) => '',
+  );
 
   @override
-  TextMerge get merge => const FakeTextMerge();
+  TextMerge get textMerge => const FakeTextMerge();
+}
+
+/// A text's first line, as its title.
+final class _FirstLine implements TextSummary<Object?> {
+  _FirstLine(String text) : firstLine = text.split('\n').first;
+
+  @override
+  final String firstLine;
+
+  @override
+  String get title => firstLine;
+
+  @override
+  String preview(Object? options) => '';
 }
 
 final _types = ShownFileTypes([const _KeyValueType()]);
@@ -85,7 +105,7 @@ void main() {
   ];
 
   Future<ConflictSides> sides({
-    TextMerge? merge = const FakeTextMerge(),
+    FileMerge? merge = const TextBytesMerge(FakeTextMerge()),
   }) async => (await ConflictSides.load(
     services,
     await conflict(),
@@ -109,7 +129,7 @@ void main() {
     final shown = (await ConflictSides.load(
       services,
       found,
-      merge: const FakeTextMerge(),
+      merge: const TextBytesMerge(FakeTextMerge()),
     )).value;
 
     final kept = await services.conflicts.resolve(
@@ -148,11 +168,9 @@ void main() {
   });
 
   test('a new document is written in its type\'s style', () async {
-    final created = (await files().create(
-      'New',
-      type: _types.forNew,
-      text: 'a:1\nb:2',
-    )).value;
+    final created = (await TextFiles(
+      files(),
+    ).create('New', type: _types.forNew, text: 'a:1\nb:2')).value;
 
     expect(textOf(created.path.value), 'a:1\r\nb:2');
   });
@@ -160,7 +178,7 @@ void main() {
   test("search finds a document by its type's text", () async {
     put('a.md', 'colour:teal');
     final listedFiles = files();
-    final file = (await listedFiles.open(path('a.md'))).value.listed;
+    final file = (await listedFiles.read(path('a.md'))).value.listed;
 
     final [searchable] = searchablesOf(
       [file],
@@ -176,7 +194,7 @@ void main() {
     expect(
       [
         for (final choice in _types.newFileChoices)
-          (choice.label, choice.kind.start, choice.type),
+          (choice.label, choice.kind.startText, choice.type),
       ],
       [
         ('Note', '', const _KeyValueType()),
@@ -189,7 +207,11 @@ void main() {
     "a gone document's conflict copy is written in its type's style",
     () async {
       expect(
-        await files().saveAsConflictOfGone(path('gone.md'), 'a\nb'),
+        await TextFiles(files()).saveAsConflictOfGone(
+          path('gone.md'),
+          'a\nb',
+          style: _types.forNew.newFile,
+        ),
         isA<Ok<void, StoreError>>(),
       );
 
@@ -211,11 +233,12 @@ void main() {
       FileAccess((_) => services, _types),
       readAs: (read) {
         reads.add(read.path.value);
-        return read.text.startsWith('k:') ? read.text : null;
+        final text = String.fromCharCodes(read.bytes);
+        return text.startsWith('k:') ? text : null;
       },
     );
     Future<ListedFile> listedOf(String name) async =>
-        (await files().open(path(name))).value.listed;
+        (await files().read(path(name))).value.listed;
 
     Future<List<ListedFile>> listedNow() async => [
       await listedOf('a.md'),
@@ -238,9 +261,9 @@ void main() {
     put('a.md', 'k:1');
     final kept = FileReads<String>(
       FileAccess((_) => services, _types),
-      readAs: (read) => read.text,
+      readAs: (read) => String.fromCharCodes(read.bytes),
     );
-    final listed = [(await files().open(path('a.md'))).value.listed];
+    final listed = [(await files().read(path('a.md'))).value.listed];
 
     raw.files.failWith = StoreError.ioFailure;
     expect(await kept.readAll(listed), isEmpty);

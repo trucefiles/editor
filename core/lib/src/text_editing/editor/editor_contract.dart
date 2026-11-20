@@ -6,10 +6,10 @@
 /// `save_clock.dart`).
 library;
 
-import '../../filetypes/file_type_support.dart';
 import '../../owners/ask.dart';
 import '../../owners/owner.dart';
 import '../text_file_owner/text_file_contract.dart';
+import '../text_summary.dart';
 
 /// Any file type's editor owner as the file page sees it: the
 /// page's requests go in, its notices come out, and its state tells of

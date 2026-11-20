@@ -43,45 +43,27 @@ final class FileArrivals {
   final FileTypeDetector _detector;
   final Map<FileType, FileArrival> _byType;
 
-  /// The text file to write as [file], the file at [from] in [folder],
-  /// moves to [to], as its type's [FileArrival] says; `null` if it moves
+  /// The bytes to write as [bytes], the file at [from] in [folder],
+  /// move to [to], as its type's [FileArrival] says; `null` if it moves
   /// as it is. Fails if its type's step fails: the file then stays.
-  Future<Result<TextFile?, StoreError>> moved(
-    TextFile file, {
+  Future<Result<Uint8List?, StoreError>> moved(
+    Uint8List bytes, {
     required Folder folder,
     required RelPath from,
     required FilePlace to,
-  }) async => (await _arrive((
-    bytes: file.encode(file.text),
+  }) => _arrive((
+    bytes: bytes,
     folder: folder,
     from: from,
     to: to,
     by: ArrivalBy.move,
-  ))).map((bytes) => bytes == null ? null : _decoded(bytes));
-
-  /// The text [file], a past version of the file at [from] in [folder],
-  /// holds once restored at [to] (by default its own place), by
-  /// [restoredBytes].
-  Future<String> restored(
-    TextFile file, {
-    required Folder folder,
-    required RelPath from,
-    FilePlace? to,
-  }) async => switch (await restoredBytes(
-    file.encode(file.text),
-    folder: folder,
-    from: from,
-    to: to,
-  )) {
-    final bytes? => _decoded(bytes).text,
-    null => file.text,
-  };
+  ));
 
   /// The bytes to write as [bytes], a past version of the file at [from]
   /// in [folder], are restored at [to] (by default its own place), as its
-  /// type's [FileArrival] says; `null` to write [bytes] as they are. Best
-  /// effort: a restore never waits on a failed step.
-  Future<Uint8List?> restoredBytes(
+  /// type's [FileArrival] says: [bytes] themselves if it has nothing to
+  /// change. Best effort: a restore never waits on a failed step.
+  Future<Uint8List> restored(
     Uint8List bytes, {
     required Folder folder,
     required RelPath from,
@@ -93,8 +75,8 @@ final class FileArrivals {
     to: to ?? (folder: folder, subfolder: from.parent),
     by: ArrivalBy.restore,
   ))) {
-    Ok(:final value) => value,
-    Err() => null,
+    Ok(value: final arrived?) => arrived,
+    Ok(value: null) || Err() => bytes,
   };
 
   /// The bytes its type's [FileArrival] gives for [arrival]; `null` for
@@ -104,7 +86,4 @@ final class FileArrivals {
         final type? => await _byType[type]?.arrive(arrival) ?? const Ok(null),
         null => const Ok(null),
       };
-
-  /// A type's own text file, as its step wrote it; else a bug.
-  static TextFile _decoded(Uint8List bytes) => TextFile.decode(bytes)!;
 }

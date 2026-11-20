@@ -8,14 +8,17 @@ import '../../file_page/ui/text_edit_page.dart';
 import '../file_actions.dart';
 import 'open_failure_text.dart';
 
-/// Opens [file] in the editor, with its text as it is now; tells the
-/// user if it can't be read.
+/// Opens [file] on its page, as it is now; tells the user if it can't
+/// be read.
 Future<void> openFile(
   BuildContext context,
   WidgetRef ref,
   ListedFile file,
 ) async {
-  final read = await ref.read(fileActionsProvider).read(file);
+  final read = switch (await ref.read(fileActionsProvider).read(file)) {
+    Ok(:final value) => TextFiles.textOf(value),
+    Err(:final error) => Err<FileText, OpenFailure>(NotRead(error)),
+  };
   if (!context.mounted) return;
   switch (read) {
     case Ok(value: final opened):

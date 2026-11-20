@@ -2,17 +2,18 @@ import 'package:truce_core/truce_core.dart';
 
 import 'file_draft.dart';
 import 'file_drafts.dart';
-import 'files_of_folder.dart';
 import 'new_file_name.dart';
 import 'open_failure.dart';
 import 'shown_file_types.dart';
+import 'text_editing/text_file_type.dart';
+import 'text_editing/text_files.dart';
 
 /// Puts edits kept on this device into their files' files, for drafts left
 /// when the app was ended before it could write them.
 ///
 /// Same rules as an open file that closes: the edits go into the file if
 /// it still holds the text they started from, else into a conflict copy.
-/// A new file is created, as `FilesOfFolder.create` does.
+/// A new file is created, as `TextFiles.create` does.
 ///
 /// Works on one folder's drafts.
 final class DraftRecovery {
@@ -25,7 +26,7 @@ final class DraftRecovery {
   final FileDrafts _drafts;
 
   /// The files of the drafts' folder.
-  final FilesOfFolder _files;
+  final TextFiles _files;
 
   final ShownFileTypes _types;
 
@@ -43,7 +44,7 @@ final class DraftRecovery {
   }
 
   /// Whether [draft]'s edits are now in the file or in a conflict copy.
-  Future<bool> _keep(FileDraft draft, FilesOfFolder files) async {
+  Future<bool> _keep(FileDraft draft, TextFiles files) async {
     if (draft.base == null) return _create(draft, files);
     switch (await files.open(draft.path)) {
       case Ok(value: final file) when file.textFile.text == draft.text:
@@ -60,16 +61,23 @@ final class DraftRecovery {
       case Ok(value: final file):
         return await files.saveAsConflict(file, draft.text) is Ok;
       case Err(error: NotRead(error: StoreError.notFound)):
-        return await files.saveAsConflictOfGone(draft.path, draft.text) is Ok;
+        return await files.saveAsConflictOfGone(
+          draft.path,
+          draft.text,
+          style: switch (_types.of(draft.path)) {
+            final TextFileType type => type.newFile,
+            _ => const TextFile.empty(),
+          },
+        ) is Ok;
       case Err():
         return false;
     }
   }
 
   /// Whether the new file of [draft] now has its file.
-  Future<bool> _create(FileDraft draft, FilesOfFolder files) async {
+  Future<bool> _create(FileDraft draft, TextFiles files) async {
     final type = _types.of(draft.path);
-    if (type == null) return false;
+    if (type is! TextFileType) return false;
     // Created already, as the app was ended before it dropped the draft.
     if (await files.open(draft.path) case Ok(value: final file)
         when file.textFile.text == draft.text) {

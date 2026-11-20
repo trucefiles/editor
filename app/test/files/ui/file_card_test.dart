@@ -29,7 +29,7 @@ void main() {
   CardPreview read(String text) => Previewed(
     appFileTypes()
         .ofFile(file.type)
-        .cardSummary(FileText(file, const TextFile.empty().withText(text))),
+        .cardSummaryOf(FileText(file, const TextFile.empty().withText(text))),
   );
 
   /// Shows the card of a file with [title] and [lines] lines, as wide
@@ -347,7 +347,7 @@ void main() {
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsNothing);
 
-    await show(const PreviewNotText());
+    await show(const PreviewNotShown());
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsOne);
 

@@ -1,6 +1,7 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../file_merge.dart';
 import 'conflict_sides.dart';
 import 'folder_conflicts.dart';
 
@@ -13,7 +14,7 @@ final class ConflictCompare
 
   final FolderServices _services;
   final Future<void> Function() _rescan;
-  final TextMerge? _merge;
+  final FileMerge? _merge;
 
   @override
   Future<Result<ConflictSides, StoreError>> load(FolderConflict target) =>

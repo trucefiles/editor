@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
 
-import 'file_text.dart';
+import 'file_bytes.dart';
 
 /// Why a file was not moved.
 sealed class MoveFailure {
@@ -31,6 +31,6 @@ final class MoveNotWritten extends MoveFailure {
 final class MoveLeftOriginal extends MoveFailure {
   const MoveLeftOriginal(this.copy, this.error);
 
-  final FileText copy;
+  final FileBytes copy;
   final StoreError error;
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,7 +57,7 @@ void main() {
         .shown;
   }
 
-  Future<FileText> fileIn(Directory dir, String name, String text) async {
+  Future<FileBytes> fileIn(Directory dir, String name, String text) async {
     diskFile(dir, name).writeCreatingFolders(text);
     final listed = (await scans()).files.singleWhere(
       (each) => each.path.value == name,
@@ -91,7 +92,7 @@ void main() {
 
     const text = '# Plan\n\n![a](../../$kept)\n\n![b](pics/x.png)\n';
     expect(diskFile(work, 'a/b/plan.md').readAsStringSync(), text);
-    expect(moved.text, text);
+    expect(utf8.decode(moved.bytes), text);
   });
 
   test('a move at the same depth keeps the file byte for byte', () async {
@@ -132,7 +133,10 @@ void main() {
 
   test('an undone delete brings back an image removed meanwhile', () async {
     final file = await fileIn(work, 'plan.md', '![a]($kept)\n');
-    final deleted = (await actions.delete(file, '![a]($kept)\n')).value;
+    final deleted = (await actions.delete(
+      file.listed,
+      utf8.encode('![a]($kept)\n'),
+    )).value;
     final store = container.read(documentImageStoresProvider)(folders[0].id);
     await store.remove((await store.images()).value[name]!);
     expect(diskFile(work, kept).existsSync(), isFalse);
@@ -162,7 +166,7 @@ void main() {
     await container
         .read(fileAccessProvider)
         .of(folders[0])
-        .backUpBeforeDelete(file, '![a]($kept)\n');
+        .backUpBeforeDelete(file.path, utf8.encode('![a]($kept)\n'));
     diskFile(work, 'plan.md').writeAsStringSync('none');
     final store = container.read(documentImageStoresProvider)(folders[0].id);
     await store.remove((await store.images()).value[name]!);
@@ -202,7 +206,7 @@ void main() {
 
   test('a restore as new at another level changes the links too', () async {
     final file = await fileIn(work, 'a/plan.md', '![a](../$kept)\n');
-    await actions.delete(file, '![a](../$kept)\n');
+    await actions.delete(file.listed, utf8.encode('![a](../$kept)\n'));
     final backups = container
         .read(folderServicesProvider(folders[0].id))
         .backups;

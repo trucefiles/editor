@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_files/truce_files.dart' show TextFiles;
 
 import '../app_end/app_end_wiring.dart';
 import '../file_types/file_types.dart';
@@ -23,7 +24,7 @@ final filePagesProvider = Provider<FilePages>(
           place, {
           required type,
           required title,
-          required text,
+          required bytes,
           newSubfolder = false,
         }) => ref
             .read(fileActionsProvider)
@@ -31,18 +32,18 @@ final filePagesProvider = Provider<FilePages>(
               place,
               type: type,
               title: title,
-              text: text,
+              bytes: bytes,
               newSubfolder: newSubfolder,
             ),
     move: (file, place, {required title, required newSubfolder}) => ref
         .read(fileActionsProvider)
         .move(file, place, title: title, newSubfolder: newSubfolder),
-    delete: (file, text) => ref.read(fileActionsProvider).delete(file, text),
+    delete: (file, bytes) => ref.read(fileActionsProvider).delete(file, bytes),
     settingsOf: (file) =>
         ref.read(fileSettingsProvider.notifier).settingsOf(file),
     editSettings: (file, change) =>
         ref.read(fileSettingsProvider.notifier).edit(file, change),
-    filesOf: (folder) => ref.read(fileAccessProvider).of(folder),
+    filesOf: (folder) => TextFiles(ref.read(fileAccessProvider).of(folder)),
     draftsOf: (folder) => ref.read(draftsProvider).of(folder.id),
     reachOf: (folder) => ref.read(folderReachProvider(folder)),
     reachSettled: (folder) =>

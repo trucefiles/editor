@@ -50,7 +50,6 @@ Future<void> restoreAsNew(
     Ok(value: final copy) =>
       'Restored as ${placeName(copy.folder, copy.path.parent)}/'
           '${copy.path.name}',
-    Err(error: BackupNotText()) => "This backup can't be shown as text.",
-    Err(error: NotRestored(:final error)) => error.text,
+    Err(:final error) => error.text,
   });
 }

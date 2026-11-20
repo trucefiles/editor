@@ -20,7 +20,11 @@ void main() {
     drafts = tempDrafts();
     services = servicesFor(folder);
     final files = FilesOfFolder(folder, services, appFileTypes());
-    recovery = DraftRecovery(drafts, files: files, types: appFileTypes());
+    recovery = DraftRecovery(
+      drafts,
+      files: TextFiles(files),
+      types: appFileTypes(),
+    );
   });
 
   File diskFile() => File('${dir.path}/a.md');

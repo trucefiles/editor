@@ -5,6 +5,7 @@ import '../file_place.dart';
 import '../file_text.dart';
 import '../new_file_name.dart';
 import '../shown_file_type.dart';
+import 'text_file_type.dart';
 
 /// Where an open file is: one that exists, or the place a new
 /// file goes once it is created.
@@ -45,7 +46,7 @@ final class NewFile extends PageFile {
 
   final FilePlace place;
 
-  final ShownFileType type;
+  final TextFileType type;
 
   final String? name;
 

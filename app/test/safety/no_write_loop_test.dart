@@ -95,26 +95,26 @@ final class _Device {
     File('${dir.path}/todo.md').writeAsStringSync(text);
     final folder = folderAt(dir, id: name);
     final files = FilesOfFolder(folder, servicesFor(folder), appFileTypes());
-    final file = (await files.reload(_placeholder(folder))).value;
+    final file = (await TextFiles(files).reload(_placeholder(folder))).value;
     final drafts = tempDrafts();
     final session = markdownSession(
       ExistingFile(file),
       TextEditEffects(
-        filesOf: (_) => files,
+        filesOf: (_) => TextFiles(files),
         draftsOf: (_) => drafts,
         create:
             (
               place, {
               required type,
               required title,
-              required text,
+              required bytes,
               newSubfolder = false,
             }) => files.create(
               title,
               type: type,
               subfolder: place.subfolder,
               newSubfolder: newSubfolder,
-              text: text,
+              bytes: bytes,
             ),
         // Never moved here.
         mover: (_, _, {required title, required newSubfolder}) =>

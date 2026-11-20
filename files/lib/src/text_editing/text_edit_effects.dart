@@ -1,31 +1,34 @@
+import 'dart:typed_data';
+
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../file_bytes.dart';
 import '../file_draft.dart';
 import '../file_drafts.dart';
 import '../file_place.dart';
 import '../file_text.dart';
-import '../files_of_folder.dart';
 import '../move_failure.dart';
 import '../open_failure.dart';
 import '../read_version.dart';
 import '../shown_file_type.dart';
 import 'page_file.dart';
+import 'text_files.dart';
 
-/// Creates a file of [type] holding [text] at [place], named
+/// Creates a file of [type] holding [bytes] at [place], named
 /// after [title]; first [place]'s subfolder if it is new ([newSubfolder]).
-typedef FileCreator = Future<Result<FileText, StoreError>> Function(
+typedef FileCreator = Future<Result<FileBytes, StoreError>> Function(
   FilePlace place, {
   required ShownFileType type,
   required String title,
-  required String text,
+  required Uint8List bytes,
   bool newSubfolder,
 });
 
 /// Moves a file, as last saved, to [place], named after
 /// [title]; first [place]'s subfolder if it is new ([newSubfolder]).
-typedef FileMover = Future<Result<FileText, MoveFailure>> Function(
-  FileText file,
+typedef FileMover = Future<Result<FileBytes, MoveFailure>> Function(
+  FileBytes file,
   FilePlace place, {
   required String title,
   required bool newSubfolder,
@@ -36,7 +39,7 @@ typedef FileMover = Future<Result<FileText, MoveFailure>> Function(
 typedef MoveTarget = ({FilePlace place, String title, bool newSubfolder});
 
 /// The effect handler of one open file owner (see
-/// `file_contract.dart`): keeps and drops its draft on this device,
+/// `text_file_contract.dart`): keeps and drops its draft on this device,
 /// reads, writes, creates, moves and restores its file, backs it up and
 /// keeps conflict copies; answers each effect with the result the owner gets.
 /// Each effect names the file it acts on; where it names none (a new
@@ -52,7 +55,7 @@ final class TextEditEffects {
     required this._mover,
   });
 
-  final FilesOfFolder Function(Folder folder) _filesOf;
+  final TextFiles Function(Folder folder) _filesOf;
   final FileDrafts Function(Folder folder) _draftsOf;
   final FileCreator _create;
   final FileMover _mover;
@@ -67,7 +70,7 @@ final class TextEditEffects {
   /// Where each move the user asked goes, by its ask's ticket, and how it
   /// went once it ran.
   final _moves =
-      <Ticket, ({MoveTarget to, Result<FileText, MoveFailure>? result})>{};
+      <Ticket, ({MoveTarget to, Result<FileBytes, MoveFailure>? result})>{};
 
   /// The draft kept last, until it is dropped: moved along when a new
   /// file's place changes, and what the last draft builds on once the
@@ -146,7 +149,7 @@ final class TextEditEffects {
 
   /// How the move asked with [ticket] went, once; `null` if it did not
   /// run.
-  Result<FileText, MoveFailure>? takeMoveResult(Ticket ticket) =>
+  Result<FileBytes, MoveFailure>? takeMoveResult(Ticket ticket) =>
       _moves.remove(ticket)?.result;
 
   /// Keeps [text] as the draft without the file owner, once it stopped
@@ -265,14 +268,15 @@ final class TextEditEffects {
   }) async {
     final file = _newFile;
     if (file == null) return const WriteFailed();
+    final style = file.type.newFile.withText(text);
     return switch (await _create(
       file.place,
       type: file.type,
       title: file.titleFor(firstLine),
-      text: text,
+      bytes: style.encode(text),
       newSubfolder: file.newSubfolder,
     )) {
-      Ok(value: final created) => _written(created),
+      Ok(value: final created) => _written(FileText(created.listed, style)),
       Err(error: StoreError.closed) => const FolderClosed(),
       Err() => const WriteFailed(),
     };
@@ -305,7 +309,7 @@ final class TextEditEffects {
         _moves[ticket]?.to ??
         (throw StateError('A move without a place to go.'));
     final moved = await _mover(
-      from,
+      from.fileBytes,
       to.place,
       title: to.title,
       newSubfolder: to.newSubfolder,
@@ -316,7 +320,11 @@ final class TextEditEffects {
       Err(error: MoveLeftOriginal(copy: final value)) => value,
       Err() => null,
     };
-    return MovedTo(id, copy?.seen, endedAt: Moment.now());
+    return MovedTo(
+      id,
+      copy == null ? null : FileText.ofWritten(copy).seen,
+      endedAt: Moment.now(),
+    );
   }
 
   /// The file now holds [file].

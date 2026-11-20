@@ -29,14 +29,7 @@ void main() {
   );
 
   FileCardSummary summaryOf(String text, {String name = 'a.md'}) =>
-      type.cardSummary(read(text, name: name));
-
-  test('a read document holds one summary for its title and preview', () {
-    final file = read('# A\nb');
-
-    expect(identical(file.summary, file.summary), isTrue);
-    expect(file.summary.title, 'A');
-  });
+      type.cardSummaryOf(read(text, name: name));
 
   test('the title takes the first level-1 heading', () {
     expect(summaryOf('intro\n## Sub\n# Shopping \n# Later').title, 'Shopping');
@@ -51,8 +44,7 @@ void main() {
   });
 
   test('the first line names a document, as plain words', () {
-    String firstLine(String text) =>
-        type.support.summary(text, maxLines: 0).firstLine;
+    String firstLine(String text) => type.summary(text, maxLines: 0).firstLine;
 
     expect(firstLine('\n  Milk and eggs \nmore'), 'Milk and eggs');
     expect(firstLine(' \n'), '');
@@ -74,7 +66,7 @@ void main() {
   });
 
   test('search reads the whole text; texts are not merged', () {
-    expect(type.searchText(read('# A\nb')), '# A\nb');
+    expect(type.searchTextOf(read('# A\nb')), '# A\nb');
     expect(type.merge, isNull);
   });
 

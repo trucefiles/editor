@@ -1,6 +1,6 @@
-import '../../filetypes/file_type_support.dart';
 import '../../owners/effects.dart';
 import '../text_file_owner/text_file_contract.dart';
+import '../text_summary.dart';
 import 'editor_book.dart';
 import 'editor_contract.dart';
 import 'history/typing.dart';

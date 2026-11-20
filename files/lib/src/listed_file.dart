@@ -21,7 +21,7 @@ final class ListedFile {
   final RelPath path;
 
   /// Its file type, as the type's support reads it.
-  final FileTypeSupport<Object?> type;
+  final FileTypeSupport type;
 
   /// Its version on disk.
   final FileVersion version;

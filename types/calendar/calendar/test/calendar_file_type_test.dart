@@ -52,17 +52,17 @@ void main() {
     final [plain, health] = type.newKinds;
     expect([plain.label, health.label], ['Calendar', 'Health calendar']);
     for (final (kind, isHealth) in [(plain, false), (health, true)]) {
-      final calendar = Calendar.read(kind.start)!;
+      final calendar = Calendar.read(kind.startText)!;
       expect((calendar.name, calendar.isHealth), ('', isHealth));
       expect(calendar.units, isEmpty);
-      expect(kind.start, isNot(contains('X-WR-CALNAME')));
+      expect(kind.startText, isNot(contains('X-WR-CALNAME')));
     }
     expect(utf8.decode(type.newFile.encode('a\nb')), 'a\r\nb');
     expect(type.newFileExtension, '.ics');
   });
 
   test('a card shows the name and the next events, until the first ends', () {
-    final card = calendars().cardSummary(read);
+    final card = calendars().cardSummaryOf(read);
 
     expect(card.title, 'Birthdays');
     expect(card.preview(ViewSettings.none), '3/12 Ann');
@@ -70,6 +70,6 @@ void main() {
   });
 
   test('search finds the name, titles and notes, not the file words', () {
-    expect(calendars().searchText(read), 'Birthdays\nAnn\nBring cake');
+    expect(calendars().searchTextOf(read), 'Birthdays\nAnn\nBring cake');
   });
 }

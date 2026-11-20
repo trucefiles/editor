@@ -3,15 +3,10 @@ import 'dart:typed_data';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../versions/version_text.dart';
+import '../file_merge.dart';
 
-/// Both versions of a conflict merged into one by the file's type:
-/// the main file's [bytes] to keep ([KeepMerged]), and what of the copy
-/// lost to the main file ([MergedText.lost]).
-typedef MergedSides = ({Uint8List bytes, List<String> lost});
-
-/// The two versions of one conflict copy, as text to compare, and both
-/// merged where the file's type merges them.
+/// The two versions of one conflict copy, as bytes each type shows its
+/// own way, and both merged where the file's type merges them.
 final class ConflictSides {
   const ConflictSides({
     required this.copy,
@@ -23,21 +18,21 @@ final class ConflictSides {
   /// The copy being resolved: the oldest one left.
   final ConflictCopy copy;
 
-  /// The main file's text; `null` if it was deleted.
-  final String? current;
+  /// The main file's bytes; `null` if it was deleted.
+  final Uint8List? current;
 
-  final String other;
+  final Uint8List other;
 
   /// Both merged; `null` if the type doesn't merge, the main file is
   /// gone, or the two can't be merged.
   final MergedSides? merged;
 
-  /// Reads both sides of [conflict]'s oldest copy, as [versionText], and
-  /// merges them by [merge] if given.
+  /// Reads both sides of [conflict]'s oldest copy, and merges them by
+  /// [merge] if given.
   static Future<Result<ConflictSides, StoreError>> load(
     FolderServices services,
     Conflict conflict, {
-    TextMerge? merge,
+    FileMerge? merge,
   }) async {
     final copy = conflict.copies.first;
     final Uint8List other;
@@ -59,31 +54,13 @@ final class ConflictSides {
     return Ok(
       ConflictSides(
         copy: copy,
-        current: current == null ? null : versionText(current),
-        other: versionText(other),
+        current: current,
+        other: other,
         merged: switch ((merge, current)) {
-          (final merge?, final current?) => _merged(merge, current, other),
+          (final merge?, final current?) => merge.merge(current, other),
           _ => null,
         },
       ),
     );
-  }
-
-  /// [other] merged into [current] by [merge], in [current]'s byte style;
-  /// `null` if either is no text or they can't be merged.
-  static MergedSides? _merged(
-    TextMerge merge,
-    Uint8List current,
-    Uint8List other,
-  ) {
-    final (main, copy) = (TextFile.decode(current), TextFile.decode(other));
-    if (main == null || copy == null) return null;
-    return switch (merge.merge(main.text, copy.text)) {
-      MergedText(:final text, :final lost) => (
-        bytes: main.encode(text),
-        lost: lost,
-      ),
-      CantMerge() => null,
-    };
   }
 }

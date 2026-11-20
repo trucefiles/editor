@@ -124,8 +124,8 @@ void main() {
 
     await open();
 
-    expect(sides().current, '# Todo\nmine\n');
-    expect(sides().other, '# Todo\nfirst\n');
+    expect(versionText(sides().current!), '# Todo\nmine\n');
+    expect(versionText(sides().other), '# Todo\nfirst\n');
   });
 
   test('resolves and rescans when the screen closes meanwhile', () async {
@@ -152,7 +152,7 @@ void main() {
     expect(kept, isA<KeepAnswer>().having((a) => a.done, 'done', isFalse));
     expect(kept!.error, isNull);
     await loaded();
-    expect(sides().other, '# Todo\nsecond\n');
+    expect(versionText(sides().other), '# Todo\nsecond\n');
 
     final last = await controller.keep(const KeepCurrent());
 
@@ -212,7 +212,7 @@ void main() {
     expect(kept!.error, ResolveError.changedSinceScan);
     expect(kept.done, isFalse);
     await loaded();
-    expect(sides().current, '# Todo\nchanged elsewhere\n');
+    expect(versionText(sides().current!), '# Todo\nchanged elsewhere\n');
     expect(files(), [first, 'todo.md']..sort());
   });
 
@@ -235,7 +235,7 @@ void main() {
     await container.read(folderContentsProvider.notifier).refresh();
     await loaded();
 
-    expect(sides().current, '# Todo\nchanged\n');
+    expect(versionText(sides().current!), '# Todo\nchanged\n');
   });
 
   test('shows why the sides cannot be read', () async {

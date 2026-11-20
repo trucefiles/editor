@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -41,9 +42,9 @@ void main() {
       backUp: backUp ?? (_) async => const Ok(null),
       delete:
           delete ??
-          (file, text) async => Ok((
+          (file, bytes) async => Ok((
             file: file,
-            text: text,
+            bytes: bytes,
             mark: FileMark.none,
             settings: FileSettings.defaults,
           )),
@@ -245,11 +246,11 @@ void main() {
       final deleted = <String>[];
       final controller = controllerOn(
         fixture.session()..type('mine '),
-        delete: (file, text) async {
-          deleted.add(text);
+        delete: (file, bytes) async {
+          deleted.add(utf8.decode(bytes));
           return Ok((
             file: file,
-            text: text,
+            bytes: bytes,
             mark: FileMark.none,
             settings: FileSettings.defaults,
           ));
@@ -345,7 +346,7 @@ void main() {
               _, {
               required type,
               required title,
-              required text,
+              required bytes,
               newSubfolder = false,
             }) => throw StateError('bug'),
             mover: (_, _, {required title, required newSubfolder}) =>

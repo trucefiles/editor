@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,7 +96,7 @@ void main() {
                   (folder: workFolder, subfolder: null),
                   type: appFileTypes().forNew,
                   title: 'b',
-                  text: '# b\n',
+                  bytes: utf8.encode('# b\n'),
                 ))
             .value;
     File('${work.path}/${file.path.value}').deleteSync();

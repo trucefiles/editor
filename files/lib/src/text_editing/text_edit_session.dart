@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:truce_core/truce_core.dart';
 
 import '../file_arrival.dart';
+import '../file_bytes.dart';
 import '../file_text.dart';
 import '../file_title.dart';
 import '../folder_state/folder_contents.dart';
@@ -229,11 +230,16 @@ final class TextEditSession {
   /// type says ([FileArrivals.restored]).
   Future<void> replaceAll(String text) async {
     final restored = switch (read) {
-      final read? => await _arrivals.restored(
-        read.textFile.withText(text),
-        folder: read.folder,
-        from: read.path,
-      ),
+      final read? => FileText.ofWritten(
+        FileBytes(
+          read.listed,
+          await _arrivals.restored(
+            read.textFile.encode(text),
+            folder: read.folder,
+            from: read.path,
+          ),
+        ),
+      ).text,
       null => text,
     };
     editor.send(ReplaceAll(restored));
@@ -247,7 +253,7 @@ final class TextEditSession {
 
   /// Moves or renames the file to [to], with every edit: those not in
   /// its file yet are saved first; how it went.
-  Future<Result<FileText, MoveFailure>> move(MoveTarget to) async {
+  Future<Result<FileBytes, MoveFailure>> move(MoveTarget to) async {
     late final Ticket asked;
     await ask<TextFileInput<ReadVersion>, MoveAnswer>(
       _file.send,
@@ -271,7 +277,7 @@ final class TextEditSession {
     _picked = to;
     if (file case final NewFile from) {
       final arrived = await _arrivals.moved(
-        const TextFile.empty().withText(text),
+        from.type.newFile.encode(text),
         folder: from.folder,
         from: from.pathFor(summary.firstLine),
         to: (folder: to.folder, subfolder: to.place.subfolder),

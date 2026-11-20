@@ -1,30 +1,38 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import 'file_card_summary.dart';
+import 'file_bytes.dart';
 import 'listed_file.dart';
 
-/// A file as the app last read or wrote it: the [listed] and
-/// its text, in its file's byte style ([textFile]), and what lists show of it
-/// ([summary]). Held only while the file is open, compared, restored,
-/// or its card or search hit is worked out. Never changes.
+/// A text file as the app last read or wrote it: the [listed] and its
+/// text, in its file's byte style ([textFile]). The text editing kit's
+/// reading of a file's bytes. Held only while the file is open,
+/// compared, restored, or its card or search hit is worked out. Never
+/// changes.
 final class FileText {
   FileText(this.listed, this.textFile);
+
+  /// [read] as text; `null` if its bytes are not UTF-8.
+  static FileText? of(FileBytes read) => switch (TextFile.decode(read.bytes)) {
+    final file? => FileText(read.listed, file),
+    null => null,
+  };
+
+  /// [written] as text: bytes the app wrote as text (e.g. a moved text
+  /// file); else a bug.
+  static FileText ofWritten(FileBytes written) =>
+      of(written) ?? (throw StateError('Written as text, but not text.'));
 
   final ListedFile listed;
   final TextFile textFile;
 
   String get text => textFile.text;
 
-  /// What cards and search show of [text], by its type; read when first
-  /// asked, once for title and preview.
-  late final TextSummary<Object?> summary = type.summary(
-    text,
-    maxLines: FileCardSummary.previewLines,
-  );
+  /// The file's bytes: its text in its byte style, as in its file.
+  FileBytes get fileBytes => FileBytes(listed, textFile.encode(text));
 
   Folder get folder => listed.folder;
   RelPath get path => listed.path;
-  FileTypeSupport<Object?> get type => listed.type;
+  FileTypeSupport get type => listed.type;
   FileKey get key => listed.key;
 }

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -237,7 +238,7 @@ void main() {
         .create(
           'New',
           type: container.read(fileTypesProvider).forNew,
-          text: '# New',
+          bytes: utf8.encode('# New'),
         );
 
     await eventually(

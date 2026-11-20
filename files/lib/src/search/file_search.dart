@@ -9,7 +9,7 @@ import '../shown_file_types.dart';
 /// [files] as a search sees them: each matches by its folder's name,
 /// its subfolders' names and its file name without the extension (or
 /// "md" would find every file) from memory, and by its title and
-/// text once read through [filesOf], as its type gives it ([types]).
+/// words once read through [filesOf], as its type gives them ([types]).
 List<Searchable<ListedFile>> searchablesOf(
   List<ListedFile> files, {
   required FilesOfFolder Function(Folder folder) filesOf,
@@ -24,10 +24,7 @@ List<Searchable<ListedFile>> searchablesOf(
         nameTitle(file.path),
       ],
       read: () async => switch (await filesOf(file.folder).reload(file)) {
-        Ok(value: final read) => (
-          title: titleOf(read.summary, read.path),
-          text: types.ofFile(read.type).searchText(read),
-        ),
+        Ok(value: final read) => types.ofFile(read.type).searchText(read),
         Err() => null,
       },
     ),

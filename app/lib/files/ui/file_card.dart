@@ -69,7 +69,7 @@ class FileCard extends ConsumerWidget {
         Previewed(:final summary)
             when summary.preview(settings.view).isNotEmpty =>
           CardLines(summary.preview(settings.view)),
-        PreviewNotText() => const CardLines(
+        PreviewNotShown() => const CardLines(
           "Can't be shown as text.",
           italic: true,
         ),

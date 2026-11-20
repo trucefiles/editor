@@ -8,10 +8,10 @@ import 'package:truce_folders/truce_folders.dart';
 /// Backs up [text], the open file's text now.
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
-/// Deletes a file holding a text, so it can be undone.
+/// Deletes a file holding [bytes], so it can be undone.
 typedef DeleteForUndo = Future<Result<UndoableDelete, DeleteFailure>> Function(
-  FileText file,
-  String text,
+  ListedFile file,
+  Uint8List bytes,
 );
 
 /// Changes the settings of a file on this device.
@@ -240,7 +240,10 @@ final class TextEditPageController extends ChangeNotifier {
     await session.secure(SecureReason.hide);
     final file = session.read;
     if (file == null) return const AlreadyGone();
-    return switch (await delete(file, session.text)) {
+    return switch (await delete(
+      file.listed,
+      file.textFile.encode(session.text),
+    )) {
       Ok(:final value) => DeletedForUndo(value),
       Err(:final error) => DeleteRefused(error),
     };

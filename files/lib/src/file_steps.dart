@@ -1,20 +1,22 @@
+import 'dart:typed_data';
+
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import 'backups/folder_backups.dart';
-import 'backups/restore_as_new_failure.dart';
 import 'delete_failure.dart';
 import 'draft_recovery.dart';
 import 'file_arrival.dart';
+import 'file_bytes.dart';
 import 'file_drafts.dart';
 import 'file_place.dart';
 import 'file_settings_keeper.dart';
-import 'file_text.dart';
 import 'files_of_folder.dart';
 import 'listed_file.dart';
 import 'move_failure.dart';
 import 'shown_file_type.dart';
 import 'shown_file_types.dart';
+import 'text_editing/text_files.dart';
 import 'undoable_delete.dart';
 
 /// What the file steps work with, from the app's wiring.
@@ -68,19 +70,19 @@ base class FileSteps {
 
   /// [from]'s backups become [to]'s: the file moved there. Best
   /// effort, as its color: a backup left behind still shows in Backups.
-  Future<void> _moveBackups(FileText from, FileText to) =>
+  Future<void> _moveBackups(ListedFile from, ListedFile to) =>
       _backupsOf(from.folder)
           .moveAll(from: from.path, to: to.path, into: _backupsOf(to.folder));
 
-  /// Creates a file of [type] holding [text] at [place], named after
+  /// Creates a file of [type] holding [bytes] at [place], named after
   /// [title]; [newSubfolder]: [place]'s subfolder is a new one the user
   /// asked for, made first. Like every write of the app, the folder state
   /// sees it at once.
-  Future<Result<FileText, StoreError>> create(
+  Future<Result<FileBytes, StoreError>> create(
     FilePlace place, {
     required ShownFileType type,
     required String title,
-    required String text,
+    required Uint8List bytes,
     bool newSubfolder = false,
   }) => _files
       .of(place.folder)
@@ -89,7 +91,7 @@ base class FileSteps {
         type: type,
         subfolder: place.subfolder,
         newSubfolder: newSubfolder,
-        text: text,
+        bytes: bytes,
       );
 
   /// Moves [file], as last saved, to [place], renamed after [title] if
@@ -103,8 +105,8 @@ base class FileSteps {
   /// with their color and settings: never lose data. It arrives there as
   /// its type says ([FileArrivals]), in the same write; if it can't, it
   /// stays.
-  Future<Result<FileText, MoveFailure>> move(
-    FileText file,
+  Future<Result<FileBytes, MoveFailure>> move(
+    FileBytes file,
     FilePlace place, {
     String? title,
     bool newSubfolder = false,
@@ -112,9 +114,9 @@ base class FileSteps {
     if (_work.conflictWaits(file.key)) {
       return const Err(MoveBlockedByConflict());
     }
-    final TextFile? arrived;
+    final Uint8List? arrived;
     switch (await _work.arrivals.moved(
-      file.textFile,
+      file.bytes,
       folder: file.folder,
       from: file.path,
       to: place,
@@ -150,11 +152,11 @@ base class FileSteps {
     if (written is Err) return written;
     await _marksOf(file.folder).remove(file.path);
     await _settings.forget(file.key);
-    await _moveBackups(file, moved);
+    await _moveBackups(file.listed, moved.listed);
     return Ok(moved);
   }
 
-  /// Deletes [file], holding [text], after a backup of it, so it can
+  /// Deletes [file], holding [bytes], after a backup of it, so it can
   /// still be restored from Backups once [undoDelete] is gone. Its mark
   /// and settings stay until the usual cleanup drops them, so restoring
   /// it at its place soon brings them back; they are kept for
@@ -162,21 +164,21 @@ base class FileSteps {
   /// and if no backup can be made. Fails if the file changed since [file]
   /// was read.
   Future<Result<UndoableDelete, DeleteFailure>> delete(
-    FileText file,
-    String text,
+    ListedFile file,
+    Uint8List bytes,
   ) async {
     if (_work.conflictWaits(file.key)) {
       return const Err(DeleteBlockedByConflict());
     }
     final files = _files.of(file.folder);
-    if (await files.backUpBeforeDelete(file, text) is Err) {
+    if (await files.backUpBeforeDelete(file.path, bytes) is Err) {
       return const Err(DeleteNotBackedUp());
     }
     final mark = await _markOf(file.folder, file.path);
     final settings = _settings.settingsOf(file.key);
-    final deleted = await files.delete(file.listed);
+    final deleted = await files.delete(file);
     if (deleted case Err(:final error)) return Err(DeleteNotDone(error));
-    return Ok((file: file, text: text, mark: mark, settings: settings));
+    return Ok((file: file, bytes: bytes, mark: mark, settings: settings));
   }
 
   /// Writes [deleted] back with its mark and settings, arriving at its
@@ -186,16 +188,16 @@ base class FileSteps {
   /// mark, settings and backups go with it, leaving the new file its own.
   Future<Result<void, StoreError>> undoDelete(UndoableDelete deleted) async {
     final UndoableDelete(:file, :mark, :settings) = deleted;
-    final text = await _work.arrivals.restored(
-      file.textFile.withText(deleted.text),
+    final bytes = await _work.arrivals.restored(
+      deleted.bytes,
       folder: file.folder,
       from: file.path,
     );
     final files = _files.of(file.folder);
-    final restored = switch (await files.restore(file, text)) {
+    final restored = switch (await files.restore(file.path, bytes)) {
       Err(error: StoreError.alreadyExists) => await files.copyIn(
         file.path,
-        file.textFile.withText(text),
+        bytes,
         subfolder: file.path.parent,
       ),
       final restored => restored,
@@ -207,7 +209,7 @@ base class FileSteps {
       if (back.path != file.path) {
         await _marksOf(file.folder).remove(file.path);
         await _settings.forget(file.key);
-        await _moveBackups(file, back);
+        await _moveBackups(file, back.listed);
       }
     }
     return restored.map((_) {});
@@ -220,41 +222,35 @@ base class FileSteps {
   /// again. [newSubfolder]: [place]'s subfolder is a new one the
   /// user asked for, made first. It arrives there as its type says
   /// ([FileArrivals]; best effort).
-  Future<Result<FileText, RestoreAsNewFailure>> restoreAsNew(
+  Future<Result<FileBytes, StoreError>> restoreAsNew(
     FolderBackup backup,
     FilePlace place, {
     String? title,
     bool newSubfolder = false,
   }) async {
     final (:folder, backup: kept) = backup;
-    final TextFile file;
+    final Uint8List bytes;
     switch (await _backupsOf(folder).read(kept)) {
       case Ok(:final value):
-        final text = TextFile.decode(value);
-        if (text == null) return const Err(BackupNotText());
-        file = text;
+        bytes = value;
       case Err(:final error):
-        return Err(NotRestored(error));
+        return Err(error);
     }
     final arrived = await _work.arrivals.restored(
-      file,
+      bytes,
       folder: folder,
       from: kept.filePath,
       to: place,
     );
-    final copied = await _files
+    return _files
         .of(place.folder)
         .copyIn(
           kept.filePath,
-          file.withText(arrived),
+          arrived,
           subfolder: place.subfolder,
           newSubfolder: newSubfolder,
           title: title,
         );
-    return switch (copied) {
-      Ok(:final value) => Ok(value),
-      Err(:final error) => Err(NotRestored(error)),
-    };
   }
 
   /// Recovers the drafts of every folder written before [before] (see
@@ -263,7 +259,7 @@ base class FileSteps {
     for (final folder in await _work.folders()) {
       await DraftRecovery(
         _work.drafts.of(folder.id),
-        files: _files.of(folder),
+        files: TextFiles(_files.of(folder)),
         types: _work.types,
       ).recover(before: before);
     }

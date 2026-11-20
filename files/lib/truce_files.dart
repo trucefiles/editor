@@ -1,6 +1,8 @@
-/// The files in the folders: their files, steps and owner, drafts,
-/// settings, previews, search, backups, conflicts and compare, and the open
-/// file's page model (session, file effects, the editor contract).
+/// The files in the folders: their files (as bytes), steps and owner,
+/// settings, previews, search, backups, conflicts and compare; and the
+/// text editing kit for types whose files are text (text files, drafts,
+/// the open file's page model: session, file effects, the editor
+/// contract).
 ///
 /// Pure Dart, no UI; knows no sync tool and no file type, which the
 /// app wires in.
@@ -9,7 +11,6 @@ library;
 export 'src/backups/backup_pruning.dart';
 export 'src/backups/backup_retention.dart';
 export 'src/backups/folder_backups.dart';
-export 'src/backups/restore_as_new_failure.dart';
 export 'src/backups/restore_compare.dart';
 export 'src/conflicts/conflict_compare.dart';
 export 'src/conflicts/conflict_sides.dart';
@@ -17,9 +18,11 @@ export 'src/conflicts/folder_conflicts.dart';
 export 'src/delete_failure.dart';
 export 'src/draft_recovery.dart';
 export 'src/file_arrival.dart';
+export 'src/file_bytes.dart';
 export 'src/file_card_summary.dart';
 export 'src/file_draft.dart';
 export 'src/file_drafts.dart';
+export 'src/file_merge.dart';
 export 'src/file_place.dart';
 export 'src/file_reads.dart';
 export 'src/file_settings.dart';
@@ -57,8 +60,11 @@ export 'src/text_editing/fixed_view_editor_part.dart';
 export 'src/text_editing/page_file.dart';
 export 'src/text_editing/place_change.dart';
 export 'src/text_editing/save_state.dart';
+export 'src/text_editing/text_bytes_merge.dart';
 export 'src/text_editing/text_edit_effects.dart';
 export 'src/text_editing/text_edit_session.dart';
+export 'src/text_editing/text_file_type.dart';
+export 'src/text_editing/text_files.dart';
 export 'src/undoable_delete.dart';
 export 'src/versions/compared_lines.dart';
 export 'src/versions/version_text.dart';

@@ -22,8 +22,8 @@ void main() {
 
     final sides = (await ConflictSides.load(services, conflict)).value;
 
-    expect(sides.current, 'current\n');
-    expect(sides.other, 'other');
+    expect(versionText(sides.current!), 'current\n');
+    expect(versionText(sides.other), 'other');
   });
 
   test('reads old Mac line breaks as line breaks', () async {
@@ -34,8 +34,8 @@ void main() {
 
     final sides = (await ConflictSides.load(services, conflict)).value;
 
-    expect(sides.current, 'one\ntwo');
-    expect(sides.other, 'one\ntwo');
+    expect(versionText(sides.current!), 'one\ntwo');
+    expect(versionText(sides.other), 'one\ntwo');
   });
 
   test('has no current side when the main file is gone', () async {

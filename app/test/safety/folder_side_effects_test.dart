@@ -15,7 +15,8 @@ void main() {
   late Directory synced;
   late Directory backups;
   late FolderServices services;
-  late FilesOfFolder files;
+  late FilesOfFolder bytes;
+  late TextFiles files;
 
   setUp(() {
     base = tempFolder();
@@ -24,7 +25,8 @@ void main() {
     _populate(base);
     final folder = folderAt(synced);
     services = servicesFor(folder, backupsPath: backups.path);
-    files = FilesOfFolder(folder, services, appFileTypes());
+    bytes = FilesOfFolder(folder, services, appFileTypes());
+    files = TextFiles(bytes);
   });
 
   /// Every entry below [base], with what a write would change.
@@ -90,7 +92,7 @@ void main() {
     final file = await fileAt('sub/b.md');
     final before = snapshot();
 
-    await files.delete(file.listed);
+    await bytes.delete(file.listed);
     expect(changed(before, snapshot()), {'Documents/sub/b.md'});
     expect(Directory('${synced.path}/sub').existsSync(), isTrue);
 
@@ -194,7 +196,7 @@ void main() {
     test('saving, restoring and deleting do not bring it back', () async {
       expect((await files.save(file, 'mine')).error, StoreError.notFound);
       expect((await files.restore(file, 'mine')).error, StoreError.notFound);
-      expect((await files.delete(file.listed)).error, StoreError.notFound);
+      expect((await bytes.delete(file.listed)).error, StoreError.notFound);
       expect(changed(before, snapshot()), isEmpty);
     });
   });

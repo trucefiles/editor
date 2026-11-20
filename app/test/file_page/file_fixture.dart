@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart'
@@ -14,14 +15,18 @@ import 'markdown_session.dart';
 /// drafts and backups. Everything is removed after the test.
 final class FileFixture {
   FileFixture._(this.dirs, this.folders, this._services, this.drafts)
-    : files = {
+    : bytes = {
         for (final folder in folders)
           folder.id: FilesOfFolder(
             folder,
             _services[folder.id]!,
             appFileTypes(),
           ),
-      };
+      } {
+    files = {
+      for (final MapEntry(:key, :value) in bytes.entries) key: TextFiles(value),
+    };
+  }
 
   static Future<FileFixture> create() async {
     final dirs = [tempFolder(), tempFolder()];
@@ -43,7 +48,12 @@ final class FileFixture {
   final List<Directory> dirs;
   final List<Folder> folders;
   final Map<FolderId, FolderServices> _services;
-  final Map<FolderId, FilesOfFolder> files;
+
+  /// Each folder's files as bytes.
+  final Map<FolderId, FilesOfFolder> bytes;
+
+  /// Each folder's files as text.
+  late final Map<FolderId, TextFiles> files;
   final Map<FolderId, FileDrafts> drafts;
   late final FileText file;
 
@@ -67,38 +77,38 @@ final class FileFixture {
   );
 
   /// Creates a file in the fixture's folders.
-  Future<Result<FileText, StoreError>> createFile(
+  Future<Result<FileBytes, StoreError>> createFile(
     FilePlace place, {
     required ShownFileType type,
     required String title,
-    required String text,
+    required Uint8List bytes,
     bool newSubfolder = false,
-  }) => files[place.folder.id]!.create(
+  }) => this.bytes[place.folder.id]!.create(
     title,
     type: type,
     subfolder: place.subfolder,
     newSubfolder: newSubfolder,
-    text: text,
+    bytes: bytes,
   );
 
   /// Moves a file in the fixture's folders: a copy at [place],
   /// then the old file removed.
-  Future<Result<FileText, MoveFailure>> moveFile(
-    FileText file,
+  Future<Result<FileBytes, MoveFailure>> moveFile(
+    FileBytes file,
     FilePlace place, {
     required String title,
     required bool newSubfolder,
   }) async {
-    final copied = await files[place.folder.id]!.copyIn(
+    final copied = await bytes[place.folder.id]!.copyIn(
       file.path,
-      file.textFile,
+      file.bytes,
       subfolder: place.subfolder,
       newSubfolder: newSubfolder,
       title: title,
     );
     if (copied case Err(:final error)) return Err(MoveNotWritten(error));
     final copy = copied.value;
-    return switch (await files[file.folder.id]!.delete(file.listed)) {
+    return switch (await bytes[file.folder.id]!.delete(file.listed)) {
       Ok() => Ok(copy),
       Err(:final error) => Err(MoveLeftOriginal(copy, error)),
     };

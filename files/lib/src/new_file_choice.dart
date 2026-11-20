@@ -1,13 +1,13 @@
 import 'shown_file_type.dart';
 
 /// Something new of a type the user can make, called [label] where the
-/// user picks it (e.g. "Health calendar"), starting with [start]: the
-/// text it opens with, written only once the user changes it.
+/// user picks it (e.g. "Health calendar"), starting from [start], which
+/// only the type's own page reads (e.g. a text type's start text).
 final class NewFileKind {
-  const NewFileKind(this.label, {this.start = ''});
+  const NewFileKind(this.label, {this.start});
 
   final String label;
-  final String start;
+  final Object? start;
 }
 
 /// Something new the user can make: a file of [type], as [kind] says.

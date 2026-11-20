@@ -88,7 +88,7 @@ final class FilePages {
   final DeleteForUndo delete;
   final FileSettings Function(FileKey file) settingsOf;
   final EditSettings editSettings;
-  final FilesOfFolder Function(Folder folder) filesOf;
+  final TextFiles Function(Folder folder) filesOf;
   final FileDrafts Function(Folder folder) draftsOf;
   final Reach Function(FolderId folder) reachOf;
   final Future<Reach> Function(FolderId folder) reachSettled;
@@ -115,7 +115,7 @@ final class FilePages {
     required WithFile withFile,
   }) => _open(
     made.type,
-    NewFile(place, type: made.type, start: made.kind.start),
+    NewFile(place, type: made.type, start: made.kind.startText),
     view: FileSettings.defaults.view,
     withFile: withFile,
   );
@@ -165,7 +165,7 @@ final class FilePages {
         mover: move,
       ),
       editor.part.editor,
-      merge: type.merge,
+      merge: type.textMerge,
       arrivals: arrivals,
     );
     FolderId folder() => session.file.folder.id;

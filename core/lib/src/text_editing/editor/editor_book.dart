@@ -1,4 +1,4 @@
-import '../../filetypes/file_type_support.dart';
+import '../text_summary.dart';
 import '../version.dart';
 import 'editor_contract.dart';
 import 'history/edit_history.dart';

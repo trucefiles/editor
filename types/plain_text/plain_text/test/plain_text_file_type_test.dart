@@ -25,12 +25,12 @@ void main() {
   );
 
   FileCardSummary summaryOf(String text, {String name = 'a.txt'}) =>
-      type.cardSummary(read(text, name: name));
+      type.cardSummaryOf(read(text, name: name));
 
   test('the title is the first line as written', () {
     expect(summaryOf('# Shopping\nmilk').title, '# Shopping');
     expect(
-      type.support.summary('# Shopping\nmilk', maxLines: 0).firstLine,
+      type.summary('# Shopping\nmilk', maxLines: 0).firstLine,
       '# Shopping',
     );
   });
@@ -61,7 +61,7 @@ void main() {
   });
 
   test('search reads the whole text; texts are not merged', () {
-    expect(type.searchText(read('a\nb')), 'a\nb');
+    expect(type.searchTextOf(read('a\nb')), 'a\nb');
     expect(type.merge, isNull);
     expect(type.newFileExtension, '.txt');
   });
