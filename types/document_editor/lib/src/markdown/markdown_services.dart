@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_images/truce_images.dart';
 import 'package:truce_markdown/truce_markdown.dart' show AddItemPlace;
 import 'package:truce_markdown_images/truce_markdown_images.dart';
-
-import 'package:truce_images/truce_images.dart';
 
 /// What Markdown views need from the app beyond the page's host: where
 /// lists get Add item buttons ([addItems], as the setting changes), how
