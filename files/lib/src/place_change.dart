@@ -1,4 +1,3 @@
-
 import 'file_place.dart';
 import 'listed_file.dart';
 import 'move_failure.dart';
