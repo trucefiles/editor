@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
+import 'package:truce_common_ui/truce_common_ui.dart' show showImageViewer;
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_markdown/truce_markdown.dart' show AddItemPlace;
 
@@ -14,7 +15,6 @@ import '../library/own_clipboard.dart';
 import '../library/touch_controls.dart';
 import '../ui/document_image.dart';
 import '../ui/empty_document_hint.dart';
-import '../ui/image_viewer.dart';
 import 'image_insert.dart';
 import 'library/divider_tap_handler.dart';
 import 'library/image_tap_handler.dart';
