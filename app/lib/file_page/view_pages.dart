@@ -1,6 +1,5 @@
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_folders/truce_folders.dart';
 
 import 'text_edit_page_controller.dart';
 import 'view_page_controller.dart';
@@ -80,7 +79,7 @@ final class ViewPages {
     final leave = openEdits.add(
       folder: () => controller.folder,
       secure: (reason) => controller.keep(reason),
-      secureForExit: ({required within}) => controller.keep(SecureReason.exit),
+      secureForExit: controller.keepForExit,
     );
     return ViewPage._(controller, leave, fileClosed);
   }

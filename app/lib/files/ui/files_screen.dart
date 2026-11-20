@@ -141,7 +141,10 @@ class _FilesScreenState extends ConsumerState<FilesScreen> {
     if (pick == null || !mounted) return;
     final page = switch (pick.type) {
       final ViewType type => await _newShown(type, pick.kind, place),
-      EditableType() => TextEditPage.fresh(place, made: pick),
+      final EditableType type => TextEditPage.fresh(
+        place,
+        made: NewFileChoice(pick.kind, type),
+      ),
     };
     if (page == null || !mounted) return;
     ref.read(fileActionsProvider).reveal(place, pick.type.support.type);

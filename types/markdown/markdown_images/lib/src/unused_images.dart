@@ -118,8 +118,6 @@ final class UnusedImages {
     return used;
   }
 
-  /// The names the document [bytes] links; as shown if they aren't
-  /// UTF-8, so no image of a broken file is taken for unused.
   /// The image names the folder's document drafts link; `null` if any
   /// can't be read. Other drafts (e.g. a new image's) are never loaded.
   Future<Set<String>?> _linkedByDrafts() async {
@@ -138,6 +136,8 @@ final class UnusedImages {
     return used;
   }
 
+  /// The names the document [bytes] links; as shown if they aren't
+  /// UTF-8, so no image of a broken file is taken for unused.
   static Set<String> _linkedBy(Uint8List bytes) =>
       ImageNames.linkedBy(TextFile.textToShow(bytes));
 }

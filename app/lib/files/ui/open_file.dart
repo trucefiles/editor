@@ -26,8 +26,8 @@ Future<void> openFile(
         context,
         MaterialPageRoute<void>(builder: (_) => FileViewPage(file, type: type)),
       );
-    case EditableType():
-      await _openText(context, ref, file);
+    case final EditableType type:
+      await _openText(context, ref, file, type);
   }
 }
 
@@ -35,6 +35,7 @@ Future<void> _openText(
   BuildContext context,
   WidgetRef ref,
   ListedFile file,
+  EditableType type,
 ) async {
   final read = TextFiles.textOf(await ref.read(fileActionsProvider).read(file));
   if (!context.mounted) return;
@@ -42,7 +43,9 @@ Future<void> _openText(
     case Ok(value: final opened):
       await Navigator.push(
         context,
-        MaterialPageRoute<void>(builder: (_) => TextEditPage(opened)),
+        MaterialPageRoute<void>(
+          builder: (_) => TextEditPage(opened, type: type),
+        ),
       );
     case Err(:final error):
       showSnack(context, "This file can't be opened. ${error.text}");

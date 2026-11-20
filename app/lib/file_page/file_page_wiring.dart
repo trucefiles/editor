@@ -20,7 +20,6 @@ import 'view_pages.dart';
 /// read when asked.
 final filePagesProvider = Provider<FilePages>(
   (ref) => FilePages(
-    types: ref.watch(fileTypesProvider),
     create: _creator(ref),
     move: _mover(ref),
     delete: (file, bytes) => ref.read(fileActionsProvider).delete(file, bytes),

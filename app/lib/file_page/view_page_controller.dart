@@ -7,6 +7,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import 'listed_content.dart';
+import 'page_leave.dart';
 import 'text_edit_page_controller.dart';
 
 /// The view page's model, for a file the app only shows (e.g. an
@@ -164,13 +165,19 @@ final class ViewPageController extends ChangeNotifier {
   /// or on this device while hidden, while its folder can't be reached,
   /// or as the app ends (within [endWait]).
   Future<bool> keep(SecureReason reason) async {
+    if (reason == SecureReason.exit) return keepForExit(within: endWait);
     final secured = _secure(reason);
-    if (reason == SecureReason.exit) {
-      return secured.timeout(endWait, onTimeout: () => false);
-    }
-    return await secured ||
-        (folder != null && await reachSettled(folder!) == Reach.unreachable);
+    return switch (folder) {
+      final folder? => keptOrOutOfReach(secured, () => reachSettled(folder)),
+      null => secured,
+    };
   }
+
+  /// Keeps a new file as the app ends: on this device is enough; whether
+  /// it was kept within [within], so a folder that hangs never holds the
+  /// app.
+  Future<bool> keepForExit({required Duration within}) =>
+      _secure(SecureReason.exit).timeout(within, onTimeout: () => false);
 
   Future<bool> _secure(SecureReason reason) =>
       answerOf<ShownInput, Secured, bool>(
@@ -185,12 +192,11 @@ final class ViewPageController extends ChangeNotifier {
   Future<bool> mayGo(
     SecureReason reason,
     Future<bool> Function() askToDiscard,
-  ) async {
-    if (await keep(reason)) return true;
-    if (!await askToDiscard()) return false;
-    _owner.send(const DropNew());
-    return true;
-  }
+  ) => mayGoOnceKept(
+    keep: () => keep(reason),
+    askToDiscard: askToDiscard,
+    discard: () => _owner.send(const DropNew()),
+  );
 
   /// Runs [action] on the file, writing a new one first; `false` if
   /// there is no file to act on.

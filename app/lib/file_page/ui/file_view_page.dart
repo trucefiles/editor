@@ -4,7 +4,6 @@ import 'dart:ui' show AppExitResponse;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
@@ -12,13 +11,11 @@ import 'package:truce_folders/truce_folders.dart';
 import '../../backups/ui/file_backups_screen.dart';
 import '../../backups/ui/restore_screen.dart';
 import '../../common/snack.dart';
-import '../../common/store_error_text.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../files/file_actions.dart';
 import '../../files/file_colors.dart';
 import '../../files/file_settings_controller.dart';
 import '../../files/show_in_all_files.dart';
-import '../../files/ui/delete_failure_text.dart';
 import '../../files/ui/file_actions_menu.dart';
 import '../../files/ui/file_heading.dart';
 import '../../folder_state/folder_state_controller.dart';
@@ -29,12 +26,14 @@ import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
 import '../file_page_wiring.dart';
-import '../text_edit_page_controller.dart';
 import '../view_page_controller.dart';
 import '../view_pages.dart';
+import 'discard_dialog.dart';
 import 'edit_place.dart';
 import 'file_place_chip.dart';
 import 'file_place_spot.dart';
+import 'page_close.dart';
+import 'page_delete.dart';
 
 /// The page of a file the app only shows (e.g. an image): its [type]
 /// draws it; the page has its name, place and actions. A new file is
@@ -112,7 +111,9 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
 
   /// Leaves once a new file is kept ([ViewPageController.mayGo]).
   Future<void> _leave() async {
-    if (await _controller.mayGo(SecureReason.close, _askToDiscard)) _close();
+    if (await _controller.mayGo(SecureReason.close, _askToDiscard) && mounted) {
+      closeIfOnTop(context);
+    }
   }
 
   Future<AppExitResponse> _onExitRequested() async =>
@@ -120,24 +121,17 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
       ? AppExitResponse.exit
       : AppExitResponse.cancel;
 
-  Future<bool> _askToDiscard() async {
-    if (!mounted) return false;
-    return showConfirmDialog(
-      context,
-      title: "The image can't be saved",
-      message:
-          'Neither its folder nor this device could keep it. '
-          'Stay to try again or to pick another folder.',
-      yes: 'Close and lose it',
-      no: 'Stay',
-    );
-  }
-
-  void _close() {
-    if (mounted && (ModalRoute.of(context)?.isCurrent ?? false)) {
-      Navigator.pop(context);
-    }
-  }
+  /// Whether the user drops a new file that can be kept nowhere.
+  Future<bool> _askToDiscard() async =>
+      mounted &&
+      await askToDiscard(
+        context,
+        title: "The file can't be saved",
+        message:
+            'Neither its folder nor this device could keep it. '
+            'Stay to try again or to pick another folder.',
+        discard: 'Close and lose it',
+      );
 
   /// Once the file's folder was removed: closes, unless a new file
   /// could not be written before; that one stays, so it can go
@@ -146,43 +140,18 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
     final folder = _controller.folder;
     if (folder == null || folders.any((shown) => shown.id == folder)) return;
     if (_controller.state is WaitingNew) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showHint('The file closed because its folder was removed from the app.');
-    final route = ModalRoute.of(context);
-    if (route == null || !route.isActive) return;
-    Navigator.of(context)
-      ..popUntil((top) => top == route)
-      ..pop();
+    closeAsFolderRemoved(context);
   }
 
   /// [context] is this screen's.
   Future<void> _delete(BuildContext context) async {
     final outcome = await _controller.deleteFile();
     if (!context.mounted) return;
-    switch (outcome) {
-      case NewDropped():
-        Navigator.pop(context);
-      case DeletedForUndo(:final deleted):
-        _offerUndo(ref.read(fileActionsProvider), deleted);
-        Navigator.pop(context);
-      case DeleteRefused(:final failure):
-        showSnack(context, deleteFailureText(failure));
-      case AlreadyGone() || FileStopped():
-        break;
-    }
-  }
-
-  void _offerUndo(FileActions actions, UndoableDelete deleted) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showHint(
-      'File deleted',
-      actionLabel: 'Undo',
-      onAction: () async {
-        if (await actions.undoDelete(deleted) case Err(:final error)) {
-          messenger.showHint(error.text);
-        }
-      },
+    tellDeleted(
+      context,
+      outcome,
+      appMessenger: ScaffoldMessenger.of(context),
+      actions: ref.read(fileActionsProvider),
     );
   }
 
@@ -317,7 +286,7 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
             UnreachableBanner(
               place.folder,
               message: _controller.state is WaitingNew
-                  ? 'The image is kept on this device.'
+                  ? 'The file is kept on this device.'
                   : 'Changes from other devices show once it is back.',
             ),
           ..._stateBanner(),
@@ -360,14 +329,19 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
         content: const Text(
           'This file was deleted, moved or renamed elsewhere.',
         ),
-        actions: [TextButton(onPressed: _close, child: const Text('Close'))],
+        actions: [
+          TextButton(
+            onPressed: () => closeIfOnTop(context),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     ],
     WaitingNew(kept: NewKept.nowhere) => [
       MaterialBanner(
         leading: const Icon(Icons.error_outline),
         content: const Text(
-          "The image couldn't be saved yet. Try again, or pick another "
+          "The file couldn't be saved yet. Try again, or pick another "
           'folder.',
         ),
         actions: [
