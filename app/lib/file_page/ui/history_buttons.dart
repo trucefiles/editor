@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// Undo and Redo (unless not [redo]) for [editor], each on while it has
 /// a step to take; Undo also takes a tap while off.

@@ -34,7 +34,7 @@ final imageCleanupProvider = Provider<ImageCleanup>((ref) {
     servicesOf: ref.watch(openFoldersProvider).servicesOf,
     storeOf: ref.watch(documentImageStoresProvider),
     draftsOf: ref.watch(draftsProvider).of,
-    openFiles: ref.watch(openFilesProvider),
+    openEdits: ref.watch(openEditsProvider),
     isDocument: (path) => detector.detect(path) == markdownType,
   );
 });

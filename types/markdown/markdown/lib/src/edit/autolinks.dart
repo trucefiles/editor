@@ -3,8 +3,7 @@
 library;
 
 import 'package:collection/collection.dart';
-import 'package:truce_core/truce_core.dart'
-    show FoundLink, findExtendedAutolinks;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../read/syntax/link_syntax.dart';
 import '../tree/inlines.dart';

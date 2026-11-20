@@ -50,8 +50,8 @@ void main() {
       final file = await listed('plan.md');
       final previews = container.read(cardPreviewsProvider);
 
-      expect(await previews.read(file), isA<PreviewNotText>());
-      expect(previews.known(file), isA<PreviewNotText>());
+      expect(await previews.read(file), isA<PreviewNotShown>());
+      expect(previews.known(file), isA<PreviewNotShown>());
     },
   );
 

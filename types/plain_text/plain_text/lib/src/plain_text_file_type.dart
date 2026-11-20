@@ -1,5 +1,5 @@
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import 'plain_summary.dart';
 import 'plain_text_support.dart';
@@ -7,7 +7,7 @@ import 'plain_text_support.dart';
 /// Plain text documents, as the app shows them: the first line names
 /// one; search reads the whole text; two texts don't merge (the user
 /// picks one). Its editor package adds how a file of it opens.
-base class PlainTextFileType implements ShownFileType {
+base class PlainTextFileType extends TextFileType {
   const PlainTextFileType();
 
   @override
@@ -22,20 +22,28 @@ base class PlainTextFileType implements ShownFileType {
   @override
   List<NewFileKind> get newKinds => const [NewFileKind('Plain text')];
 
+  @override
+  PlainSummary summary(String text, {required int maxLines}) =>
+      PlainSummary(text, maxLines: maxLines);
+
   /// The whole text.
   @override
-  String searchText(FileText read) => read.text;
+  String textSearchWords(FileText read) => read.text;
 
   @override
-  FileCardSummary cardSummary(FileText read) {
-    final preview = read.summary.preview(const PlainPreview());
+  FileCardSummary textCard(FileText read) {
+    final summary = this.summary(
+      read.text,
+      maxLines: FileCardSummary.previewLines,
+    );
+    final preview = summary.preview(const PlainPreview());
     return FileCardSummary(
-      title: titleOf(read.summary, read.path),
+      title: titleOf(summary, read.path),
       preview: (_) => preview,
     );
   }
 
   /// Texts are compared and picked by the user.
   @override
-  TextMerge? get merge => null;
+  TextMerge? get textMerge => null;
 }

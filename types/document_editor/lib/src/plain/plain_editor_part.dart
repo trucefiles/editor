@@ -1,6 +1,6 @@
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A plain text document's part of the document page: its editor owner,
 /// edited line by line as written, or only read while it can't be

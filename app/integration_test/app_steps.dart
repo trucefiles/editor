@@ -7,7 +7,7 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
 import 'package:truce_core/truce_core.dart' show RelPath;
-import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/file_page/ui/text_edit_page.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart' show EditMode;
 
@@ -65,7 +65,7 @@ extension AppSteps on WidgetTester {
   Future<void> waitForNoteClosed({
     Duration timeout = const Duration(seconds: 15),
   }) => waitUntil(
-    () => find.byType(FileScreen).evaluate().isEmpty,
+    () => find.byType(TextEditPage).evaluate().isEmpty,
     timeout: timeout,
   );
 

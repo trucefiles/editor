@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';
@@ -55,7 +55,7 @@ void main() {
     final effects = fixture.effects(ExistingFile(fixture.file));
     final copy = (await fixture.files[folderId('f2')]!.create(
       'b',
-      type: appFileTypes().forNew,
+      type: appNewTextType(),
       text: 'one\n',
     )).value;
 
@@ -102,7 +102,7 @@ void main() {
     effects.place(
       NewFile(
         (folder: fixture.folders[1], subfolder: null),
-        type: appFileTypes().forNew,
+        type: appNewTextType(),
         name: 'Eggs',
       ),
     );
@@ -118,7 +118,7 @@ void main() {
     final effects = fixture.effects(
       NewFile(
         (folder: fixture.folders[0], subfolder: path('2026')),
-        type: appFileTypes().forNew,
+        type: appNewTextType(),
         newSubfolder: true,
       ),
     );
@@ -148,7 +148,7 @@ void main() {
     final effects = fixture.effects(
       NewFile(
         (folder: fixture.folders[0], subfolder: null),
-        type: appFileTypes().forNew,
+        type: appNewTextType(),
         name: 'Foo',
       ),
     );
@@ -188,7 +188,7 @@ void main() {
       NewFile((
         folder: fixture.folders[1],
         subfolder: null,
-      ), type: appFileTypes().forNew),
+      ), type: appNewTextType()),
     );
 
     expect(await fixture.draftsIn('f1'), isEmpty);

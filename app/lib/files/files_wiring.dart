@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../file_types/file_types.dart';
 import '../folder_state/folder_state_wiring.dart';
@@ -25,7 +26,7 @@ final draftsProvider = Provider<DraftsByFolder>(
 );
 
 /// The files open on screen right now.
-final openFilesProvider = Provider<OpenFiles>((_) => OpenFiles());
+final openEditsProvider = Provider<OpenEdits>((_) => OpenEdits());
 
 /// What the file steps work with.
 final filesWorkProvider = Provider<FilesWork>((ref) {
@@ -37,7 +38,10 @@ final filesWorkProvider = Provider<FilesWork>((ref) {
     settings: ref.watch(fileSettingsProvider.notifier),
     conflictWaits: (key) => conflictWaitsIn(folderState.state, key),
     folders: () => settledFolders(folderList),
-    drafts: ref.watch(draftsProvider),
+    recoverDrafts: recoverDraftsWith(
+      ref.watch(draftsProvider),
+      ref.watch(fileTypesProvider),
+    ),
     types: ref.watch(fileTypesProvider),
     arrivals: ref.watch(fileArrivalsProvider),
   );

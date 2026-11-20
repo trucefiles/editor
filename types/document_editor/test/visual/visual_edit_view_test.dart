@@ -7,11 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_core/truce_core.dart' show UndoOffered, UndoStep;
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart'
     show CheckedItems, EditMode, Request, SetMode;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// Editing a document in Visual edit.
 void main() {

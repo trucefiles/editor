@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../backups/ui/both_backed_up_text.dart';
 import '../../common/snack.dart';
@@ -104,7 +105,10 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       current: ShownVersion(
         label: 'Current version',
         content: switch ((sides.current, conflict.main)) {
-          (final text?, final main?) => SavedText(text, main.modified),
+          (final bytes?, final main?) => SavedText(
+            versionText(bytes),
+            main.modified,
+          ),
           _ => const DeletedFile(),
         },
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
@@ -115,7 +119,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       ),
       other: ShownVersion(
         label: 'Other version',
-        content: SavedText(sides.other, sides.copy.createdAt),
+        content: SavedText(versionText(sides.other), sides.copy.createdAt),
         keepLabel: deleted ? 'Restore' : 'Keep this',
         keptMessage: deleted
             ? 'The file is restored from this version. $bothBackedUp'

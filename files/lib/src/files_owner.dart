@@ -42,7 +42,7 @@ Future<FilesAnswer> _run(FileSteps steps, FilesInput input) => switch (input) {
     :final place,
     :final type,
     :final title,
-    :final text,
+    :final bytes,
     :final newSubfolder,
   ) =>
     steps
@@ -50,7 +50,7 @@ Future<FilesAnswer> _run(FileSteps steps, FilesInput input) => switch (input) {
           place,
           type: type,
           title: title,
-          text: text,
+          bytes: bytes,
           newSubfolder: newSubfolder,
         )
         .then((result) => FileCreated(ticket, result)),
@@ -64,8 +64,8 @@ Future<FilesAnswer> _run(FileSteps steps, FilesInput input) => switch (input) {
     steps
         .move(file, place, title: title, newSubfolder: newSubfolder)
         .then((result) => FileMoved(ticket, result)),
-  DeleteFile(:final ticket, file: final file, :final text) =>
-    steps.delete(file, text).then((result) => FileDeleted(ticket, result)),
+  DeleteFile(:final ticket, file: final file, :final bytes) =>
+    steps.delete(file, bytes).then((result) => FileDeleted(ticket, result)),
   UndoDelete(:final ticket, :final deleted) =>
     steps.undoDelete(deleted).then((result) => DeleteUndone(ticket, result)),
   RestoreAsNewFile(

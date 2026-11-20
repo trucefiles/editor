@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_plain_text/truce_plain_text.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../lines/edited_text.dart';
 

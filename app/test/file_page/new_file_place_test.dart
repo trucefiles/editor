@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart' show markdownType;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 import 'file_fixture.dart';
@@ -24,7 +25,7 @@ final class _HeldArrival implements FileArrival {
 void main() {
   late FileFixture fixture;
   late _HeldArrival arrival;
-  late FileSession session;
+  late TextEditSession session;
 
   setUp(() async {
     fixture = await FileFixture.create();
@@ -39,7 +40,7 @@ void main() {
   NewFile inSecondFolder() => NewFile((
     folder: fixture.folders[1],
     subfolder: null,
-  ), type: appFileTypes().forNew);
+  ), type: appNewTextType());
 
   test("a new document's place changes once it arrived there", () async {
     final placed = session.place(inSecondFolder());

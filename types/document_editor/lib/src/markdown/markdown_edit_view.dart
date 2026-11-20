@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../editor_gate.dart';
 import '../lines/edited_text.dart';

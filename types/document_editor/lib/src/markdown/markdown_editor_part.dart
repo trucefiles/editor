@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../editor_gate.dart';
 import '../first_mode.dart';

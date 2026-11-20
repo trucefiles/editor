@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:truce_core/truce_core.dart' show TextFile;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../model/calendar.dart';
 import '../model/calendar_item.dart';

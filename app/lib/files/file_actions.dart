@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
@@ -36,8 +38,8 @@ final class FileActions {
   /// filters let a folder's or a type's files through; [_reachOf], each folder's reach; [_newFilePlace], the
   /// place set for new files; [_shown], what the folders hold, as
   /// last seen (`null` before the first listing); [_showsFolder], whether a
-  /// folder shows the files in one of its subfolders; [_read], a file's
-  /// text as it is now.
+  /// folder shows the files in one of its subfolders; [_read], a file as
+  /// it is now.
   FileActions({
     required this._owner,
     required this._pickedFolders,
@@ -58,10 +60,10 @@ final class FileActions {
   final NewFilePlaceSetting? Function() _newFilePlace;
   final FolderFiles? Function() _shown;
   final bool Function(FolderId folder, RelPath subfolder) _showsFolder;
-  final Future<Result<FileText, OpenFailure>> Function(ListedFile file) _read;
+  final Future<Result<FileBytes, StoreError>> Function(ListedFile file) _read;
 
-  /// Reads [file] to open it: its text as it is now.
-  Future<Result<FileText, OpenFailure>> read(ListedFile file) => _read(file);
+  /// Reads [file] to open it, as it is now.
+  Future<Result<FileBytes, StoreError>> read(ListedFile file) => _read(file);
 
   /// Those of [folders] that new files can go into: the ones that can be
   /// reached.
@@ -100,11 +102,11 @@ final class FileActions {
       _shown()?.markOf(file.key) ?? FileMark.none;
 
   /// See [FileSteps.create].
-  Future<Result<FileText, StoreError>> create(
+  Future<Result<FileBytes, StoreError>> create(
     FilePlace place, {
     required ShownFileType type,
     required String title,
-    required String text,
+    required Uint8List bytes,
     bool newSubfolder = false,
   }) => answerOf(
     _owner,
@@ -113,7 +115,7 @@ final class FileActions {
       place,
       type: type,
       title: title,
-      text: text,
+      bytes: bytes,
       newSubfolder: newSubfolder,
     ),
     read: (FileCreated answer) => answer.result,
@@ -121,8 +123,8 @@ final class FileActions {
   );
 
   /// See [FileSteps.move].
-  Future<Result<FileText, MoveFailure>> move(
-    FileText file,
+  Future<Result<FileBytes, MoveFailure>> move(
+    FileBytes file,
     FilePlace place, {
     String? title,
     bool newSubfolder = false,
@@ -141,11 +143,11 @@ final class FileActions {
 
   /// See [FileSteps.delete].
   Future<Result<UndoableDelete, DeleteFailure>> delete(
-    FileText file,
-    String text,
+    ListedFile file,
+    Uint8List bytes,
   ) => answerOf(
     _owner,
-    (ticket) => DeleteFile(ticket, file, text),
+    (ticket) => DeleteFile(ticket, file, bytes),
     read: (FileDeleted answer) => answer.result,
     orElse: const Err(DeleteNotDone(_notRun)),
   );
@@ -160,7 +162,7 @@ final class FileActions {
       );
 
   /// See [FileSteps.restoreAsNew].
-  Future<Result<FileText, RestoreAsNewFailure>> restoreAsNew(
+  Future<Result<FileBytes, StoreError>> restoreAsNew(
     FolderBackup backup,
     FilePlace place, {
     String? title,
@@ -175,7 +177,7 @@ final class FileActions {
       newSubfolder: newSubfolder,
     ),
     read: (RestoredAsNew answer) => answer.result,
-    orElse: const Err(NotRestored(_notRun)),
+    orElse: const Err(_notRun),
   );
 
   /// See [FileSteps.setMark].

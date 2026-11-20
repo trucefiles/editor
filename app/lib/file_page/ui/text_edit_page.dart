@@ -1,0 +1,528 @@
+import 'dart:async';
+import 'dart:ui' show AppExitResponse;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_file_page/truce_file_page.dart';
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
+
+import '../../common/screen_shortcuts.dart';
+import '../../common/snack.dart';
+import '../../common/store_error_text.dart';
+import '../../conflicts/ui/conflict_banner.dart';
+import '../../files/file_actions.dart';
+import '../../files/file_colors.dart';
+import '../../files/file_settings_controller.dart';
+import '../../files/files_wiring.dart';
+import '../../files/ui/delete_failure_text.dart';
+import '../../files/ui/file_actions_menu.dart';
+import '../../files/ui/file_heading.dart';
+import '../../folder_state/folder_state_controller.dart';
+import '../../folders/folders_controller.dart';
+import '../../reach/folder_reach_controller.dart';
+import '../../reach/ui/unreachable_banner.dart';
+import '../../refresh/ui/pull_to_refresh.dart';
+import '../../settings/device_settings_controller.dart';
+import '../../text_zoom/ui/document_text_zoom.dart';
+import '../../versions/merge_outcome.dart';
+import '../file_page_wiring.dart';
+import '../file_pages.dart';
+import '../text_edit_page_controller.dart';
+import 'edit_file_place.dart';
+import 'edit_state_banner.dart';
+import 'file_backups.dart';
+import 'file_place_chip.dart';
+import 'file_place_spot.dart';
+import 'history_buttons.dart';
+import 'history_end_text.dart';
+import 'save_indicator.dart';
+
+/// The one page for an open text document of any type; its type's editor
+/// part shows the text (e.g. Visual edit, Markdown edit or Read of a
+/// Markdown document). Saves as the user types; a new file is
+/// created as the user leaves it or the app is hidden.
+class TextEditPage extends ConsumerStatefulWidget {
+  /// The page of [file], as read just before.
+  TextEditPage(FileText file, {super.key})
+    : _open = ((pages, withFile) => pages.open(file, withFile: withFile)),
+      _isNew = false;
+
+  /// A new file [made], to go into [place].
+  TextEditPage.fresh(
+    FilePlace place, {
+    required NewFileChoice<FilePageType> made,
+    super.key,
+  }) : _open = ((pages, withFile) =>
+           pages.openNew(place, made: made, withFile: withFile)),
+       _isNew = true;
+
+  /// Opens the page this screen shows.
+  final FilePage Function(FilePages pages, WithFile withFile) _open;
+
+  /// Whether it is a new file, for typing right away.
+  final bool _isNew;
+
+  @override
+  ConsumerState<TextEditPage> createState() => _TextEditPageState();
+}
+
+class _TextEditPageState extends ConsumerState<TextEditPage> {
+  late final FilePage _page;
+  late final StreamSubscription<void> _partChanges;
+  late final AppLifecycleListener _lifecycle;
+  late final List<StreamSubscription<Object>> _notices;
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
+  final _pull = GlobalKey<PullToRefreshState>();
+
+  TextEditSession get _session => _page.session;
+  TextEditPageController get _controller => _page.controller;
+  PageEditor get _editor => _session.editor;
+
+  /// Where the file is now: it changes when the user moves it, or
+  /// picks another place for a new one.
+  Folder get _folder => _session.file.folder;
+
+  @override
+  void initState() {
+    super.initState();
+    final pages = ref.read(filePagesProvider);
+    _page = widget._open(pages, _withFile);
+    _partChanges = _page.part.changes.listen((_) => _rebuild());
+    _controller.addListener(_rebuild);
+    _notices = [
+      _session.editorNotices.listen(_onEditorNotice),
+      _session.fileNotices.listen(_onFileNotice),
+    ];
+    _lifecycle = AppLifecycleListener(
+      // Before the window goes, e.g. to the shutdown menu.
+      onInactive: _session.draftNow,
+      onHide: () => unawaited(_session.secure(SecureReason.hide)),
+      onExitRequested: _onExitRequested,
+    );
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    for (final notices in _notices) {
+      unawaited(notices.cancel());
+    }
+    unawaited(_partChanges.cancel());
+    _controller.removeListener(_rebuild);
+    unawaited(_page.close());
+    super.dispose();
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
+  }
+
+  void _onEditorNotice(EditorNotice notice) {
+    final messenger = _messenger.currentState;
+    if (messenger == null) return;
+    switch (notice) {
+      case UndoOffered(:final id, :final what):
+        messenger.showHint(
+          switch (what) {
+            OfferedUndo.removal => 'Removed',
+            OfferedUndo.restore => 'Backup restored',
+          },
+          actionLabel: 'Undo',
+          onAction: () => _editor.send(UndoStep(id)),
+        );
+      case UndoRefused():
+        messenger.showHint("Can't undo: the file has changed since.");
+      case HistoryEnd(:final start):
+        final context = _messenger.currentContext;
+        messenger.showHint(
+          '${start.text} Older versions are in Backups.',
+          actionLabel: 'Backups',
+          onAction: context == null || _session.read == null
+              ? null
+              : () => unawaited(_openBackups(context)),
+        );
+      case ToFile():
+        break;
+    }
+  }
+
+  void _onFileNotice(TextFileEvent notice) {
+    final messenger = _messenger.currentState;
+    switch (notice) {
+      case Replaced(by: ReplacedBy.elsewhere):
+        messenger?.showHint('Reloaded with changes from the folder.');
+      case PickMerged(:final lost):
+        messenger?.showNotice(mergeOutcome(lost));
+      case _:
+        break;
+    }
+  }
+
+  /// Leaves once the edits are kept (see [TextEditPageController.mayGo]).
+  /// While the folder can't be reached, they stay on this device and go
+  /// into the file at the next start.
+  Future<void> _leave() async {
+    if (await _controller.mayGo(SecureReason.close, _askToDiscard)) _close();
+  }
+
+  /// On desktop: quits once the edits are kept, or the user discards them.
+  Future<AppExitResponse> _onExitRequested() async =>
+      await _controller.mayGo(SecureReason.exit, _askToDiscard)
+      ? AppExitResponse.exit
+      : AppExitResponse.cancel;
+
+  /// Whether the user drops edits that can be kept nowhere.
+  Future<bool> _askToDiscard() async {
+    if (!mounted) return false;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Your edits can't be saved"),
+        content: const Text(
+          'Neither the file nor a copy of it could be saved. '
+          'Stay and copy your text somewhere else.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Close and lose edits'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Stay'),
+          ),
+        ],
+      ),
+    );
+    return discard ?? false;
+  }
+
+  /// Once the file's folder was removed: closes if nothing is unsaved
+  /// (its edits were saved before, see `FolderListWork.secureOpen`);
+  /// else the file stays open, read only, so its edits never vanish with
+  /// the page (the edit state banner tells).
+  void _closeIfNotShown(List<Folder> folders) {
+    if (_controller.folderShownIn(folders)) return;
+    if (!_controller.folderRemoved()) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showHint('The file closed because its folder was removed from the app.');
+    _closeWithAllOnTop();
+  }
+
+  /// Closes the editor and every screen or dialog open on top of it.
+  void _closeWithAllOnTop() {
+    final route = mounted ? ModalRoute.of(context) : null;
+    if (route == null || !route.isActive) return;
+    Navigator.of(context)
+      ..popUntil((top) => top == route)
+      ..pop();
+  }
+
+  /// Closes the editor if it is still the top screen (the user may have
+  /// left it meanwhile).
+  void _close() {
+    if (mounted && (ModalRoute.of(context)?.isCurrent ?? false)) {
+      Navigator.pop(context);
+    }
+  }
+
+  /// [context] is this screen's, below its own messenger.
+  Future<void> _delete(BuildContext context) async {
+    final outcome = await _controller.deleteFile();
+    if (!context.mounted) return;
+    switch (outcome) {
+      case NewDropped():
+        Navigator.pop(context);
+      case DeletedForUndo(:final deleted):
+        _offerUndo(ref.read(fileActionsProvider), deleted);
+        Navigator.pop(context);
+      case DeleteRefused(:final failure):
+        showSnack(context, deleteFailureText(failure));
+      case AlreadyGone() || FileStopped():
+        break;
+    }
+  }
+
+  /// Runs [action] on the file (see
+  /// [TextEditPageController.withFile]).
+  Future<void> _withFile(
+    FutureOr<void> Function(ListedFile file) action,
+  ) async {
+    final file = await _controller.withFile();
+    if (!mounted) return;
+    switch (file) {
+      case Ok(value: final file):
+        await action(file.listed);
+      case Err(error: NoFile.empty):
+        _messenger.currentState?.showHint(
+          "Write something first. An empty file isn't saved.",
+        );
+      case Err(error: NoFile.notCreated):
+        // The banner tells why.
+        break;
+      case Err(error: NoFile.stopped):
+        // Told as it stopped.
+        break;
+    }
+  }
+
+  /// The hint outlives this screen, so it shows on the app's messenger,
+  /// found from above this screen's own.
+  void _offerUndo(FileActions actions, UndoableDelete deleted) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showHint(
+      'File deleted',
+      actionLabel: 'Undo',
+      onAction: () async {
+        if (await actions.undoDelete(deleted) case Err(:final error)) {
+          messenger.showHint(error.text);
+        }
+      },
+    );
+  }
+
+  /// [context] is this screen's, below its own messenger; [settings] are
+  /// the file's. Has the file's place where [placeSpot] says.
+  Widget _menu(
+    BuildContext context,
+    FileSettings settings, {
+    required FilePlaceSpot placeSpot,
+  }) => PopupMenuButton<VoidCallback>(
+    onSelected: (action) => action(),
+    itemBuilder: (_) => [
+      if (_isEdited && _narrow(context))
+        PopupMenuItem(
+          value: () => _editor.send(const Redo()),
+          enabled: _editor.state.canRedo,
+          child: const Text('Redo'),
+        ),
+      ..._page.view.menu(context, settings.view),
+      if (placeSpot == FilePlaceSpot.menu)
+        PopupMenuItem(
+          value: () => unawaited(editFilePlace(context, ref, _session)),
+          child: const Text('$placeLabel…'),
+        ),
+      PopupMenuItem(
+        value: () => _withFile((file) => editPinOrColor(context, ref, file)),
+        child: const Text('Pin or color'),
+      ),
+      if (_session.read != null)
+        PopupMenuItem(
+          value: () => unawaited(_openBackups(context)),
+          child: const Text('Backups'),
+        ),
+      if (usesTouch(Theme.of(context)))
+        PopupMenuItem(value: _refresh, child: const Text('Refresh')),
+      PopupMenuItem(
+        value: () => _delete(context),
+        child: const Text('Delete file'),
+      ),
+    ],
+  );
+
+  void _refresh() => unawaited(_pull.currentState!.refresh());
+
+  /// Whether the window is phone-sized at its text size: then Redo goes
+  /// into the menu, so the bar keeps room for the title.
+  static bool _narrow(BuildContext context) =>
+      MediaQuery.sizeOf(context).width <
+      MediaQuery.textScalerOf(context).scale(600);
+
+  /// Opens this file's backups; [context] is below this screen's
+  /// messenger.
+  Future<void> _openBackups(BuildContext context) async {
+    final file = _session.read;
+    final messenger = _messenger.currentState;
+    if (file == null || messenger == null) return;
+    await openFileBackups(
+      context,
+      file: file.listed,
+      title: _session.title,
+      controller: _controller,
+      messenger: messenger,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref
+      ..listen(folderReachProvider(_folder.id), (_, _) {
+        _controller.reachChanged();
+      })
+      ..listen(fileSettingsProvider, (_, _) {
+        _page.part.viewChanged(_controller.settings.view);
+      })
+      ..listen(folderContentsProvider, (_, next) {
+        if (next.value case final contents?) _session.observe(contents);
+      })
+      ..listen(foldersProvider, (_, next) {
+        if (next.value case final folders?) _closeIfNotShown(folders);
+      });
+    return PopScope(
+      canPop: _controller.canLeaveNow,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_leave());
+      },
+      child: _scaffold(),
+    );
+  }
+
+  /// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo while the file is
+  /// edited; the type's own keys work while it can be edited. Esc is the
+  /// app's: it leaves, unless a menu above the editor takes it.
+  late final Map<SingleActivator, VoidCallback> _keys = {
+    const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
+      if (_isEdited) _editor.send(const Undo());
+    },
+    const SingleActivator(
+      LogicalKeyboardKey.keyZ,
+      control: true,
+      shift: true,
+    ): () {
+      if (_isEdited) _editor.send(const Redo());
+    },
+    const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
+      if (_isEdited) _editor.send(const Redo());
+    },
+    for (final MapEntry(key: keys, value: action) in _page.view.keys.entries)
+      keys: () {
+        if (!_controller.readOnly) action();
+      },
+  };
+
+  /// Hints whose action works on this screen (e.g. undoing a removed
+  /// item) show on this screen's own messenger, so they go with it: once
+  /// it is closed, there is nothing left to act on.
+  Widget _scaffold() => ScaffoldMessenger(
+    key: _messenger,
+    child: ScreenShortcuts(
+      bindings: _keys,
+      child: Builder(builder: _content),
+    ),
+  );
+
+  /// Open for editing: undo and redo work.
+  bool get _isEdited => !_controller.readOnly && _page.part.isEditing;
+
+  Widget _content(BuildContext context) {
+    // Rebuilds when the folder's reach changes.
+    ref.watch(folderReachProvider(_folder.id));
+    final unreachable = _controller.unreachable;
+    final readOnly = _controller.readOnly;
+    final shown = ref.watch(folderFilesProvider);
+    final key = _session.read?.key;
+    final mark = _controller.markIn(shown);
+    ref.watch(fileSettingsProvider);
+    final settings = _controller.settings;
+    final placeSpot = filePlaceSpot(
+      aboveText: ref.watch(
+        deviceSettingsProvider.select((s) => s.requireValue.placeAboveText),
+      ),
+      readOnly: readOnly,
+    );
+    final tint = fileTint(mark.color, Theme.of(context).colorScheme);
+    final text = _session.text;
+    final path = _session.path;
+    return Scaffold(
+      backgroundColor: tint,
+      floatingActionButton: _isEdited
+          ? _page.view.floatingButton(context)
+          : null,
+      appBar: AppBar(
+        backgroundColor: tint,
+        title: FileHeading(
+          title: _session.title,
+          edited: _session.read?.listed.modified,
+          typeTitle: (fileTitle) =>
+              _page.view.title(context, fileTitle, nameTitle: nameTitle(path)),
+        ),
+        actions: [
+          SaveIndicator(_session.saveState, onSave: _session.saveNow),
+          if (_isEdited) HistoryButtons(_editor, redo: !_narrow(context)),
+          // On touch, pulling down refreshes, and the menu has it.
+          if (readOnly || !usesTouch(Theme.of(context)))
+            IconButton(
+              tooltip: 'Refresh',
+              icon: const Icon(Icons.refresh),
+              onPressed: _refresh,
+            ),
+          if (!readOnly) ...[
+            ..._page.view.actions(context),
+            _menu(context, settings, placeSpot: placeSpot),
+          ],
+        ],
+      ),
+      body: Column(
+        children: [
+          if (key != null)
+            if (shown?.conflicts.forFile(key) case final conflict?)
+              ConflictBanner(conflict),
+          UnreachableBanner(
+            _folder,
+            message: 'Your text is kept on this device.',
+          ),
+          EditStateBanner(
+            _controller,
+            onClose: _leave,
+            folderReachable: !unreachable,
+          ),
+          if (placeSpot == FilePlaceSpot.aboveText)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                // A new file can still go to another folder.
+                child: FilePlaceChip(
+                  _session,
+                  enabled: _session.file is NewFile || !readOnly,
+                ),
+              ),
+            ),
+          Expanded(
+            // The editor scrolls inside.
+            child: PullToRefresh(
+              key: _pull,
+              onRefresh: ref.read(folderContentsProvider.notifier).refresh,
+              child: DocumentTextZoom(
+                child: _tinted(
+                  tint,
+                  _page.view.view(
+                    EditorHost(
+                      kept: text,
+                      folder: _folder.id,
+                      path: path,
+                      bytesOf: ref.read(fileAccessProvider).of(_folder).bytesOf,
+                      // The page's own messenger: a hint may come after an
+                      // await (e.g. a link opener's answer), when the page
+                      // may be gone.
+                      hint: (message) =>
+                          _messenger.currentState?.showHint(message),
+                      color: fileColor(mark.color, folder: _folder.color),
+                    ),
+                    autofocus: widget._isNew,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// [child] with its lines in [tint]'s colors: only the file's own
+  /// view, so menus and dialogs on plain surfaces keep the plain colors.
+  Widget _tinted(Color? tint, Widget child) => switch (tint) {
+    final tint? => Theme(
+      data: tintedTheme(Theme.of(context), tint),
+      child: child,
+    ),
+    null => child,
+  };
+}

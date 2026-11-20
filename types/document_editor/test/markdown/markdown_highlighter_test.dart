@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_editor/super_editor.dart';
-import 'package:truce_core/truce_core.dart' show TextEdit;
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A text a line editor edits, kept here.
 final class _Text extends ChangeNotifier implements EditedText {

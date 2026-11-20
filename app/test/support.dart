@@ -16,13 +16,13 @@ import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_syncthing/truce_syncthing.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show ResultUnwrap, path, tempFolder;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 export 'package:truce_test_support/truce_test_support.dart'
     show
         ResultUnwrap,
         WriteCreatingFolders,
         bytesOf,
-        editTo,
         folderId,
         path,
         tempFolder;
@@ -107,7 +107,7 @@ final noImageFolders = documentImageStoresProvider.overrideWithValue(
 );
 
 /// The file types the app handles, with no folder open for their images.
-ShownFileTypes<EditableType> appFileTypes() {
+ShownFileTypes<FilePageType> appFileTypes() {
   final container = ProviderContainer(overrides: [noImageFolders]);
   try {
     return container.read(fileTypesProvider);
@@ -115,6 +115,14 @@ ShownFileTypes<EditableType> appFileTypes() {
     container.dispose();
   }
 }
+
+/// The app's type for a plain new document, with its editor.
+EditableType appNewTextType() => appTextType(appFileTypes().forNew);
+
+/// [type] as the text editing page opens it; today every type does.
+EditableType appTextType(FilePageType type) => switch (type) {
+  final EditableType type => type,
+};
 
 /// A file as listed, of no file on disk.
 ListedFile listedFile(
@@ -266,3 +274,7 @@ Future<Folder> addFolderOf(
 
 /// No file type does anything as its files move or are restored.
 FileArrivals noArrivals() => FileArrivals(appFileTypes().detector);
+
+/// The edit that makes [after] of [before], as an editor sends it.
+TextEdit editTo(String before, String after) =>
+    TextEdit(before, textChange(before, after));

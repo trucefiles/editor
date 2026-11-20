@@ -115,39 +115,42 @@ GPL-3.0-or-later. See [LICENSE](LICENSE).
 A Dart pub workspace. Sync plugins live in `plugins/`, file types in
 `types/`, each in a folder of its own:
 
-- `core`: files, sync-tool interfaces, conflict handling and an open
-  file's file owner. Pure Dart, no UI, nothing specific to one sync
-  tool or file type.
+- `core`: files, sync-tool interfaces and conflict handling. Pure Dart,
+  no UI, nothing specific to one sync tool or file type.
 - `types/markdown/markdown`: Markdown documents, read into a doc tree,
   edited and written back block-exact, with the editor's owner. Pure
-  Dart, no UI; uses core, which knows nothing of it.
+  Dart, no UI; uses core, files and text_editing, which know nothing of
+  it.
 - `types/plain_text/plain_text`: plain text documents, edited as a whole
-  text, with the editor's owner. Pure Dart, no UI; uses core, which knows
-  nothing of it.
+  text, with the editor's owner. Pure Dart, no UI; uses core, files and
+  text_editing, which know nothing of it.
 - `types/calendar/calendar`: calendars (iCalendar, `.ics`) of events
   and tasks, read and written back block-exact, merged item by item,
   items imported from another file, tasks checked off date by date and
   listed by when they are due, with repeats, time zones, health
   entries, cycle predictions and the editor's owner. Pure Dart, no UI;
-  uses core, which knows nothing of it.
+  uses core, files and text_editing, which know nothing of it.
 - `plugins/syncthing/syncthing`: Syncthing's conventions behind core's
   interfaces. Pure Dart.
 - `plugins/local_folder/local_folder`: local folders, which no sync tool
   syncs or one Truce doesn't know, behind core's interfaces. Pure Dart.
 - `folders`: the folders the user adds, their files through each sync
   tool, and how their changes are followed. Pure Dart, no UI; uses core.
-- `files`: the files in those folders, their drafts, settings, backups
-  and conflicts, and the open file's page. Pure Dart, no UI; uses core
-  and folders.
+- `files`: the files in those folders, as bytes, with their settings,
+  backups and conflicts. Pure Dart, no UI; uses core and folders.
+- `text_editing`: the text editing kit, shared only by file types whose
+  files are text: an open text file's owner, what every text editor
+  shares, drafts, and the open file's page. Pure Dart, no UI; uses core,
+  folders and files.
 - `file_page`: what a file type's view gets from the page, and gives it,
-  whatever the type. Flutter; uses files.
+  whatever the type. Flutter; uses files and text_editing.
 - `types/document_editor`: editing text documents on super_editor
   (Visual edit, Markdown edit, plain text, Read). Flutter; uses core,
-  files, file_page, markdown and plain_text.
+  files, text_editing, file_page, markdown and plain_text.
 - `types/calendar/calendar_editor`: the calendar views (month, week, day
   and schedule, on `kalender`, and the tasks list) for the calendar page
   and the Calendar tab, the event and task forms and the health view.
-  Flutter; uses core, files, file_page and calendar.
+  Flutter; uses core, files, text_editing, file_page and calendar.
 - `common_ui`: UI parts with no app logic, for use across the app: the
   lazy masonry grid for the cards (items as tall as their content, in
   columns) and the page width that keeps settings and forms in one

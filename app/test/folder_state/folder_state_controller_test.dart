@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 
@@ -237,7 +239,7 @@ void main() {
         .create(
           'New',
           type: container.read(fileTypesProvider).forNew,
-          text: '# New',
+          bytes: utf8.encode('# New'),
         );
 
     await eventually(

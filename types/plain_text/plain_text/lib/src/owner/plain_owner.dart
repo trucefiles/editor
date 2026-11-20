@@ -1,12 +1,7 @@
 import 'package:truce_core/truce_core.dart'
-    show
-        EditorBook,
-        Machine,
-        MachineOwner,
-        Owner,
-        StartTimer,
-        TextStep,
-        Version;
+    show Machine, MachineOwner, Owner, StartTimer;
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../plain_summary.dart';
 import 'plain_contract.dart';

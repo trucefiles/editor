@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart' show findExtendedAutolinks;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../tree/blocks.dart';
 import '../tree/inlines.dart';

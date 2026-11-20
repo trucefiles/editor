@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 
@@ -20,7 +21,11 @@ void main() {
     drafts = tempDrafts();
     services = servicesFor(folder);
     final files = FilesOfFolder(folder, services, appFileTypes());
-    recovery = DraftRecovery(drafts, files: files, types: appFileTypes());
+    recovery = DraftRecovery(
+      drafts,
+      files: TextFiles(files),
+      types: appFileTypes(),
+    );
   });
 
   File diskFile() => File('${dir.path}/a.md');

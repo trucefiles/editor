@@ -71,7 +71,7 @@ void main() {
       ),
       clock: CalendarClock(() => DateTime(2026, 11)),
     );
-    final card = type.cardSummary(
+    final card = type.textCard(
       fileTextOf(folderAt(tempFolder()), _birthday, name: 'birthdays.ics'),
     );
 

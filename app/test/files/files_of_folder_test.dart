@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 
@@ -13,17 +14,19 @@ FilesOfFolder filesOf(Folder folder) =>
 void main() {
   late Directory dir;
   late FilesOfFolder files;
-  final markdown = appFileTypes().forNew;
+  late TextFiles text;
+  final markdown = appNewTextType();
 
   setUp(() {
     dir = tempFolder();
     files = filesOf(folderAt(dir));
+    text = TextFiles(files);
   });
 
   String read(String name) => File('${dir.path}/$name').readAsStringSync();
 
   test('creates a document named after its title', () async {
-    final file = (await files.create(
+    final file = (await text.create(
       'Shopping',
       type: markdown,
       text: '# Shopping\n',
@@ -37,7 +40,7 @@ void main() {
     Directory('${dir.path}/a/b/c').createSync(recursive: true);
     File('${dir.path}/a/b/c/Shopping.md').writeAsStringSync('taken');
 
-    final file = (await files.create(
+    final file = (await text.create(
       'Shopping',
       type: markdown,
       text: '# Shopping\n',
@@ -50,7 +53,7 @@ void main() {
   });
 
   test('creates a document holding the given text', () async {
-    final file = (await files.create(
+    final file = (await text.create(
       'Milk',
       type: markdown,
       text: 'Milk\nEggs\n',
@@ -65,12 +68,12 @@ void main() {
     final otherFolder = folderAt(other);
     final source = filesOf(otherFolder);
     File('${other.path}/Plan.md').writeAsStringSync('\uFEFFa\r\n');
-    final file = (await source.open(path('Plan.md'))).value;
+    final file = (await TextFiles(source).open(path('Plan.md'))).value;
     File('${dir.path}/Plan.md').writeAsStringSync('taken');
 
     final copy = (await files.copyIn(
       file.path,
-      file.textFile.withText('b\n'),
+      file.textFile.encode('b\n'),
     )).value;
 
     expect(copy.path.value, 'Plan 2.md');
@@ -82,11 +85,11 @@ void main() {
 
   test('copies under another name, with the extension kept', () async {
     File('${dir.path}/plan.MD').writeAsStringSync('a');
-    final file = (await files.open(path('plan.MD'))).value;
+    final file = (await text.open(path('plan.MD'))).value;
 
     final copy = (await files.copyIn(
       file.path,
-      file.textFile,
+      file.fileBytes.bytes,
       title: 'Ideas',
     )).value;
 
@@ -96,7 +99,7 @@ void main() {
   test(
     'a new document whose subfolder is gone goes to the top level',
     () async {
-      final created = (await files.create(
+      final created = (await text.create(
         'Milk',
         type: markdown,
         text: '# Milk\n',
@@ -109,7 +112,7 @@ void main() {
   );
 
   test('never copies into a subfolder deleted meanwhile', () async {
-    final file = (await files.create(
+    final file = (await text.create(
       'Milk',
       type: markdown,
       text: '# Milk\n',
@@ -117,7 +120,7 @@ void main() {
 
     final copied = await files.copyIn(
       file.path,
-      file.textFile.withText('Milk'),
+      file.textFile.encode('Milk'),
       subfolder: path('gone'),
     );
 
@@ -126,9 +129,9 @@ void main() {
   });
 
   test('picks a free name', () async {
-    await files.create('Shopping', type: markdown, text: '# Shopping\n');
+    await text.create('Shopping', type: markdown, text: '# Shopping\n');
 
-    final file = (await files.create(
+    final file = (await text.create(
       'Shopping',
       type: markdown,
       text: '# Shopping\n',
@@ -138,33 +141,33 @@ void main() {
   });
 
   test('saves in the file\'s line break style', () async {
-    final created = (await files.create(
+    final created = (await text.create(
       'a',
       type: markdown,
       text: '# a\n',
     )).value;
     File('${dir.path}/a.md').writeAsStringSync('a\r\n');
-    final file = (await files.reload(created.listed)).value;
+    final file = (await text.reload(created.listed)).value;
 
-    final saved = (await files.save(file, 'b\nc\n')).value;
+    final saved = (await text.save(file, 'b\nc\n')).value;
 
     expect(read('a.md'), 'b\r\nc\r\n');
     expect(saved.textFile.text, 'b\nc\n');
   });
 
   test('refuses to save over a change from elsewhere', () async {
-    final file = (await files.create('a', type: markdown, text: '# a\n')).value;
+    final file = (await text.create('a', type: markdown, text: '# a\n')).value;
     File('${dir.path}/a.md').writeAsStringSync('other device, longer');
 
-    expect((await files.save(file, 'mine')).error, StoreError.changedSinceRead);
+    expect((await text.save(file, 'mine')).error, StoreError.changedSinceRead);
     expect(read('a.md'), 'other device, longer');
   });
 
   test('restores a deleted document', () async {
-    final file = (await files.create('a', type: markdown, text: '# a\n')).value;
+    final file = (await text.create('a', type: markdown, text: '# a\n')).value;
     await files.delete(file.listed);
 
-    await files.restore(file, '# a\nback');
+    await text.restore(file, '# a\nback');
 
     expect(read('a.md'), '# a\nback');
   });
@@ -172,7 +175,7 @@ void main() {
   group('subfolders', () {
     test('a new document whose subfolder is gone goes to the top of the '
         'folder', () async {
-      final created = (await files.create(
+      final created = (await text.create(
         'Milk',
         type: markdown,
         text: '# Milk\n',
@@ -185,7 +188,7 @@ void main() {
 
     test('makes a new subfolder the user asked for, then the document '
         'in it', () async {
-      final created = (await files.create(
+      final created = (await text.create(
         'Milk',
         type: markdown,
         text: '# Milk\n',
@@ -202,7 +205,7 @@ void main() {
       // Back for the clean up after the test.
       addTearDown(dir.createSync);
 
-      final created = await files.create(
+      final created = await text.create(
         'Milk',
         type: markdown,
         text: '# Milk\n',
@@ -218,11 +221,11 @@ void main() {
       File('${dir.path}/Plan.md').writeAsStringSync('\uFEFFa\r\n');
       Directory('${dir.path}/inbox').createSync();
       File('${dir.path}/inbox/Plan.md').writeAsStringSync('taken');
-      final file = (await files.open(path('Plan.md'))).value;
+      final file = (await text.open(path('Plan.md'))).value;
 
       final moved = (await files.moveTo(
         files,
-        file,
+        file.fileBytes,
         subfolder: path('inbox'),
       )).value;
 
@@ -237,11 +240,11 @@ void main() {
 
     test('makes a new subfolder the user asked for, then moves in', () async {
       File('${dir.path}/Plan.md').writeAsStringSync('a');
-      final file = (await files.open(path('Plan.md'))).value;
+      final file = (await text.open(path('Plan.md'))).value;
 
       final moved = (await files.moveTo(
         files,
-        file,
+        file.fileBytes,
         subfolder: path('inbox/2026'),
         newSubfolder: true,
       )).value;
@@ -252,9 +255,13 @@ void main() {
 
     test('moves nothing into a missing subfolder not asked for', () async {
       File('${dir.path}/Plan.md').writeAsStringSync('a');
-      final file = (await files.open(path('Plan.md'))).value;
+      final file = (await text.open(path('Plan.md'))).value;
 
-      final moved = await files.moveTo(files, file, subfolder: path('gone'));
+      final moved = await files.moveTo(
+        files,
+        file.fileBytes,
+        subfolder: path('gone'),
+      );
 
       expect(
         moved.error,
@@ -270,23 +277,27 @@ void main() {
 
     test('renames, with the extension kept', () async {
       File('${dir.path}/plan.txt').writeAsStringSync('a');
-      final file = (await files.open(path('plan.txt'))).value;
+      final file = (await text.open(path('plan.txt'))).value;
 
-      final moved = (await files.moveTo(files, file, title: 'Ideas')).value;
+      final moved = (await files.moveTo(
+        files,
+        file.fileBytes,
+        title: 'Ideas',
+      )).value;
 
       expect(moved.path, path('Ideas.txt'));
       expect(moved.type, file.type);
     });
 
     test('moves nothing once the file changed elsewhere', () async {
-      final file = (await files.create(
+      final file = (await text.create(
         'a',
         type: markdown,
         text: '# a\n',
       )).value;
       File('${dir.path}/a.md').writeAsStringSync('other device, longer');
 
-      final moved = await files.moveTo(files, file, title: 'b');
+      final moved = await files.moveTo(files, file.fileBytes, title: 'b');
 
       expect(
         moved.error,

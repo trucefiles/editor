@@ -3,7 +3,8 @@
 library;
 
 import 'package:collection/collection.dart';
-import 'package:truce_core/truce_core.dart' show newLinesOf, splitLines;
+import 'package:truce_core/truce_core.dart' show newLinesOf;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';

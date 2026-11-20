@@ -4,7 +4,7 @@
 library;
 
 import 'package:collection/collection.dart';
-import 'package:truce_core/truce_core.dart' show splitLines;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../view/rows.dart';
 import '../visible/formatting.dart';

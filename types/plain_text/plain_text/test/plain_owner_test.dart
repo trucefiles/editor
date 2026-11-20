@@ -1,7 +1,10 @@
 import 'package:test/test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 const _v1 = Version(1);
 const _v2 = Version(2);
@@ -221,3 +224,7 @@ void main() {
     });
   });
 }
+
+/// The edit that makes [after] of [before], as an editor sends it.
+TextEdit editTo(String before, String after) =>
+    TextEdit(before, textChange(before, after));

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../common/snack.dart';
 import '../../files/file_actions.dart';
@@ -16,7 +16,7 @@ import '../../folders/ui/folder_badge.dart';
 Future<void> editFilePlace(
   BuildContext context,
   WidgetRef ref,
-  FileSession session,
+  TextEditSession session,
 ) async {
   final folders = await foldersToPlaceIn(context, ref);
   if (folders == null || !context.mounted) return;
@@ -61,7 +61,7 @@ Future<void> editFilePlace(
 /// the move takes them along.
 Future<void> _move(
   BuildContext context,
-  FileSession session,
+  TextEditSession session,
   MoveTarget to,
 ) async {
   final moved = await session.move(to);

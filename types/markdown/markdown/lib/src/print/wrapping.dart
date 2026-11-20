@@ -4,7 +4,7 @@
 library;
 
 import 'package:collection/collection.dart';
-import 'package:truce_core/truce_core.dart' show anyLineBreak;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import 'escaping.dart';
 import 'inline_printer.dart';

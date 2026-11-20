@@ -5,10 +5,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/src/markdown/images_at_place.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart' as md;
 import 'package:truce_markdown_images/truce_markdown_images.dart';
 import 'package:truce_test_support/truce_test_support.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 const _name = 'img-0123456789abcdef.png';
 
@@ -184,3 +186,7 @@ void main() {
     },
   );
 }
+
+/// The edit that makes [after] of [before], as an editor sends it.
+TextEdit editTo(String before, String after) =>
+    TextEdit(before, textChange(before, after));

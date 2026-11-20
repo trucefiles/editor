@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/file_page/file_controller.dart';
+import 'package:truce_editor/file_page/text_edit_page_controller.dart';
 import 'package:truce_editor/file_page/ui/edit_state_banner.dart';
 import 'package:truce_editor/versions/ui/version_pane.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../support.dart';
 import '../file_fixture.dart';
@@ -30,7 +31,7 @@ final class _NeverMerge implements TextMerge {
 
 void main() {
   late FileFixture fixture;
-  late FileSession session;
+  late TextEditSession session;
 
   /// Lets file work outside the test's fake time finish.
   Future<void> settle(WidgetTester tester, {bool Function()? until}) async {
@@ -53,7 +54,7 @@ void main() {
       await session.secure(.hide);
     });
     expect(session.status, isA<ChangedElsewhere>());
-    final controller = FileController(
+    final controller = TextEditPageController(
       session,
       reach: () => Reach.reachable,
       reachSettled: () async => Reach.reachable,
@@ -235,7 +236,7 @@ void main() {
 
   testWidgets('both merged become the edits, written and told', (tester) async {
     await pumpCompare(tester, merge: const _BothMerge());
-    final told = <FileEvent>[];
+    final told = <TextFileEvent>[];
     final notices = session.fileNotices.listen(told.add);
     addTearDown(notices.cancel);
 

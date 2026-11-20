@@ -46,8 +46,8 @@ void main() {
     });
   });
 
-  TextFile file(String text) =>
-      TextFile.decode(Uint8List.fromList(utf8.encode(text)))!;
+  Uint8List file(String text) => Uint8List.fromList(utf8.encode(text));
+  String textOf(Uint8List bytes) => utf8.decode(bytes);
 
   test('a moved file is as its type says, told where it goes', () async {
     final moved = await arrivals.moved(
@@ -57,7 +57,7 @@ void main() {
       to: to,
     );
 
-    expect(moved.value?.text, 'x moved');
+    expect(textOf(moved.value!), 'x moved');
     final (:from, to: place, :by, folder: _, bytes: _) = marks.seen.single;
     expect((from, place, by), (path('b.nt'), to, ArrivalBy.move));
   });
@@ -82,15 +82,17 @@ void main() {
       from: path('b.nt'),
       to: to,
     );
-    expect(restored, 'x restored');
+    expect(textOf(restored), 'x restored');
 
     marks.failWith = StoreError.ioFailure;
     expect(
-      await arrivals.restored(
-        file('x'),
-        folder: folder,
-        from: path('b.nt'),
-        to: to,
+      textOf(
+        await arrivals.restored(
+          file('x'),
+          folder: folder,
+          from: path('b.nt'),
+          to: to,
+        ),
       ),
       'x',
     );

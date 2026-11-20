@@ -48,7 +48,6 @@ export 'src/read/read_view.dart';
 export 'src/run_command.dart';
 export 'src/ui/document_image.dart';
 export 'src/ui/empty_document_hint.dart';
-export 'src/ui/image_viewer.dart';
 export 'src/ui/list_marker.dart';
 export 'src/visual/image_insert.dart';
 export 'src/visual/image_picking.dart';

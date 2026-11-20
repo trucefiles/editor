@@ -12,7 +12,7 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart'
     show CalendarDot;
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/app.dart';
-import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/file_page/ui/text_edit_page.dart';
 import 'package:truce_editor/files/file_settings_controller.dart';
 import 'package:truce_editor/files/file_type_selection.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
@@ -145,7 +145,7 @@ void main() {
     );
 
     await tester.tap(find.descendant(of: sheet, matching: find.text('Open')));
-    await showsSoon(tester, find.byType(FileScreen));
+    await showsSoon(tester, find.byType(TextEditPage));
   });
 
   testWidgets('a right click on a card shows its actions as a menu there, '
@@ -276,7 +276,7 @@ void main() {
     await tester.tap(find.byTooltip('New file'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, 'Document'));
-    await showsSoon(tester, find.byType(FileScreen));
+    await showsSoon(tester, find.byType(TextEditPage));
 
     expect(container.read(pickedFileTypesProvider), {
       plainTextType,
@@ -350,7 +350,7 @@ void main() {
     await showCalendarTab(tester);
 
     await tester.tap(find.byTooltip('Open calendar'));
-    await showsSoon(tester, find.byType(FileScreen));
+    await showsSoon(tester, find.byType(TextEditPage));
     await tester.pumpAndSettle();
 
     expect(find.text('Open which calendar?'), findsNothing);
@@ -375,7 +375,7 @@ void main() {
       findsNWidgets(2),
     );
     await tester.tap(find.descendant(of: dialog, matching: find.text('Work')));
-    await showsSoon(tester, find.byType(FileScreen));
+    await showsSoon(tester, find.byType(TextEditPage));
     await tester.pumpAndSettle();
 
     expect(find.text('New event'), findsNothing);
@@ -397,7 +397,7 @@ void main() {
     expect(find.text('New event'), findsNothing);
 
     await tester.tap(find.text('Open'));
-    await showsSoon(tester, find.byType(FileScreen));
+    await showsSoon(tester, find.byType(TextEditPage));
     await tester.pumpAndSettle();
     expect(find.text('New event'), findsNothing);
   });
@@ -426,7 +426,7 @@ void main() {
 
     expect(find.text('Open one calendar to edit'), findsOne);
     expect(find.text('New event'), findsNothing);
-    expect(find.byType(FileScreen), findsNothing);
+    expect(find.byType(TextEditPage), findsNothing);
     expect(
       File('${dir.path}/home.ics').readAsStringSync(),
       newCalendarText('Home'),
@@ -449,7 +449,7 @@ void main() {
     expect(find.text('Open calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit event'));
-    expect(find.byType(FileScreen), findsOne);
+    expect(find.byType(TextEditPage), findsOne);
 
     // Esc closes the event form, as on every page, and leaves the
     // calendar's page under it open.
@@ -457,7 +457,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(find.text('Edit event'), findsNothing);
-    expect(find.byType(FileScreen), findsOne);
+    expect(find.byType(TextEditPage), findsOne);
   });
 
   testWidgets('a task in the Calendar tab shows, but is checked off on its '
@@ -484,7 +484,7 @@ void main() {
     expect(find.text('Open calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit task'));
-    expect(find.byType(FileScreen), findsOne);
+    expect(find.byType(TextEditPage), findsOne);
   });
 
   testWidgets('a document opens beside the Calendar tab', (tester) async {
@@ -494,7 +494,7 @@ void main() {
     });
 
     await tester.tap(find.text('Notes').first);
-    await showsSoon(tester, find.byType(FileScreen));
+    await showsSoon(tester, find.byType(TextEditPage));
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
@@ -534,7 +534,7 @@ void main() {
       'notes.md': '# Notes\n\n[site](https://example.org)',
     }, links: _LateLinkOpener(answer.future));
     await tester.tap(find.text('Notes').first);
-    await showsSoon(tester, find.byType(FileScreen));
+    await showsSoon(tester, find.byType(TextEditPage));
     await tester.pumpAndSettle();
     // Read, where a tap opens the link.
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -556,7 +556,7 @@ void main() {
     (link.recognizer! as TapGestureRecognizer).onTap!();
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
-    expect(find.byType(FileScreen), findsNothing);
+    expect(find.byType(TextEditPage), findsNothing);
 
     answer.complete(false);
     await tester.pumpAndSettle();

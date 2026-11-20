@@ -1,5 +1,5 @@
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../health/cycle.dart';
 import '../merge/calendar_merge.dart';
@@ -12,7 +12,7 @@ import 'calendar_support.dart';
 /// the next events, or for a health calendar the cycle; search reads the
 /// name and the events' words; two versions merge event by event when
 /// the user picks it. Its editor package adds how a file of it opens.
-base class CalendarFileType implements ShownFileType {
+base class CalendarFileType extends TextFileType {
   /// Cards write an event as [eventLine] and a cycle as [cycleLine]
   /// (texts are the UI's, so they come from above); [now] tells the time.
   CalendarFileType({
@@ -41,12 +41,17 @@ base class CalendarFileType implements ShownFileType {
     for (final health in [false, true])
       NewFileKind(
         kindName(health: health),
-        start: newCalendarText('', health: health),
+        start: TextStart(newCalendarText('', health: health)),
       ),
   ];
 
+  /// [maxLines] is the preview's [CalendarPreview.count] instead.
   @override
-  FileCardSummary cardSummary(FileText read) {
+  CalendarSummary summary(String text, {required int maxLines}) =>
+      CalendarSummary(text);
+
+  @override
+  FileCardSummary textCard(FileText read) {
     final summary = CalendarSummary(read.text);
     final options = CalendarPreview(
       now: _now(),
@@ -64,8 +69,9 @@ base class CalendarFileType implements ShownFileType {
   /// The calendar's name and its events' titles, places and notes, not
   /// the file's other lines.
   @override
-  String searchText(FileText read) => CalendarSummary(read.text).searchText;
+  String textSearchWords(FileText read) =>
+      CalendarSummary(read.text).searchText;
 
   @override
-  TextMerge get merge => const CalendarMerge();
+  TextMerge get textMerge => const CalendarMerge();
 }

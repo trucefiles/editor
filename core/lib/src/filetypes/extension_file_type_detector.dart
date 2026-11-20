@@ -9,9 +9,7 @@ final class ExtensionFileTypeDetector implements FileTypeDetector {
   const ExtensionFileTypeDetector(this._types);
 
   /// The types of [supports], by their extensions; no two share one.
-  factory ExtensionFileTypeDetector.of(
-    Iterable<FileTypeSupport<Object?>> supports,
-  ) {
+  factory ExtensionFileTypeDetector.of(Iterable<FileTypeSupport> supports) {
     final extensions = [
       for (final support in supports)
         for (final extension in support.extensions) (extension, support.type),

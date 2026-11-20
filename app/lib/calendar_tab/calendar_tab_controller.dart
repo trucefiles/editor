@@ -1,7 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_calendar/truce_calendar.dart';
-import 'package:truce_core/truce_core.dart' show Unknown;
 import 'package:truce_files/truce_files.dart';
 
 import '../files/file_settings_controller.dart';
@@ -79,28 +78,11 @@ final class HiddenCalendar {
   final String title;
 }
 
-/// A calendar as the tab reads one it shows: its [calendar], `null` if
-/// only its name could be read, and its [title].
-typedef ReadCalendar = ({Calendar? calendar, String title});
-
 /// The calendars of the tab as read, kept while the app runs; a file
 /// that is no calendar is left out.
 final calendarReadsProvider = Provider<FileReads<ReadCalendar>>(
   (ref) => FileReads(ref.watch(fileAccessProvider), readAs: readCalendar),
 );
-
-/// [read] as the tab keeps a calendar it shows: whole, else by its name
-/// alone; `null` if it is no calendar.
-ReadCalendar? readCalendar(FileText read) => switch (read.summary) {
-  CalendarSummary(:final calendar?) => (
-    calendar: calendar,
-    title: titleOf(read.summary, read.path),
-  ),
-  _ => switch (readCalendarTitle(read)) {
-    final title? => (calendar: null, title: title),
-    null => null,
-  },
-};
 
 /// The titles of the tab's calendars it doesn't show, read from their
 /// names alone (no events), kept while the app runs; a file that is no
@@ -108,14 +90,6 @@ ReadCalendar? readCalendar(FileText read) => switch (read.summary) {
 final calendarTitlesProvider = Provider<FileReads<String>>(
   (ref) => FileReads(ref.watch(fileAccessProvider), readAs: readCalendarTitle),
 );
-
-/// The title of the calendar [read], from its head alone; `null` if it is
-/// none.
-String? readCalendarTitle(FileText read) =>
-    switch (CalendarHead.read(read.text)) {
-      final head? => ownTitleOr(calendarTitle(head), read.path),
-      null => null,
-    };
 
 /// Whether the shown folders hold a calendar: the tab shows only then.
 final hasCalendarsProvider = Provider<bool>(

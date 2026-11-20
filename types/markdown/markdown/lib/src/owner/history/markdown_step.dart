@@ -1,5 +1,4 @@
-import 'package:truce_core/truce_core.dart'
-    show ShownStep, TextStep, UndoableEdit;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../doc/doc_nodes.dart';
 import '../../doc/doc_tree.dart';

@@ -8,7 +8,7 @@ import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_editor/file_page/ui/file_screen.dart';
+import 'package:truce_editor/file_page/ui/text_edit_page.dart';
 import 'package:truce_editor/files/file_colors.dart';
 
 import 'app_steps.dart';
@@ -413,7 +413,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(FileScreen), findsNothing);
+    expect(find.byType(TextEditPage), findsNothing);
   });
 
   testApp('a double tap on Document starts one document', (tester) async {
@@ -431,7 +431,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    expect(find.byType(FileScreen), findsNothing);
+    expect(find.byType(TextEditPage), findsNothing);
     await tester.waitForFile(app.file('Idea.md'), 'Idea\n');
   });
 
@@ -449,7 +449,7 @@ void main() {
     await tester.waitForNoteClosed();
     await tester.openFile('Plan');
 
-    final screen = find.byType(FileScreen);
+    final screen = find.byType(TextEditPage);
     final scheme = Theme.of(tester.element(screen)).colorScheme;
     // The move writes the mark without a rescan; the next scan shows it.
     await tester.waitUntil(

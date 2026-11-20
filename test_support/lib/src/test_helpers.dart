@@ -31,7 +31,3 @@ Directory tempFolder() {
   addTearDown(() => dir.deleteSync(recursive: true));
   return dir;
 }
-
-/// The edit that makes [after] of [before], as an editor sends it.
-TextEdit editTo(String before, String after) =>
-    TextEdit(before, textChange(before, after));

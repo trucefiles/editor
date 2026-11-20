@@ -2,11 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:truce_core/truce_core.dart';
-import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../common/snack.dart';
-import '../file_controller.dart';
+import '../text_edit_page_controller.dart';
 import 'changed_elsewhere_screen.dart';
 
 /// Tells what went wrong with an open file's edits and offers its
@@ -20,9 +19,9 @@ class EditStateBanner extends StatelessWidget {
   });
 
   /// The open file's view model.
-  final FileController controller;
+  final TextEditPageController controller;
 
-  FileSession get _session => controller.session;
+  TextEditSession get _session => controller.session;
 
   /// Closes the editor, keeping the edits where they can be kept.
   final FutureOr<void> Function() onClose;

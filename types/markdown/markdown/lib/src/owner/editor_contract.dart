@@ -6,8 +6,8 @@
 /// text to the file owner as the save timing says.
 library;
 
-import 'package:truce_core/truce_core.dart'
-    show EditorNotice, EditorRequest, EditorStatus, EffectId, TextEdit, Wait;
+import 'package:truce_core/truce_core.dart' show EffectId, Wait;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../doc/doc_nodes.dart';
 import '../edit/commands/command.dart';

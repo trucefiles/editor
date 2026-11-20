@@ -1,18 +1,18 @@
 import 'package:truce_core/truce_core.dart';
 
-import 'file_text.dart';
+import 'file_bytes.dart';
 import 'files_of_folder.dart';
 import 'listed_file.dart';
 
 /// What a set of files read as (e.g. each calendar of the Calendar
-/// tab): [readAs] turns a file's text into what is kept of it, `null`
+/// tab): [readAs] turns a file's bytes into what is kept of it, `null`
 /// if nothing is. A file is read again only once it changes (a new
 /// version as listed).
 final class FileReads<T extends Object> {
   FileReads(this._files, {required this.readAs});
 
   final FileAccess _files;
-  final T? Function(FileText read) readAs;
+  final T? Function(FileBytes read) readAs;
 
   /// What the last [readAll] read, by key, as the file was listed; a
   /// file that couldn't be read is not here, so it is tried again.

@@ -3,15 +3,15 @@ import 'dart:typed_data';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import 'file_text.dart';
+import 'file_bytes.dart';
 import 'listed_file.dart';
 import 'move_failure.dart';
 import 'new_file_name.dart';
-import 'open_failure.dart';
 import 'shown_file_type.dart';
 import 'shown_file_types.dart';
 
-/// Reads and writes single files in one folder, through its services.
+/// Reads and writes single files in one folder, through its services,
+/// as bytes.
 /// Every write is atomic and checks that the file did not change since it
 /// was read. A path of a type the app doesn't handle is refused with
 /// [StoreError.outside]; once the folder is removed, everything with
@@ -26,11 +26,14 @@ final class FilesOfFolder {
   final FolderServices _services;
   final ShownFileTypes _types;
 
+  /// The folder these files are in.
+  Folder get folder => _folder;
+
   FileStore get _store => _services.store;
 
   /// [file]'s file as it is now.
-  Future<Result<FileText, OpenFailure>> reload(ListedFile file) =>
-      open(file.path);
+  Future<Result<FileBytes, StoreError>> reload(ListedFile file) =>
+      read(file.path);
 
   /// The bytes of the file at [path], e.g. an image a file shows; `null`
   /// if it can't be read.
@@ -40,56 +43,53 @@ final class FilesOfFolder {
         Err() => null,
       };
 
-  /// The file at [path], with its text: refused if the app doesn't show
-  /// its type; [NotText] if it is not text.
-  Future<Result<FileText, OpenFailure>> open(RelPath path) async {
+  /// The file at [path], with its bytes: refused if the app doesn't show
+  /// its type.
+  Future<Result<FileBytes, StoreError>> read(RelPath path) async {
     final type = _types.of(path)?.support;
-    if (type == null) {
-      return const Err(NotRead(StoreError.outside));
-    }
-    final read = await _store.read(path);
-    return switch (read) {
-      Ok(value: final content) => switch (TextFile.decode(content.bytes)) {
-        final file? => Ok(
-          FileText(_file(path, type, content.version, content.modified), file),
-        ),
-        null => const Err(NotText()),
-      },
-      Err(:final error) => Err(NotRead(error)),
-    };
+    if (type == null) return const Err(StoreError.outside);
+    return (await _store.read(path)).map(
+      (content) => FileBytes(
+        _file(path, type, content.version, content.modified),
+        content.bytes,
+      ),
+    );
   }
 
   /// New file of [type] in [subfolder] (the folder's top level if
-  /// `null`), named after [title], holding [text]; [newSubfolder] makes
+  /// `null`), named after [title], holding [bytes]; [newSubfolder] makes
   /// [subfolder] first. If [subfolder] is gone, the file goes to the
   /// folder's top level: it is kept, and the deleted subfolder never
   /// comes back.
-  Future<Result<FileText, StoreError>> create(
+  Future<Result<FileBytes, StoreError>> create(
     String title, {
     required ShownFileType type,
     RelPath? subfolder,
-    required String text,
+    required Uint8List bytes,
     bool newSubfolder = false,
   }) async {
-    final file = type.newFile.withText(text);
     final extension = type.newFileExtension;
     final created = await _createNamed(title, extension, (
       folder: subfolder,
       isNew: newSubfolder,
-    ), file);
+    ), bytes);
     if (created case Err(error: StoreError.notFound) when subfolder != null) {
-      return _createNamed(title, extension, (folder: null, isNew: false), file);
+      return _createNamed(title, extension, (
+        folder: null,
+        isNew: false,
+      ), bytes);
     }
     return created;
   }
 
-  /// A copy of [file], the file at [of] in any folder (or a backup of
-  /// it), in [subfolder] (the folder's top level if `null`; made first if
-  /// [newSubfolder]); named after [title] (by default [of]'s name) with
-  /// [of]'s extension, and a number if that name is taken.
-  Future<Result<FileText, StoreError>> copyIn(
+  /// A copy holding [bytes] of the file at [of] in any folder (or a
+  /// backup of it), in [subfolder] (the folder's top level if `null`;
+  /// made first if [newSubfolder]); named after [title] (by default
+  /// [of]'s name) with [of]'s extension, and a number if that name is
+  /// taken.
+  Future<Result<FileBytes, StoreError>> copyIn(
     RelPath of,
-    TextFile file, {
+    Uint8List bytes, {
     RelPath? subfolder,
     bool newSubfolder = false,
     String? title,
@@ -98,7 +98,7 @@ final class FilesOfFolder {
     return _createNamed(title ?? base, extension, (
       folder: subfolder,
       isNew: newSubfolder,
-    ), file);
+    ), bytes);
   }
 
   /// Moves [read]'s file, as last saved, from this folder into [target]
@@ -109,18 +109,16 @@ final class FilesOfFolder {
   /// it is. The folder decides how ([OpenFolder.moveInto]). Nothing moves
   /// if the file changed since [read] was read; if its old file can't be
   /// removed, both stay ([MoveLeftOriginal]).
-  Future<Result<FileText, MoveFailure>> moveTo(
+  Future<Result<FileBytes, MoveFailure>> moveTo(
     FilesOfFolder target,
-    FileText read, {
+    FileBytes read, {
     RelPath? subfolder,
     bool newSubfolder = false,
     String? title,
-    TextFile? holding,
+    Uint8List? holding,
   }) async {
-    final FileText(listed: ListedFile(path: from, :version), textFile: old) =
-        read;
-    final file = holding ?? old;
-    final bytes = holding?.encode(holding.text);
+    final FileBytes(listed: ListedFile(path: from, :version)) = read;
+    final bytes = holding ?? read.bytes;
     final (:base, :extension) = splitFileName(from.name);
     CopiedOnly? left;
     // A copy whose old file stays still names the file: it ends the
@@ -131,7 +129,7 @@ final class FilesOfFolder {
         ifUnchanged: version,
         target: target._services.open,
         to: path,
-        bytes: bytes,
+        bytes: holding,
       )) {
         case Ok(:final value):
           return Ok(value);
@@ -148,7 +146,7 @@ final class FilesOfFolder {
       extension,
       (folder: subfolder, isNew: newSubfolder),
       moveAt,
-      file,
+      bytes,
     );
     return switch ((moved, left)) {
       (Ok(:final value), final CopiedOnly left) => Err(
@@ -160,32 +158,29 @@ final class FilesOfFolder {
   }
 
   /// See [_named].
-  Future<Result<FileText, StoreError>> _createNamed(
+  Future<Result<FileBytes, StoreError>> _createNamed(
     String title,
     String extension,
     _Subfolder subfolder,
-    TextFile file,
-  ) {
-    final bytes = file.encode(file.text);
-    return _named(
-      title,
-      extension,
-      subfolder,
-      (path) => _store.create(path, bytes),
-      file,
-    );
-  }
+    Uint8List bytes,
+  ) => _named(
+    title,
+    extension,
+    subfolder,
+    (path) => _store.create(path, bytes),
+    bytes,
+  );
 
-  /// Writes [file] by [write] at the first free name after [title] in
+  /// Writes [bytes] by [write] at the first free name after [title] in
   /// [subfolder]'s folder, made first if it is a new one the user asked
   /// for. Fails with [StoreError.notFound] if an existing one is gone: the
   /// store would create it, and a deleted folder never comes back.
-  Future<Result<FileText, StoreError>> _named(
+  Future<Result<FileBytes, StoreError>> _named(
     String title,
     String extension,
     _Subfolder subfolder,
     Future<Result<FileEntry, StoreError>> Function(RelPath path) write,
-    TextFile file,
+    Uint8List bytes,
   ) async {
     if (await _ready(subfolder) case Err(:final error)) return Err(error);
     final folder = subfolder.folder;
@@ -194,7 +189,7 @@ final class FilesOfFolder {
       final path = folder == null ? RelPath.parse(name)! : folder.child(name)!;
       switch (await write(path)) {
         case Ok(value: final entry):
-          return Ok(_fileAt(entry, file));
+          return Ok(_fileAt(entry, bytes));
         case Err(error: StoreError.alreadyExists):
           continue;
         case Err(:final error):
@@ -222,99 +217,100 @@ final class FilesOfFolder {
         Err() => false,
       };
 
-  /// Writes [text] over [file]; fails with [StoreError.changedSinceRead]
+  /// Writes [bytes] over [file]; fails with [StoreError.changedSinceRead]
   /// if the file changed since [file] was read.
-  Future<Result<FileText, StoreError>> save(FileText file, String text) async {
+  Future<Result<FileBytes, StoreError>> replace(
+    ListedFile file,
+    Uint8List bytes,
+  ) async {
     final written = await _store.replace(
       file.path,
-      file.textFile.encode(text),
-      ifUnchanged: file.listed.version,
+      bytes,
+      ifUnchanged: file.version,
     );
-    return written.map((entry) => _fileAt(entry, file.textFile.withText(text)));
+    return written.map((entry) => _fileAt(entry, bytes));
   }
 
-  /// Writes [text] as [file]'s file again, e.g. after it was deleted
+  /// Writes [bytes] at [path] again, e.g. after its file was deleted
   /// elsewhere or to undo a delete. Never overwrites an existing file.
-  Future<Result<FileText, StoreError>> restore(
-    FileText file,
-    String text,
+  Future<Result<FileBytes, StoreError>> restore(
+    RelPath path,
+    Uint8List bytes,
   ) async {
-    final created = await _store.create(file.path, file.textFile.encode(text));
-    return created.map((entry) => _fileAt(entry, file.textFile.withText(text)));
+    final created = await _store.create(path, bytes);
+    return created.map((entry) => _fileAt(entry, bytes));
   }
 
-  /// Keeps [text] as a conflict copy of [file], for edits that cannot go
-  /// into its file. It syncs, and is resolved like any conflict.
-  Future<Result<void, StoreError>> saveAsConflict(FileText file, String text) =>
-      _services.conflicts.keepAsConflict(file.path, file.textFile.encode(text));
-
-  /// Like [saveAsConflict], for a file whose file is gone: [text] is
-  /// written in its type's style for a new file (e.g. a calendar's line
-  /// breaks).
-  Future<Result<void, StoreError>> saveAsConflictOfGone(
+  /// Keeps [bytes] as a conflict copy of the file at [path], for edits
+  /// that cannot go into its file. It syncs, and is resolved like any
+  /// conflict.
+  Future<Result<void, StoreError>> saveAsConflict(
     RelPath path,
-    String text,
-  ) => _services.conflicts.keepAsConflict(
-    path,
-    (_types.of(path)?.newFile ?? const TextFile.empty()).encode(text),
+    Uint8List bytes,
+  ) => _services.conflicts.keepAsConflict(path, bytes);
+
+  /// Keeps a backup of [bytes], the file at [path] now, before the user
+  /// replaces it with a backup.
+  Future<Result<void, StoreError>> backUpCurrent(
+    RelPath path,
+    Uint8List bytes,
+  ) => _services.backups.saveCurrent(
+    at: DateTime.now(),
+    filePath: path,
+    bytes: bytes,
   );
 
-  /// Keeps a backup of [text], the file's text now, before the user
-  /// replaces it with a backup.
-  Future<Result<void, StoreError>> backUpCurrent(FileText file, String text) =>
-      _services.backups.saveCurrent(
-        at: DateTime.now(),
-        filePath: file.path,
-        bytes: file.textFile.encode(text),
-      );
-
-  /// Keeps a backup of [current], the file, and [edited], text the
-  /// user edited from an older version, before the user keeps one of them.
-  Future<Result<void, StoreError>> backUp(FileText current, String edited) =>
-      _services.backups.saveBoth(
-        at: DateTime.now(),
-        filePath: current.path,
-        current: current.textFile.encode(current.text),
-        other: current.textFile.encode(edited),
-      );
+  /// Keeps a backup of [current], the file at [path], and [other], what
+  /// the user edited from an older version, before the user keeps one of
+  /// them.
+  Future<Result<void, StoreError>> backUp(
+    RelPath path, {
+    required Uint8List current,
+    required Uint8List other,
+  }) => _services.backups.saveBoth(
+    at: DateTime.now(),
+    filePath: path,
+    current: current,
+    other: other,
+  );
 
   /// Keeps a backup of [file]'s file before edits are first saved over it.
-  Future<Result<void, StoreError>> backUpBeforeEdit(FileText file) =>
+  Future<Result<void, StoreError>> backUpBeforeEdit(FileBytes file) =>
       _services.backups.saveBeforeEdit(
         at: DateTime.now(),
         filePath: file.path,
-        bytes: file.textFile.encode(file.text),
+        bytes: file.bytes,
       );
 
-  /// Keeps a backup of [text] in [file]'s byte style, as the user deletes
+  /// Keeps a backup of [bytes], the file at [path], as the user deletes
   /// it.
   Future<Result<void, StoreError>> backUpBeforeDelete(
-    FileText file,
-    String text,
+    RelPath path,
+    Uint8List bytes,
   ) => _services.backups.saveBeforeDelete(
     at: DateTime.now(),
-    filePath: file.path,
-    bytes: file.textFile.encode(text),
+    filePath: path,
+    bytes: bytes,
   );
 
   Future<Result<void, StoreError>> delete(ListedFile file) =>
       _store.delete(file.path, ifUnchanged: file.version);
 
-  /// The file just written as [entry], holding [file].
+  /// The file just written as [entry], holding [bytes].
   /// Only ever of a handled type: the store writes nothing else.
-  FileText _fileAt(FileEntry entry, TextFile file) => FileText(
+  FileBytes _fileAt(FileEntry entry, Uint8List bytes) => FileBytes(
     _file(
       entry.path,
       _types.of(entry.path)!.support,
       entry.version,
       entry.modified,
     ),
-    file,
+    bytes,
   );
 
   ListedFile _file(
     RelPath path,
-    FileTypeSupport<Object?> type,
+    FileTypeSupport type,
     FileVersion version,
     DateTime modified,
   ) => ListedFile(

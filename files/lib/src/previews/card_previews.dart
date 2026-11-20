@@ -93,11 +93,11 @@ final class CardPreviews {
     );
   }
 
-  /// Keeps [preview] if the file told it (its text, or that it holds
-  /// none): a read that failed may work next time (e.g. a folder briefly
+  /// Keeps [preview] if the file told it (what shows of it, or that its
+  /// type can't show it): a read that failed may work next time (e.g. a folder briefly
   /// out of reach), so it is tried again.
   void _keep(ListedFile file, CardPreview preview) {
-    if (preview is! Previewed && preview is! PreviewNotText) return;
+    if (preview is! Previewed && preview is! PreviewNotShown) return;
     _known.remove(file.key);
     _known[file.key] = (file: file, preview: preview);
     if (_known.length > capacity) _known.remove(_known.keys.first);

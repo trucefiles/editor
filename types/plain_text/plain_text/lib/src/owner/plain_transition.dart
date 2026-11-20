@@ -1,16 +1,5 @@
-import 'package:truce_core/truce_core.dart'
-    show
-        EditorBook,
-        EditorNotice,
-        EditorSteps,
-        EffectId,
-        SentText,
-        TextStep,
-        TextSummary,
-        Step,
-        StepRun,
-        textChange,
-        typingFrom;
+import 'package:truce_core/truce_core.dart' show EffectId, Step, StepRun;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../plain_summary.dart';
 import 'plain_contract.dart';

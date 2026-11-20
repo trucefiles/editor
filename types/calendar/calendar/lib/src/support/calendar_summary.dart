@@ -1,4 +1,4 @@
-import 'package:truce_core/truce_core.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../health/cycle.dart';
 import '../model/calendar.dart';

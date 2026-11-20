@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'image_viewer.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// The images a document shows. Equal when they find the same images, so
 /// a view builds what shows them again only when they change.

@@ -5,6 +5,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../file_page/markdown_session.dart';
 import '../support.dart';
@@ -95,26 +96,26 @@ final class _Device {
     File('${dir.path}/todo.md').writeAsStringSync(text);
     final folder = folderAt(dir, id: name);
     final files = FilesOfFolder(folder, servicesFor(folder), appFileTypes());
-    final file = (await files.reload(_placeholder(folder))).value;
+    final file = (await TextFiles(files).reload(_placeholder(folder))).value;
     final drafts = tempDrafts();
     final session = markdownSession(
       ExistingFile(file),
-      FileEffects(
-        filesOf: (_) => files,
+      TextEditEffects(
+        filesOf: (_) => TextFiles(files),
         draftsOf: (_) => drafts,
         create:
             (
               place, {
               required type,
               required title,
-              required text,
+              required bytes,
               newSubfolder = false,
             }) => files.create(
               title,
               type: type,
               subfolder: place.subfolder,
               newSubfolder: newSubfolder,
-              text: text,
+              bytes: bytes,
             ),
         // Never moved here.
         mover: (_, _, {required title, required newSubfolder}) =>
@@ -128,7 +129,7 @@ final class _Device {
 
   final Directory dir;
   final FilesOfFolder files;
-  final FileSession session;
+  final TextEditSession session;
 
   File get mainFile => File('${dir.path}/todo.md');
 
@@ -185,7 +186,7 @@ final class _Device {
   static ListedFile _placeholder(Folder folder) => ListedFile(
     folder: folder,
     path: RelPath.parse('todo.md')!,
-    type: appFileTypes().forNew.support,
+    type: appNewTextType().support,
     version: const FileVersion(0),
     modified: DateTime(2000),
   );

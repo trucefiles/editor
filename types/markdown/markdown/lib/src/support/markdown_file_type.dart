@@ -1,5 +1,5 @@
-import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../owner/editor_contract.dart' show CheckedItems;
 import '../summary/document_summary.dart';
@@ -10,7 +10,7 @@ import 'markdown_view.dart';
 /// leave checked items out where the file shows them apart; search reads
 /// the whole text; two texts don't merge (the user picks one). Its
 /// editor package adds how a file of it opens.
-base class MarkdownFileType implements ShownFileType {
+base class MarkdownFileType extends TextFileType {
   const MarkdownFileType();
 
   @override
@@ -25,13 +25,20 @@ base class MarkdownFileType implements ShownFileType {
   @override
   List<NewFileKind> get newKinds => const [NewFileKind('Document')];
 
+  @override
+  DocumentSummary summary(String text, {required int maxLines}) =>
+      DocumentSummary.of(text, maxLines: maxLines);
+
   /// The whole text.
   @override
-  String searchText(FileText read) => read.text;
+  String textSearchWords(FileText read) => read.text;
 
   @override
-  FileCardSummary cardSummary(FileText read) {
-    final summary = read.summary;
+  FileCardSummary textCard(FileText read) {
+    final summary = this.summary(
+      read.text,
+      maxLines: FileCardSummary.previewLines,
+    );
     final all = summary.preview(const MarkdownPreview(hideChecked: false));
     final open = summary.preview(const MarkdownPreview(hideChecked: true));
     return FileCardSummary(
@@ -45,5 +52,5 @@ base class MarkdownFileType implements ShownFileType {
 
   /// Texts are compared and picked by the user.
   @override
-  TextMerge? get merge => null;
+  TextMerge? get textMerge => null;
 }

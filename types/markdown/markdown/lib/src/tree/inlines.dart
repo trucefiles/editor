@@ -5,7 +5,7 @@
 /// marks.
 library;
 
-import 'package:truce_core/truce_core.dart' show anyLineBreak;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// The inline content of one leaf (or table cell): the [inlines] read,
 /// and the source around them that is no inline content: a heading's

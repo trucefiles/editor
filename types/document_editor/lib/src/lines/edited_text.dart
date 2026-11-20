@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:truce_core/truce_core.dart' show TextEdit;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// A text to show in a line editor, and where its caret goes (`null`: it
 /// stays where it is).

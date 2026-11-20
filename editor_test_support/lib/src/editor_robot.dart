@@ -4,23 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
-import 'package:truce_core/truce_core.dart'
-    show
-        Edited,
-        EditorNotice,
-        FromFile,
-        HistoryEnd,
-        Redo,
-        Replaced,
-        SecureEditor,
-        SecureReason,
-        Ticket,
-        ToFile,
-        UndoOffered,
-        Undo,
-        UndoRefused,
-        Version;
+import 'package:truce_core/truce_core.dart' show Ticket;
 import 'package:truce_document_editor/truce_document_editor.dart';
+import 'package:truce_files/truce_files.dart';
+import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart'
     show
         AskLink,
@@ -39,6 +26,7 @@ import 'package:truce_markdown/truce_markdown.dart'
         TextLook,
         editorOwner;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 /// An open document's editor owner in memory, as the editor views get it:
 /// records the text it sends to be kept, and the links opened. A [isNew]

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:truce_core/truce_core.dart' show TextFile;
 import 'package:truce_editor/files/ui/file_card.dart';
 import 'package:truce_editor/files/ui/file_grid.dart';
 import 'package:truce_editor/folders/ui/folder_badge.dart';
@@ -14,6 +13,7 @@ import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
 import 'package:truce_editor/theme/app_theme.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../support.dart';
 
@@ -27,9 +27,8 @@ void main() {
 
   /// [text] as the card's preview, read.
   CardPreview read(String text) => Previewed(
-    appFileTypes()
-        .ofFile(file.type)
-        .cardSummary(FileText(file, const TextFile.empty().withText(text))),
+    appTextType(appFileTypes().ofFile(file.type))
+        .textCard(FileText(file, const TextFile.empty().withText(text))),
   );
 
   /// Shows the card of a file with [title] and [lines] lines, as wide
@@ -347,7 +346,7 @@ void main() {
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsNothing);
 
-    await show(const PreviewNotText());
+    await show(const PreviewNotShown());
     expect(find.text('document'), findsOne);
     expect(find.text("Can't be shown as text."), findsOne);
 

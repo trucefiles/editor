@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +19,7 @@ import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 
@@ -27,7 +30,7 @@ void main() {
   late Directory home;
   late List<Folder> folders;
   late AppStorage storage;
-  final markdown = appFileTypes().forNew;
+  final markdown = appNewTextType();
 
   setUp(() async {
     work = tempFolder();
@@ -60,8 +63,15 @@ void main() {
   String marksFile(Directory dir) =>
       diskFile(dir, '.truce/marks/0123456789abcdef.json').readAsStringSync();
 
+  /// [text] as a file holds it.
+  Uint8List bytesOf(String text) => Uint8List.fromList(utf8.encode(text));
+
+  /// [text] in [file]'s byte style, as the text page writes it.
+  Uint8List styled(FileBytes file, String text) =>
+      FileText.of(file)!.textFile.encode(text);
+
   /// The file [name] in [dir], written as [text] and read.
-  Future<FileText> fileIn(Directory dir, String name, String text) async {
+  Future<FileBytes> fileIn(Directory dir, String name, String text) async {
     diskFile(dir, name).writeCreatingFolders(text);
     final listed = (await scans()).files.singleWhere(
       (each) => each.path.value == name,
@@ -80,7 +90,7 @@ void main() {
       (folder: folders[1], subfolder: null),
       type: markdown,
       title: 'Plan',
-      text: 'Plan\nsteps\n',
+      bytes: bytesOf('Plan\nsteps\n'),
     )).value;
 
     expect(diskFile(home, 'Plan.md').readAsStringSync(), 'Plan\nsteps\n');
@@ -93,7 +103,7 @@ void main() {
       (folder: folders[0], subfolder: null),
       type: markdown,
       title: 'Plan',
-      text: 'Plan\n',
+      bytes: bytesOf('Plan\n'),
     );
 
     expect((await scans()).findFile(created.value.key), isNotNull);
@@ -107,7 +117,7 @@ void main() {
       (folder: folders[0], subfolder: path('a/b')),
       type: markdown,
       title: 'Plan',
-      text: '# Plan\n',
+      bytes: bytesOf('# Plan\n'),
     )).value;
 
     expect(diskFile(work, 'a/b/Plan.md').readAsStringSync(), '# Plan\n');
@@ -342,7 +352,7 @@ void main() {
       ).writeAsStringSync('b');
       final file = await fileIn(work, 'plan.md', 'a');
 
-      final deleted = await actions.delete(file, 'a');
+      final deleted = await actions.delete(file.listed, styled(file, 'a'));
 
       expect(deleted.error, isA<DeleteBlockedByConflict>());
       expect(diskFile(work, 'plan.md').existsSync(), isTrue);
@@ -352,7 +362,10 @@ void main() {
   test('delete removes the document; undo writes it back', () async {
     final file = await fileIn(work, 'plan.md', '# Plan\n');
 
-    final deleted = (await actions.delete(file, '# Plan\nmine\n')).value;
+    final deleted = (await actions.delete(
+      file.listed,
+      styled(file, '# Plan\nmine\n'),
+    )).value;
     expect(diskFile(work, 'plan.md').existsSync(), isFalse);
 
     expect(await actions.undoDelete(deleted), isA<Ok<void, StoreError>>());
@@ -372,7 +385,10 @@ void main() {
     await actions.setMark(file.listed, mark);
     await settings.edit(file.key, (_) => mine);
 
-    final deleted = (await actions.delete(file, '# Plan\n')).value;
+    final deleted = (await actions.delete(
+      file.listed,
+      styled(file, '# Plan\n'),
+    )).value;
     expect(marksFile(work), contains('plan.md'));
     expect(settings.settingsOf(file.key), mine);
 
@@ -393,7 +409,7 @@ void main() {
     final file = await fileIn(work, 'plan.md', '# Plan\r\n');
     final services = container.read(folderServicesProvider(folders[0].id));
 
-    await actions.delete(file, '# Plan\nmine\n');
+    await actions.delete(file.listed, styled(file, '# Plan\nmine\n'));
 
     final backup = (await services.backups.listOf(file.path)).value.single;
     expect(backup.kind, BackupKind.beforeDelete);
@@ -408,7 +424,7 @@ void main() {
     // A file where the folder's backups go: none can be saved.
     File(storage.backupsPath(folders[0].id)).writeCreatingFolders('');
 
-    final deleted = await actions.delete(file, '# Plan\n');
+    final deleted = await actions.delete(file.listed, styled(file, '# Plan\n'));
 
     expect(deleted.error, isA<DeleteNotBackedUp>());
     expect(diskFile(work, 'plan.md').existsSync(), isTrue);
@@ -418,7 +434,7 @@ void main() {
     /// The backup of [name] in work that deleting it keeps.
     Future<FolderBackup> deletedBackup(String name, String text) async {
       final file = await fileIn(work, name, text);
-      await actions.delete(file, text);
+      await actions.delete(file.listed, styled(file, text));
       final backups = container
           .read(folderServicesProvider(folders[0].id))
           .backups;
@@ -432,7 +448,7 @@ void main() {
         'its byte style, with no color or settings', () async {
       final file = await fileIn(work, 'a/plan.md', '# Plan\r\n');
       await actions.setMark(file.listed, const FileMark(color: 'teal'));
-      await actions.delete(file, '# Plan\n');
+      await actions.delete(file.listed, styled(file, '# Plan\n'));
       final backups = container
           .read(folderServicesProvider(folders[0].id))
           .backups;
@@ -481,7 +497,7 @@ void main() {
       expect(copy.path.value, 'Shopping.txt');
     });
 
-    test('a backup that is no text is not restored', () async {
+    test('a backup that is no text is restored as its bytes', () async {
       final backup = await deletedBackup('plan.md', '# Plan\n');
       final store = File(
         '${storage.backupsPath(folders[0].id)}/'
@@ -494,8 +510,14 @@ void main() {
         subfolder: null,
       ));
 
-      expect(restored.error, isA<BackupNotText>());
-      expect(diskFile(work, 'plan.md').existsSync(), isFalse);
+      expect(restored.value.path, path('plan.md'));
+      expect(diskFile(work, 'plan.md').readAsBytesSync(), [
+        0xff,
+        0xfe,
+        0x00,
+        0xd8,
+        0x00,
+      ]);
     });
   });
 
@@ -512,7 +534,10 @@ void main() {
       await actions.setMark(file.listed, const FileMark(color: 'teal'));
       await actions.setMark(file.listed, FileMark.none);
 
-      final deleted = (await actions.delete(file, '# Plan\n')).value;
+      final deleted = (await actions.delete(
+        file.listed,
+        styled(file, '# Plan\n'),
+      )).value;
       await actions.undoDelete(deleted);
 
       expect((await scans()).markOf(file.key), FileMark.none);
@@ -523,7 +548,10 @@ void main() {
       'file', () async {
     final file = await fileIn(work, 'plan.md', '# Plan\n');
     await actions.setMark(file.listed, const FileMark(color: 'teal'));
-    final deleted = (await actions.delete(file, '# Plan\n')).value;
+    final deleted = (await actions.delete(
+      file.listed,
+      styled(file, '# Plan\n'),
+    )).value;
     diskFile(work, 'plan.md').writeAsStringSync('# Other\n');
 
     await actions.undoDelete(deleted);
@@ -540,7 +568,7 @@ void main() {
     final file = await fileIn(work, 'plan.md', '# Plan\n');
     diskFile(work, 'plan.md').writeAsStringSync('# Plan\nfrom elsewhere\n');
 
-    final deleted = await actions.delete(file, '# Plan\n');
+    final deleted = await actions.delete(file.listed, styled(file, '# Plan\n'));
 
     expect(
       deleted.error,
@@ -557,7 +585,10 @@ void main() {
     'undo onto a path taken meanwhile keeps both, under a free name',
     () async {
       final file = await fileIn(work, 'plan.md', '# Plan\n');
-      final deleted = (await actions.delete(file, '# Plan\nmine\n')).value;
+      final deleted = (await actions.delete(
+        file.listed,
+        styled(file, '# Plan\nmine\n'),
+      )).value;
       diskFile(work, 'plan.md').writeAsStringSync('# Plan\nnew\n');
 
       final undone = await actions.undoDelete(deleted);
@@ -570,7 +601,10 @@ void main() {
 
   test('undo in a subfolder onto a taken path stays in it', () async {
     final file = await fileIn(work, 'a/plan.md', '# Plan\n');
-    final deleted = (await actions.delete(file, '# Plan\nmine\n')).value;
+    final deleted = (await actions.delete(
+      file.listed,
+      styled(file, '# Plan\nmine\n'),
+    )).value;
     diskFile(work, 'a/plan.md').writeAsStringSync('# Plan\nnew\n');
 
     await actions.undoDelete(deleted);
@@ -634,7 +668,10 @@ void main() {
     expect((await scans()).markOf(deep.key), mark);
     expect((await scans()).markOf(root.key), FileMark.none);
 
-    final deleted = (await actions.delete(deep, '# Deep\nmine\n')).value;
+    final deleted = (await actions.delete(
+      deep.listed,
+      styled(deep, '# Deep\nmine\n'),
+    )).value;
     expect(diskFile(work, 'a/b/c/todo.md').existsSync(), isFalse);
     expect(diskFile(work, 'todo.md').existsSync(), isTrue);
     await actions.undoDelete(deleted);

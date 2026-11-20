@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
@@ -13,6 +15,7 @@ import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_test_support/truce_test_support.dart'
     show FakeFolder, FakePlugin;
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 
@@ -54,16 +57,16 @@ void main() {
   test('lists, opens, saves, creates and moves files, into a new folder '
       'inside too', () async {
     final actions = container.read(fileActionsProvider);
-    final files = container.read(fileAccessProvider).of(folder);
+    final files = TextFiles(container.read(fileAccessProvider).of(folder));
 
     expect(await listed(), unorderedEquals(['a.md', 'notes/b.md']));
     final a = (await files.open(path('a.md'))).value;
     await files.save(a, '# A\nmore');
     final created = (await actions.create(
       (folder: folder, subfolder: null),
-      type: appFileTypes().forNew,
+      type: appNewTextType(),
       title: 'New',
-      text: '# New',
+      bytes: utf8.encode('# New'),
     )).value;
     final moved = await actions.move(created, (
       folder: folder,

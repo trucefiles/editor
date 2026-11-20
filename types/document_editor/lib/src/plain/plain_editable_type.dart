@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:truce_file_page/truce_file_page.dart';
-import 'package:truce_files/truce_files.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 import 'plain_editor_part.dart';
 import 'plain_editor_view.dart';

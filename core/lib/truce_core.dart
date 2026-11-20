@@ -21,18 +21,16 @@
 ///    about a folder ([FolderNotices]); the shared way to move a file
 ///    ([moveByCopy]).
 /// 4. `filter`: which files and folders Truce looks at ([FileFilter]).
-/// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), and
-///    what each type gives lists ([FileTypeSupport]).
+/// 5. `filetypes`: which [FileType] a file is ([FileTypeDetector]), by
+///    each type's extensions ([FileTypeSupport]).
 /// 6. `conflicts`: reading and resolving conflicts ([ConflictService]),
-///    whose copies each sync tool keeps in its [ConflictSource]; how a
-///    file type merges two texts ([TextMerge]); copies kept as files
-///    next to their main file, by a tool's names ([ConflictCopyNames]).
+///    whose copies each sync tool keeps in its [ConflictSource]; copies
+///    kept as files next to their main file, by a tool's names
+///    ([ConflictCopyNames]).
 /// 7. `restore`: putting a backup back, kept like any choice between two
 ///    versions ([BackupRestore]).
 /// 8. `scan`: a folder's files and conflicts in one go ([FolderScanner]).
-/// 9. `text`: decoding files for editing without changing their byte style
-///    ([TextFile]); a text's lines ([splitLines]); the links plain text
-///    makes by what it says ([findExtendedAutolinks]).
+/// 9. `text`: lines matched between two texts ([oldLinesOf]).
 /// 10. `marks`: colors of files, synced inside the folder
 ///     ([FileMarks]).
 /// 11. `changes`: changes to a folder's files as they happen
@@ -43,12 +41,6 @@
 /// 13. `folder_state`: what the folders hold (listings, conflicts,
 ///     marks), kept in step with changes by its owner, working only on
 ///     what changed ([FolderStateOwner]).
-/// 14. `files`: an open file, kept on the device and in
-///     the folder in step with changes elsewhere, by its owner
-///     ([FileOwner]); and what every type's editor shares: the page's
-///     requests and notices ([EditorRequest], [EditorNotice]), the save
-///     timing ([SaveClock]) and undo ([EditHistory]), handled alike
-///     ([EditorSteps]); any file type, any plugin.
 ///
 /// `place` bounds a folder's files and changes alike to what the app may
 /// touch, and closes them alike ([BoundedPlace]).
@@ -91,19 +83,6 @@ export 'src/conflicts/copies/named_copies_scanner.dart';
 export 'src/conflicts/copies/stamped_copy_names.dart';
 export 'src/conflicts/copies/with_conflict_copies.dart';
 export 'src/conflicts/default_conflict_service.dart';
-export 'src/conflicts/text_merge.dart';
-export 'src/files/editor/editor_book.dart';
-export 'src/files/editor/editor_contract.dart';
-export 'src/files/editor/editor_steps.dart';
-export 'src/files/editor/history/edit_history.dart';
-export 'src/files/editor/history/text_change.dart';
-export 'src/files/editor/history/text_edit.dart';
-export 'src/files/editor/history/text_step.dart';
-export 'src/files/editor/history/typing.dart';
-export 'src/files/editor/history/undoable_edit.dart';
-export 'src/files/editor/save_clock.dart';
-export 'src/files/file_owner/file_owner.dart';
-export 'src/files/version.dart';
 export 'src/filetypes/extension_file_type_detector.dart';
 export 'src/filetypes/file_type.dart';
 export 'src/filetypes/file_type_detector.dart';
@@ -154,9 +133,6 @@ export 'src/storage/rel_path.dart';
 export 'src/storage/setting_store.dart';
 export 'src/storage/subfolder_names.dart';
 export 'src/storage/write_reporting_store.dart';
-export 'src/text/extended_autolinks.dart';
 export 'src/text/line_match.dart';
-export 'src/text/lines.dart';
-export 'src/text/text_file.dart';
 export 'src/versions/resolution.dart';
 export 'src/versions/resolve_error.dart';

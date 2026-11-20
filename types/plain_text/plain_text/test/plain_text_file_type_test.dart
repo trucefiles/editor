@@ -4,6 +4,7 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_test_support/truce_test_support.dart';
+import 'package:truce_text_editing/truce_text_editing.dart';
 
 void main() {
   const type = PlainTextFileType();
@@ -25,12 +26,12 @@ void main() {
   );
 
   FileCardSummary summaryOf(String text, {String name = 'a.txt'}) =>
-      type.cardSummary(read(text, name: name));
+      type.textCard(read(text, name: name));
 
   test('the title is the first line as written', () {
     expect(summaryOf('# Shopping\nmilk').title, '# Shopping');
     expect(
-      type.support.summary('# Shopping\nmilk', maxLines: 0).firstLine,
+      type.summary('# Shopping\nmilk', maxLines: 0).firstLine,
       '# Shopping',
     );
   });
@@ -61,7 +62,7 @@ void main() {
   });
 
   test('search reads the whole text; texts are not merged', () {
-    expect(type.searchText(read('a\nb')), 'a\nb');
+    expect(type.textSearchWords(read('a\nb')), 'a\nb');
     expect(type.merge, isNull);
     expect(type.newFileExtension, '.txt');
   });
