@@ -40,8 +40,6 @@ Accepted behavior that is not planned to change, grouped by topic.
 
 - **Deleting an image frees no phone space for 7 days.** Its backup is kept
   that long, so you can still bring it back.
-- **Moving or renaming an image breaks links to it.** A document that shows
-  the image by its path no longer finds it there.
 - **On Android, a photo can be lost if the phone closes Truce while the
   camera is open.**
 

@@ -18,14 +18,24 @@ final appWritesProvider = Provider<AppWrites>((ref) {
   return writes;
 });
 
+/// Which files of each folder the app touches and shows: the types it
+/// handles, but not the files it keeps apart. The one rule for listing,
+/// following and backups.
+final fileBoundsProvider = Provider<FileBounds>((ref) {
+  final detector = ref.watch(fileTypeDetectorProvider);
+  return FileBounds(
+    handles: (file) => detector.detect(file) != null,
+    keptApart: ref.watch(keptApartProvider),
+  );
+});
+
 /// The open folders, wired: they follow the folder list owner. Every
 /// write through their services is told to [appWritesProvider]. A folder
 /// that is gone is checked again at the refresh setting's interval, read
 /// at each wait.
 final openFoldersProvider = Provider<OpenFolders>((ref) {
   final plugins = ref.watch(folderPluginsProvider);
-  final detector = ref.watch(fileTypeDetectorProvider);
-  final keptApart = ref.watch(keptApartProvider);
+  final bounds = ref.watch(fileBoundsProvider);
   final storage = ref.watch(appStorageProvider);
   final deviceId = ref.watch(deviceIdProvider);
   final writes = ref.watch(appWritesProvider);
@@ -36,8 +46,7 @@ final openFoldersProvider = Provider<OpenFolders>((ref) {
     build: (folder, raw, reach) => folderServices(
       raw,
       reach: reach,
-      handles: (file) => detector.detect(file) != null,
-      keptApart: keptApart,
+      bounds: bounds,
       backupsPath: storage.backupsPath(folder.id),
       deviceId: deviceId,
       checkEvery: checkEvery,

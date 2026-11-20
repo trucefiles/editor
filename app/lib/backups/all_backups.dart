@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-import '../file_types/file_types.dart';
 import '../folders/folders_controller.dart';
 import '../folders/open_folders_wiring.dart';
 
@@ -14,10 +13,10 @@ final allBackupsProvider = FutureProvider.autoDispose<List<FolderBackup>>((
   // Built again as the list changes; none if it can't be read.
   ref.watch(folderListStateProvider);
   final open = ref.watch(openFoldersProvider);
-  final detector = ref.watch(fileTypeDetectorProvider);
+  final bounds = ref.watch(fileBoundsProvider);
   return backupsShown(
     await settledFolders(ref.read(folderListOwnerProvider)),
     (folder) => open.servicesOf(folder.id).backups,
-    shows: (file) => detector.detect(file) != null,
+    shows: bounds.shows,
   );
 });

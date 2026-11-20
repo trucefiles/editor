@@ -102,6 +102,7 @@ export 'src/owners/simple_owner.dart';
 export 'src/owners/step_run.dart';
 export 'src/owners/timers.dart';
 export 'src/place/bounded_place.dart';
+export 'src/place/file_bounds.dart';
 export 'src/plugins/folder_id.dart';
 export 'src/plugins/folder_notices.dart';
 export 'src/plugins/folder_plugin.dart';

@@ -164,8 +164,10 @@ FolderServices servicesFor(
   return folderServices(
     raw,
     reach: folderReach(raw.files),
-    handles: appFileTypes().handles,
-    keptApart: ImageNames.isKept,
+    bounds: FileBounds(
+      handles: appFileTypes().handles,
+      keptApart: ImageNames.isKept,
+    ),
     checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
     deviceId: '0123456789abcdef',

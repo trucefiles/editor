@@ -16,8 +16,10 @@ void main() {
   BoundedPlace bound(LiveChanges? changes) => BoundedPlace(
     files,
     changes,
-    handles: (file) => file.name.endsWith('.md'),
-    keptApart: (_) => false,
+    bounds: FileBounds(
+      handles: (file) => file.name.endsWith('.md'),
+      keptApart: (_) => false,
+    ),
     checkEvery: () => const Duration(milliseconds: 5),
   );
 
@@ -48,8 +50,10 @@ void main() {
     final place = BoundedPlace(
       files,
       live,
-      handles: (file) => file.name.endsWith('.md'),
-      keptApart: (path) => path.isAtOrInside(RelPath.parse('kept')!),
+      bounds: FileBounds(
+        handles: (file) => file.name.endsWith('.md'),
+        keptApart: (path) => path.isAtOrInside(RelPath.parse('kept')!),
+      ),
       checkEvery: () => const Duration(milliseconds: 5),
     );
     final hints = <ChangeHint>[];

@@ -4,8 +4,9 @@ import 'package:truce_images/truce_images.dart';
 
 import '../../settings/device_settings_controller.dart';
 
-/// Settings rows for pictures added to documents: take out where a photo
-/// was taken, and make large ones smaller.
+/// Settings rows for pictures the user adds, to a document or as a file
+/// of their own: take out where a photo was taken, and make large ones
+/// smaller.
 class ImageSettingTiles extends ConsumerWidget {
   const ImageSettingTiles({super.key});
 
@@ -22,7 +23,7 @@ class ImageSettingTiles extends ConsumerWidget {
       children: [
         SwitchListTile(
           title: const Text('Remove location from photos'),
-          subtitle: const Text('When you add one to a document'),
+          subtitle: const Text('When you add one'),
           value: images.removeLocation,
           onChanged: (remove) =>
               change((images) => images.copyWith(removeLocation: remove)),
@@ -30,7 +31,8 @@ class ImageSettingTiles extends ConsumerWidget {
         SwitchListTile(
           title: const Text('Make large images smaller'),
           subtitle: const Text(
-            'About ${ImageSettings.longestSide} pixels on the longest side',
+            'When you add one: about ${ImageSettings.longestSide} pixels on '
+            'the longest side',
           ),
           value: images.makeSmaller,
           onChanged: (smaller) =>

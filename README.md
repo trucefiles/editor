@@ -46,6 +46,9 @@
   health calendar with a cycle estimate, and a Calendar tab with the
   events and tasks of all your calendars. Changes from two devices merge
   one by one, with one tap.
+- Images: in documents, from a file or the camera, and as files of their
+  own (JPEG, PNG, GIF, WebP, BMP) to look at. Location data is taken
+  out, and large ones can be made smaller.
 - As many folders as you like, subfolders included, each shared with its
   own devices and people: say one for you and one for the family shopping.
 - Search, pins and colors across all of them.
@@ -58,7 +61,7 @@
 - Assisted merge for Markdown and text: Truce suggests a merged version
   of a conflict for you to accept (calendars merge with one tap already).
 - Alerts that ring for events and tasks.
-- More kinds of files beyond Markdown, plain text and calendars.
+- More kinds of files beyond Markdown, plain text, calendars and images.
 - Windows, macOS and iOS.
 
 Truce is in early development (0.x), so expect changes between versions.
@@ -130,6 +133,17 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
   listed by when they are due, with repeats, time zones, health
   entries, cycle predictions and the editor's owner. Pure Dart, no UI;
   uses core, files and text_editing, which know nothing of it.
+- `types/markdown/markdown_images`: the images Markdown documents show,
+  kept in each folder's `document-images` folder: adding them, taking
+  them along as documents move, bringing them back and cleaning up.
+  Pure Dart, no UI.
+- `types/image/image_file`: pictures as files of their own, looked at,
+  not edited. Pure Dart, no UI; uses core and files.
+- `types/image/image_view`: how pictures show (card, page, comparison)
+  and how the user adds one. Flutter; uses common_ui, files, file_page,
+  image_file and images.
+- `images`: pictures made ready to keep: their kind found, location data
+  taken out, large ones made smaller. Pure Dart, no UI.
 - `plugins/syncthing/syncthing`: Syncthing's conventions behind core's
   interfaces. Pure Dart.
 - `plugins/local_folder/local_folder`: local folders, which no sync tool
@@ -157,7 +171,8 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
   centered column on wide windows. Flutter; knows nothing of files.
 - `app`: the Flutter app (Android, Linux): screens, view models, platform
   code, and the wiring that picks the file types (`markdown`,
-  `plain_text`, `calendar`) and sync tools (`syncthing`, `local_folder`).
+  `plain_text`, `calendar`, `image_file`) and sync tools (`syncthing`,
+  `local_folder`).
 - `test_support`: test doubles shared by the packages' tests (a fake sync
   tool, an in-memory file store). Only a dev dependency.
 - `editor_test_support`: helpers for the editor's widget tests, shared by
@@ -174,6 +189,9 @@ flutter analyze --fatal-infos
 (cd types/markdown/markdown && dart test)
 (cd types/plain_text/plain_text && dart test)
 (cd types/calendar/calendar && dart test)
+(cd types/markdown/markdown_images && dart test)
+(cd types/image/image_file && dart test)
+(cd images && dart test)
 (cd plugins/syncthing/syncthing && dart test)
 (cd plugins/local_folder/local_folder && dart test)
 (cd folders && dart test)
@@ -181,5 +199,6 @@ flutter analyze --fatal-infos
 (cd common_ui && flutter test)
 (cd types/document_editor && flutter test)
 (cd types/calendar/calendar_editor && flutter test)
+(cd types/image/image_view && flutter test)
 (cd app && flutter test)
 ```
