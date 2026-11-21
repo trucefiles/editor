@@ -288,7 +288,7 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
               place.folder,
               message: _controller.state is WaitingNew
                   ? 'The file is kept on this device.'
-                  : 'Changes from other devices show once it is back.',
+                  : 'You see the last version on this device.',
             ),
           ...shownStateBanners(
             _controller.state,

@@ -36,7 +36,7 @@ folder's settings can remove the images no document shows any more.
 <img src="screenshots/images/image_button_touch.png" width="280" alt="The same document on a phone, the format bar scrolled to the Image button">
 
 <img src="screenshots/images/image_viewer_desktop.png" width="600" alt="The picture full screen, on black, with a close button">
-<img src="screenshots/images/image_settings_touch.png" width="280" alt="Settings on a phone with larger text: Remove location from photos, on, and Make large images smaller, off">
+<img src="screenshots/images/image_settings_touch.png" width="280" alt="Settings on a phone with larger text: Remove location from photos, on, and Shrink large images, off">
 <img src="screenshots/images/image_cleanup_desktop.png" width="600" alt="A folder's settings with Remove unused images below its name and color">
 
 ## Home, cards and wide windows

@@ -23,17 +23,13 @@ class ImageSettingTiles extends ConsumerWidget {
       children: [
         SwitchListTile(
           title: const Text('Remove location from photos'),
-          subtitle: const Text('When you add one'),
           value: images.removeLocation,
           onChanged: (remove) =>
               change((images) => images.copyWith(removeLocation: remove)),
         ),
         SwitchListTile(
-          title: const Text('Make large images smaller'),
-          subtitle: const Text(
-            'When you add one: about ${ImageSettings.longestSide} pixels on '
-            'the longest side',
-          ),
+          title: const Text('Shrink large images'),
+          subtitle: const Text('To about ${ImageSettings.longestSide} pixels'),
           value: images.makeSmaller,
           onChanged: (smaller) =>
               change((images) => images.copyWith(makeSmaller: smaller)),
