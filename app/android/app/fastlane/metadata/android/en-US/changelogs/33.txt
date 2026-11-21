@@ -1,0 +1,5 @@
+- Calendar tasks: to-dos checked off date by date
+- Calendar alerts ring, also with the app closed
+- Images in documents, from a file or the camera
+- Images as files of their own, with thumbnails
+- Fixes from five bug hunt rounds
