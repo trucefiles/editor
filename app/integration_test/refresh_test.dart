@@ -126,6 +126,9 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
+    // Built is not on screen: bring the row fully into view to tap it.
+    await tester.ensureVisible(find.text('Check folders for changes'));
+    await tester.pumpAndSettle();
     await tester.tapAndSettle(find.text('Check folders for changes'));
     await tester.tapAndSettle(find.text('Manual'));
     await tester.tapAndSettle(find.text('Save'));
