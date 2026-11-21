@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_file_page/truce_file_page.dart';
@@ -21,35 +19,10 @@ final class ImageViewType extends ImageFileType implements ViewType {
   @override
   IconData get icon => Icons.image_outlined;
 
-  /// How far a shown picture zooms in and stays sharp: it is decoded at
-  /// most at the screen's size times this, so a huge one never fills
-  /// memory; deeper zoom gets a little soft.
-  static const sharpZoom = 3.0;
-
-  /// The most pixels a shown picture is decoded at on each side, on any
-  /// screen (about 64 MB at most).
-  static const largestSide = 4096.0;
-
-  /// Decoded at most at the screen's size times [sharpZoom], and never
-  /// past [largestSide].
+  /// Decoded no larger than the zoomable view asks.
   @override
-  Widget view(ShownContent content, {required String label}) => Builder(
-    builder: (context) {
-      final screen =
-          MediaQuery.sizeOf(context) * MediaQuery.devicePixelRatioOf(context);
-      final most = (screen * sharpZoom).bounded(largestSide);
-      return ZoomableImage(
-        ResizeImage(
-          ContentImage(content),
-          width: most.width.ceil(),
-          height: most.height.ceil(),
-          policy: ResizeImagePolicy.fit,
-          allowUpscaling: false,
-        ),
-        alt: label,
-      );
-    },
-  );
+  Widget view(ShownContent content, {required String label}) =>
+      ZoomableImage((size) => ContentImage(content, size: size), alt: label);
 
   @override
   Widget thumbnail(ShownContent content, {required String label}) =>
@@ -86,9 +59,9 @@ class ImageThumbnail extends StatelessWidget {
           return Image(
             image: ContentImage(
               content,
-              cover: (
-                width: (constraints.maxWidth * pixels).ceil(),
-                height: (constraints.maxHeight * pixels).ceil(),
+              size: Covering(
+                (constraints.maxWidth * pixels).ceil(),
+                (constraints.maxHeight * pixels).ceil(),
               ),
             ),
             semanticLabel: label,
@@ -102,10 +75,4 @@ class ImageThumbnail extends StatelessWidget {
       ),
     ),
   );
-}
-
-extension on Size {
-  /// This size, each side at most [side].
-  Size bounded(double side) =>
-      Size(math.min(width, side), math.min(height, side));
 }

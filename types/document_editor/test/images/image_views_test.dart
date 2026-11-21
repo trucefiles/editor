@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
-import 'package:truce_common_ui/truce_common_ui.dart' show ImageViewer;
+import 'package:truce_common_ui/truce_common_ui.dart'
+    show ImageViewer, SizedImage;
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_images/truce_images.dart';
@@ -131,5 +132,6 @@ final class _OneImage implements DocumentImageLookup {
   const _OneImage();
 
   @override
-  ImageProvider? of(String url) => MemoryImage(onePixelPng);
+  SizedImage? of(String url) =>
+      (_) => MemoryImage(onePixelPng);
 }

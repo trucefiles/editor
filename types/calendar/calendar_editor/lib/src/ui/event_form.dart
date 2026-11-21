@@ -199,11 +199,6 @@ class _EventFormState extends State<EventForm> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: 'Notes'),
             ),
-            const SizedBox(height: 16),
-            Text(
-              "Alerts are saved, but the app doesn't remind you yet.",
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           ],
         ),
       ),

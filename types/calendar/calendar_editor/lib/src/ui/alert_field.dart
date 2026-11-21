@@ -15,6 +15,7 @@ const alertChoices = [
 /// A form's alert: none or one of [alertChoices], picked from a list
 /// ([onAlerts] tells a pick); alerts the list doesn't offer show as they
 /// are, to keep. [at] names an alert right at the time they count from.
+/// Below it, which calendars' alerts ring.
 class AlertField extends StatelessWidget {
   const AlertField({
     required this.alerts,
@@ -32,7 +33,10 @@ class AlertField extends StatelessWidget {
     String text(Duration before) => alertText(before, at: at);
     return DropdownButtonFormField<_Alerts>(
       initialValue: _Alerts(alerts),
-      decoration: const InputDecoration(labelText: 'Alert'),
+      decoration: const InputDecoration(
+        labelText: 'Alert',
+        helperText: 'Rings for the calendars shown in the Calendars tab',
+      ),
       items: [
         const DropdownMenuItem(value: _Alerts([]), child: Text('None')),
         if (alerts.isNotEmpty && !_offered(alerts))
