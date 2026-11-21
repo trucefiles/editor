@@ -58,6 +58,13 @@ void main() {
     expect(change(place: same, name: 'Plan', read: saved), isA<SamePlace>());
   });
 
+  test('a typed name that gives the name the file has is nothing to do', () {
+    final same = (folder: work, subfolder: path('inbox'));
+
+    // A file name can't hold the `?`: renaming would only add a number.
+    expect(change(place: same, name: 'Plan?', read: saved), isA<SamePlace>());
+  });
+
   test('a typed name without the number of the name now renames', () {
     final numbered = ListedFile(
       folder: work,

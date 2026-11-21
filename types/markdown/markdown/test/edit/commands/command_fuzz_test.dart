@@ -3,16 +3,19 @@ import 'dart:math';
 
 import 'package:test/test.dart';
 import 'package:truce_markdown/src/doc/doc_nodes.dart';
+import 'package:truce_markdown/src/doc/load.dart';
 import 'package:truce_markdown/src/edit/clipboard_lines.dart';
 import 'package:truce_markdown/src/edit/commands/command.dart';
 import 'package:truce_markdown/src/edit/commands/links.dart';
 import 'package:truce_markdown/src/edit/keys/key_map.dart';
 import 'package:truce_markdown/src/edit/selection.dart';
 import 'package:truce_markdown/src/edit/typing_style.dart';
+import 'package:truce_markdown/src/print/printer.dart';
 import 'package:truce_markdown/src/view/rows.dart';
 import 'package:truce_markdown/src/visible/formatting.dart';
 
 import '../../spec/spec_examples.dart';
+import '../../support/doc_dump.dart';
 import '../../support/document_corpus.dart';
 import '../support/shown.dart';
 
@@ -23,7 +26,8 @@ void main() {
       for (final example in specExamples(spec)) example.markdown,
   ];
 
-  test('random user actions keep the document and the selection sound', () {
+  test('random user actions keep the document and the selection sound, '
+      'and the file reads back as it shows', () {
     for (final (index, text) in documents.indexed) {
       final random = Random(index + 1000 * _seed);
       var document = Shown.read(
@@ -38,6 +42,7 @@ void main() {
         try {
           final edited = document.run(command);
           _expectShows(edited.document, edited.selection);
+          _expectReadsBack(edited.document);
           document = edited.document;
         } on Object catch (error, trace) {
           if (Platform.environment['FUZZ_ALL'] != null) {
@@ -56,6 +61,16 @@ void main() {
 }
 
 final _seed = int.parse(Platform.environment['FUZZ_SEED'] ?? '0');
+
+/// Expects [document]'s text to read back as the document it prints.
+void _expectReadsBack(Shown document) {
+  final reread = loadMarkdown(document.text);
+  expect(
+    dumpDoc(writableMarkdown(reread.doc, reread.origin).root),
+    dumpDoc(writableMarkdown(document.doc, document.origin).root),
+    reason: 'reads back as it shows',
+  );
+}
 
 /// Expects [selection] on what [document] shows.
 void _expectShows(Shown document, Selection? selection) {

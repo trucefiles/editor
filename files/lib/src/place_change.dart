@@ -34,11 +34,13 @@ sealed class PlaceChange {
     }
     if (saved == null) return const CantMove(MoveNotSaved());
     final title = name.isEmpty ? unnamed : name;
-    // A typed name is the name exactly; only a name left to follow
-    // [unnamed] may carry the number added when it was taken.
+    // A typed name is the name exactly, as a file name can hold it (e.g.
+    // without a `?`); only a name left to follow [unnamed] may carry the
+    // number added when it was taken.
     final named = name.isEmpty
         ? isNamedAfter(saved.path.name, unnamed)
-        : splitFileName(saved.path.name).base == name;
+        : splitFileName(saved.path.name).base ==
+              newFileName(name, extension: '');
     if (picked.place.folder.id == saved.folder.id &&
         picked.place.subfolder == saved.path.parent &&
         named) {
