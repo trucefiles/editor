@@ -67,6 +67,13 @@ final class DropNew extends ShownInput {
   const DropNew();
 }
 
+/// The file's folder was removed from the app: a new file not written
+/// yet is kept nowhere now (its draft went with the folder), until the
+/// user picks another folder. Touches no disk.
+final class NewFolderRemoved extends ShownInput {
+  const NewFolderRemoved();
+}
+
 // State.
 
 sealed class ShownState {

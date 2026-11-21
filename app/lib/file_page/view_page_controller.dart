@@ -190,11 +190,11 @@ final class ViewPageController extends ChangeNotifier {
 
   /// The file's folder left the app; whether the page may close. A new
   /// file not written yet stays open, so it can go elsewhere: its draft
-  /// went with the folder, so it is kept anew, and the page tells where
-  /// it is kept now.
+  /// went with the folder, so it is kept nowhere now and the page says
+  /// so.
   bool folderRemoved() {
     if (state is! WaitingNew) return true;
-    retry();
+    _owner.send(const NewFolderRemoved());
     return false;
   }
 
