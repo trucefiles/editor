@@ -11,6 +11,7 @@ export 'src/fake_copy_names.dart';
 export 'src/fake_file_type.dart';
 export 'src/fake_folder_markers.dart';
 export 'src/fake_live_changes.dart';
+export 'src/fake_picking.dart';
 export 'src/fake_plugin.dart';
 export 'src/fake_sync_rules.dart';
 export 'src/machine_run.dart';

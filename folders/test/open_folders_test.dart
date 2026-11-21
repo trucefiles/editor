@@ -28,8 +28,7 @@ void main() {
       build: (folder, raw, reach) => folderServices(
         raw,
         reach: reach,
-        handles: (_) => true,
-        keptApart: (_) => false,
+        bounds: FileBounds(handles: (_) => true, keptApart: (_) => false),
         backupsPath: '${tempFolder().path}/backups',
         deviceId: 'phone',
         checkEvery: () => Duration.zero,

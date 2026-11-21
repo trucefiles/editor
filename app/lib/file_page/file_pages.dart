@@ -67,7 +67,6 @@ final class FilePages {
   /// closes, e.g. so what shows next can be listed again. [arrivals]:
   /// how a file arrives as a past version is restored into it.
   FilePages({
-    required this.types,
     required this.create,
     required this.move,
     required this.delete,
@@ -83,7 +82,6 @@ final class FilePages {
     required this.arrivals,
   });
 
-  final ShownFileTypes<FilePageType> types;
   final FileCreator create;
   final FileMover move;
   final DeleteForUndo delete;
@@ -100,31 +98,33 @@ final class FilePages {
   /// How long the app's end waits at most for a page's edits.
   final Duration endWait;
 
-  /// The page of [file], as read just before; the editor runs actions
-  /// on its file through [withFile].
-  FilePage open(FileText file, {required WithFile withFile}) =>
-      switch (types.ofFile(file.type)) {
-        final EditableType type => _open(
-          type,
-          ExistingFile(file),
-          view: settingsOf(file.key).view,
-          withFile: withFile,
-        ),
-      };
+  /// The page of [file], of [type], as read just before; the editor runs
+  /// actions on its file through [withFile].
+  FilePage open(
+    FileText file, {
+    required EditableType type,
+    required WithFile withFile,
+  }) => _open(
+    type,
+    ExistingFile(file),
+    view: settingsOf(file.key).view,
+    withFile: withFile,
+  );
 
   /// The page of a new file [made], to go into [place].
   FilePage openNew(
     FilePlace place, {
-    required NewFileChoice<FilePageType> made,
+    required NewFileChoice<EditableType> made,
     required WithFile withFile,
-  }) => switch (made.type) {
-    final EditableType type => _open(
+  }) {
+    final type = made.type;
+    return _open(
       type,
       NewFile(place, type: type, start: made.kind.startText),
       view: FileSettings.defaults.view,
       withFile: withFile,
-    ),
-  };
+    );
+  }
 
   /// The page of a file of [type] whose [file] is where it starts,
   /// shown as [view] keeps.

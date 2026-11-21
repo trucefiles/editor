@@ -40,7 +40,7 @@ Future<FilesAnswer> _run(FileSteps steps, FilesInput input) => switch (input) {
   CreateFile(
     :final ticket,
     :final place,
-    :final type,
+    :final extension,
     :final title,
     :final bytes,
     :final newSubfolder,
@@ -48,7 +48,7 @@ Future<FilesAnswer> _run(FileSteps steps, FilesInput input) => switch (input) {
     steps
         .create(
           place,
-          type: type,
+          extension: extension,
           title: title,
           bytes: bytes,
           newSubfolder: newSubfolder,

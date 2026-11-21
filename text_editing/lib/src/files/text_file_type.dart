@@ -36,14 +36,22 @@ abstract class TextFileType implements ShownFileType {
   TextMerge? get textMerge;
 
   @override
-  FileCardSummary? cardSummary(FileBytes read) => switch (FileText.of(read)) {
+  FileCardSummary? Function(FileBytes read) get cardSummary => _cardSummary;
+
+  FileCardSummary? _cardSummary(FileBytes read) => switch (FileText.of(read)) {
     final text? => textCard(text),
     null => null,
   };
 
-  /// Titled as its card is.
   @override
-  SearchText? searchText(FileBytes read) => switch (FileText.of(read)) {
+  SearchText? Function(FileBytes read) get searchText => _searchText;
+
+  /// Text files are edited in the app.
+  @override
+  bool get edited => true;
+
+  /// Titled as its card is.
+  SearchText? _searchText(FileBytes read) => switch (FileText.of(read)) {
     final text? => (
       title: titleOf(
         summary(text.text, maxLines: FileCardSummary.previewLines),

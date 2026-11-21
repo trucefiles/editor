@@ -36,7 +36,7 @@ final class TextFiles {
     final file = type.newFile.withText(text);
     final created = await _files.create(
       title,
-      type: type,
+      extension: type.newFileExtension,
       subfolder: subfolder,
       bytes: file.encode(text),
       newSubfolder: newSubfolder,

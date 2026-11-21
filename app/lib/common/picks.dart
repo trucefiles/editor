@@ -14,6 +14,9 @@ class Picks<T> extends Notifier<Set<T>> {
   /// Unpicks every value, so the filter lets everything through.
   void clear() => state = const {};
 
+  /// Picks [value] alone.
+  void only(T value) => state = {value};
+
   /// Unpicks [value], e.g. as it no longer exists.
   void drop(T value) => state = state.difference({value});
 

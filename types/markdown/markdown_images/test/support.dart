@@ -11,9 +11,11 @@ final class ImageFolder {
     services = folderServices(
       raw,
       reach: folderReach(raw.files),
-      handles: (file) =>
-          file.name.endsWith('.md') || file.name.endsWith('.txt'),
-      keptApart: ImageNames.isKept,
+      bounds: FileBounds(
+        handles: (file) =>
+            file.name.endsWith('.md') || file.name.endsWith('.txt'),
+        keptApart: ImageNames.isKept,
+      ),
       checkEvery: () => const Duration(seconds: 1),
       backupsPath: tempFolder().path,
       deviceId: '0123456789abcdef',

@@ -48,16 +48,15 @@ final class FolderServices {
 }
 
 /// The services of a folder on [raw], its plugin's raw access to it, whose
-/// files tell [reach] how each access went, bounded to the files the app
-/// [handles] and the marks, with the files [keptApart] reached on their
+/// files tell [reach] how each access went, bounded to the files [bounds]
+/// shows and the marks, with the files it keeps apart reached on their
 /// own. Each write, the plugin's own included, is told to [wrote], but
 /// those kept apart, which no screen shows. A folder that is gone is
 /// checked every [checkEvery] whether it is back.
 FolderServices folderServices(
   RawFolder raw, {
   required FolderReach reach,
-  required bool Function(RelPath file) handles,
-  required bool Function(RelPath path) keptApart,
+  required FileBounds bounds,
   required String backupsPath,
   required String deviceId,
   required Duration Function() checkEvery,
@@ -65,15 +64,18 @@ FolderServices folderServices(
 }) {
   // Below the bound: a write it refuses is never told.
   void told(Set<RelPath> paths) {
-    final shown = {...paths.where((path) => !keptApart(path))};
+    final shown = {...paths.where((path) => !bounds.keptApart(path))};
     if (shown.isNotEmpty) wrote(shown);
   }
 
   final bounded = BoundedPlace(
     WriteReportingStore(ReachReportingStore(raw.files, reach), told),
     raw.changes,
-    handles: (file) => handles(file) || FileMarks.files.includesFile(file),
-    keptApart: keptApart,
+    bounds: FileBounds(
+      handles: (file) =>
+          bounds.handles(file) || FileMarks.files.includesFile(file),
+      keptApart: bounds.keptApart,
+    ),
     checkEvery: checkEvery,
   );
   final open = raw.open(bounded);

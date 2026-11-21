@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   collection: ^1.19.1
+  crypto: ^3.0.7
   meta: ^1.19.0
   truce_core: any
   truce_files: any

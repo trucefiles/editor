@@ -8,9 +8,23 @@ void main() {
       recentDays: 10,
       order: FileOrder.name,
       view: FileView.list,
+      uneditedInRecent: true,
     );
 
     expect(HomeSettings.fromJson(settings.toJson()), settings);
+  });
+
+  test('leaves files not edited in the app out of Recently edited by '
+      'default, also in settings written before', () {
+    expect(HomeSettings.standard.uneditedInRecent, isFalse);
+    expect(
+      HomeSettings.fromJson({
+        'recentCount': 50,
+        'order': 'time',
+        'view': 'cards',
+      })!.uneditedInRecent,
+      isFalse,
+    );
   });
 
   test('reads nothing from a count the user cannot pick or an unknown '

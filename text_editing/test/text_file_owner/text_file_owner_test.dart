@@ -118,7 +118,7 @@ void main() {
     test('keeps edits on the device at once, then writes them when asked', () {
       final run = _Run.opened('a')..edit('ab', 1);
       expect(run.status, const Editing(EditPhase.inMemory).matcher);
-      expect(run.last<KeepDraft>().base, 'a');
+      expect(run.last<KeepDraft>().base, _v1);
       expect(run.last<KeepDraft>().text, 'ab');
       run.keep();
       expect(run.status, const Editing(EditPhase.onDevice).matcher);
@@ -629,7 +629,7 @@ void main() {
       test('keeps the edits on the device over the version they came from', () {
         final run = ignored();
         expect((run.status as ChangedElsewhere).theirs.version, _v2);
-        expect(run.last<KeepDraft>().base, 'a');
+        expect(run.last<KeepDraft>().base, _v1);
       });
 
       test('mine goes on with typing on the editor\'s version', () {
@@ -643,7 +643,7 @@ void main() {
           ..wrote(const Written(Seen('abc', _v3)))
           ..edit('abcd', 3);
         expect(run.status, isA<Editing>());
-        expect(run.last<KeepDraft>().base, 'abc');
+        expect(run.last<KeepDraft>().base, _v3);
       });
     });
 
@@ -1007,6 +1007,7 @@ void main() {
         ..keep()
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isFalse);
+      expect(run.last<Answer>().onDevice, isTrue);
       expect(run.all<DropDraft>(), isEmpty);
     });
 
@@ -1017,6 +1018,7 @@ void main() {
         ..secure(SecureReason.hide)
         ..wrote(const WriteFailed());
       expect(run.last<Answer>().kept, isFalse);
+      expect(run.last<Answer>().onDevice, isFalse);
       expect(run.all<KeepAsConflict>(), isEmpty);
     });
 
@@ -1050,9 +1052,9 @@ void main() {
         return run;
       }
 
-      test('the draft builds on the text the edits were made over', () {
+      test('the draft builds on the version the edits were made over', () {
         final run = changedElsewhere();
-        expect(run.last<KeepDraft>().base, 'a');
+        expect(run.last<KeepDraft>().base, _v1);
       });
 
       test('seeing the same version again keeps the user\'s pick', () {

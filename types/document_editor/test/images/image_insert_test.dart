@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
-
-import 'image_fakes.dart';
+import 'package:truce_images/truce_images.dart';
+import 'package:truce_test_support/truce_test_support.dart';
 
 void main() {
   late FakePicking picking;

@@ -21,8 +21,6 @@ class ImageViewer extends StatelessWidget {
   final ImageProvider image;
   final String alt;
 
-  static const _maxZoom = 8.0;
-
   @override
   Widget build(BuildContext context) => Theme(
     data: ThemeData.dark(),
@@ -33,10 +31,35 @@ class ImageViewer extends StatelessWidget {
         backgroundColor: Colors.black45,
         leading: const CloseButton(),
       ),
-      body: InteractiveViewer(
-        maxScale: _maxZoom,
-        child: SizedBox.expand(
-          child: Image(image: image, semanticLabel: alt, fit: BoxFit.contain),
+      body: ZoomableImage(image, alt: alt),
+    ),
+  );
+}
+
+/// [image] as large as fits, zoomed by a pinch or the mouse wheel up to
+/// [maxZoom] and moved by a drag. [alt] is read out.
+class ZoomableImage extends StatelessWidget {
+  const ZoomableImage(this.image, {required this.alt, super.key});
+
+  final ImageProvider image;
+  final String alt;
+
+  /// How far it zooms in.
+  static const maxZoom = 8.0;
+
+  @override
+  Widget build(BuildContext context) => InteractiveViewer(
+    maxScale: maxZoom,
+    child: SizedBox.expand(
+      child: Image(
+        image: image,
+        semanticLabel: alt,
+        fit: BoxFit.contain,
+        errorBuilder: (context, _, _) => Center(
+          child: Text(
+            "This image can't be shown.",
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
         ),
       ),
     ),

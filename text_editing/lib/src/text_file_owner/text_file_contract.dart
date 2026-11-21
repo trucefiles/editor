@@ -279,11 +279,14 @@ final class Picked extends ToEditor {
 
 /// The answer to [Secure]: whether the edits are kept somewhere lasting.
 final class Answer extends TextFileEvent implements Answering {
-  const Answer(this.ticket, {required this.kept});
+  const Answer(this.ticket, {required this.kept, required this.onDevice});
 
   @override
   final Ticket ticket;
   final bool kept;
+
+  /// Whether this device's draft holds the edits as they are now.
+  final bool onDevice;
 }
 
 /// The answer to [Move]: whether the move was started ([MoveFile]), and
@@ -336,9 +339,10 @@ sealed class TextFileEffect<V extends Version> {
   const TextFileEffect();
 }
 
-/// Keep [text], edited from the file's [base], on this device, as the
-/// draft of the [file] the edits go over; both `null` for a new
-/// file, whose draft goes where its file will. Answered by
+/// Keep [text], edited from the file's version [base], on this device,
+/// as the draft of the [file] the edits go over; both `null` for a new
+/// file, whose draft goes where its file will. At the next start the
+/// edits go into the file only if it is still [base]. Answered by
 /// [DraftKept].
 final class KeepDraft<V extends Version> extends TextFileEffect<V> {
   const KeepDraft(
@@ -350,7 +354,7 @@ final class KeepDraft<V extends Version> extends TextFileEffect<V> {
   });
 
   final EffectId id;
-  final String? base;
+  final V? base;
   final String text;
   final V? file;
 

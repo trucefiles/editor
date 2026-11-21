@@ -6,6 +6,8 @@ import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
+import 'page_leave.dart';
+
 /// Backs up [text], the open file's text now.
 typedef BackUpText = Future<Result<void, StoreError>> Function(String text);
 
@@ -204,12 +206,11 @@ final class TextEditPageController extends ChangeNotifier {
   Future<bool> mayGo(
     SecureReason reason,
     Future<bool> Function() askToDiscard,
-  ) async {
-    if (await keep(reason)) return true;
-    if (!await askToDiscard()) return false;
-    session.discard();
-    return true;
-  }
+  ) => mayGoOnceKept(
+    keep: () => keep(reason),
+    askToDiscard: askToDiscard,
+    discard: session.discard,
+  );
 
   /// Keeps the edits for [reason] ([TextEditSession.secure]); whether
   /// they are kept: in the file or a conflict copy, or on this device
@@ -223,9 +224,10 @@ final class TextEditPageController extends ChangeNotifier {
     if (session.state case Stopped(:final kept)) return kept ?? false;
     return switch (reason) {
       SecureReason.exit => session.secureForExit(within: endWait),
-      SecureReason.close || SecureReason.hide =>
-        await session.secure(reason) ||
-            await reachSettled() == Reach.unreachable,
+      SecureReason.close || SecureReason.hide => keptOrOutOfReach(
+        session.secureResult(reason),
+        reachSettled,
+      ),
     };
   }
 

@@ -53,7 +53,7 @@ class VersionPane extends ConsumerWidget {
           title: Text(label),
           // Every side has this line, so both texts start at one height.
           subtitle: Text(switch (content) {
-            SavedText(:final modified) =>
+            SavedText(:final modified) || SavedView(:final modified) =>
               ref.watch(timeTextsProvider).full(modified),
             EditorText() => 'In the editor',
             DeletedFile() => 'Deleted',
@@ -61,14 +61,19 @@ class VersionPane extends ConsumerWidget {
           trailing: FilledButton(onPressed: onKeep, child: Text(keepLabel)),
         ),
         Expanded(
-          child: switch (content.text) {
-            null => Center(
+          child: switch (content) {
+            DeletedFile() => Center(
               child: Text(
                 'Deleted on a device',
                 style: theme.textTheme.bodyLarge,
               ),
             ),
-            final text => DocumentTextZoom(
+            SavedView(:final content, :final type) => type.view(
+              content,
+              label: label,
+            ),
+            SavedText(:final text) ||
+            EditorText(:final text) => DocumentTextZoom(
               child: _HighlightedText(text, compareTo, ownLines),
             ),
           },

@@ -119,9 +119,11 @@ ShownFileTypes<FilePageType> appFileTypes() {
 /// The app's type for a plain new document, with its editor.
 EditableType appNewTextType() => appTextType(appFileTypes().forNew);
 
-/// [type] as the text editing page opens it; today every type does.
+/// [type] as the text editing page opens it; a test asks only for a
+/// text type.
 EditableType appTextType(FilePageType type) => switch (type) {
   final EditableType type => type,
+  ViewType() => throw StateError('$type opens on the view page.'),
 };
 
 /// A file as listed, of no file on disk.
@@ -162,8 +164,10 @@ FolderServices servicesFor(
   return folderServices(
     raw,
     reach: folderReach(raw.files),
-    handles: appFileTypes().handles,
-    keptApart: ImageNames.isKept,
+    bounds: FileBounds(
+      handles: appFileTypes().handles,
+      keptApart: ImageNames.isKept,
+    ),
     checkEvery: () => const Duration(seconds: 1),
     backupsPath: backupsPath ?? tempFolder().path,
     deviceId: '0123456789abcdef',

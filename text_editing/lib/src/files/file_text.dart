@@ -4,6 +4,7 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 
+import '../drafts/fingerprint.dart';
 import '../text/text_file.dart';
 
 /// A text file as the app last read or wrote it: the [listed] and its
@@ -38,6 +39,11 @@ final class FileText {
 
   /// The file's bytes: its text in its byte style, as in its file.
   FileBytes get fileBytes => FileBytes(listed, textFile.encode(text));
+
+  /// A fingerprint of this version's bytes ([fingerprintOf]): edits kept as a draft over
+  /// it go into its file at the next start only while it still matches.
+  /// Worked out once, only when a draft asks.
+  late final String fingerprint = fingerprintOf(fileBytes.bytes);
 
   Folder get folder => listed.folder;
   RelPath get path => listed.path;

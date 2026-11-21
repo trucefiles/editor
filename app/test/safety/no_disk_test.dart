@@ -64,7 +64,7 @@ void main() {
     await files.save(a, '# A\nmore');
     final created = (await actions.create(
       (folder: folder, subfolder: null),
-      type: appNewTextType(),
+      extension: '.md',
       title: 'New',
       bytes: utf8.encode('# New'),
     )).value;

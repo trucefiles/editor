@@ -102,7 +102,7 @@ final class _World {
       case final TextFileEffect effect:
         expect(
           switch (effect) {
-            KeepDraft(:final base?) => taken.contains(base),
+            KeepDraft(:final base?) => taken.contains(versionTexts[base]),
             _ => true,
           },
           isTrue,

@@ -6,6 +6,8 @@ import 'package:truce_core/truce_core.dart'
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
+import 'package:truce_image_file/truce_image_file.dart' show ImageFileSupport;
+import 'package:truce_image_view/truce_image_view.dart';
 import 'package:truce_markdown/truce_markdown.dart'
     show MarkdownSupport, markdownType;
 import 'package:truce_plain_text/truce_plain_text.dart' show PlainTextSupport;
@@ -26,6 +28,7 @@ final fileTypeDetectorProvider = Provider<FileTypeDetector>(
     MarkdownSupport(),
     PlainTextSupport(),
     CalendarSupport(),
+    ImageFileSupport(),
   ]),
 );
 
@@ -43,7 +46,12 @@ final fileTypesProvider = Provider<ShownFileTypes<FilePageType>>((ref) {
     openers: ref.watch(eventOpenersProvider),
     clock: ref.watch(calendarClockProvider),
   );
-  return ShownFileTypes([markdown, const PlainTextEditableType(), calendars]);
+  return ShownFileTypes([
+    markdown,
+    const PlainTextEditableType(),
+    calendars,
+    ImageViewType(ref.watch(imagePickingProvider)),
+  ]);
 });
 
 /// What each file type does as its files move or are restored: Markdown

@@ -1,16 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
 
-import '../file_types/file_types.dart';
+import '../folders/open_folders_wiring.dart';
 import '../platform/app_activity.dart';
 import '../settings/device_settings_controller.dart';
 import '../storage/app_storage.dart';
 
 final _pruningProvider = Provider<BackupPruning>((ref) {
-  final detector = ref.watch(fileTypeDetectorProvider);
   return BackupPruning(
     ref.watch(appStorageProvider).backupsRootPath,
-    shows: (file) => detector.detect(file) != null,
+    shows: ref.watch(fileBoundsProvider).shows,
   );
 });
 

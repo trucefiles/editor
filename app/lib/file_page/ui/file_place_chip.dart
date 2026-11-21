@@ -1,30 +1,32 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:truce_text_editing/truce_text_editing.dart';
+import 'package:truce_core/truce_core.dart';
+import 'package:truce_folders/truce_folders.dart';
 
 import '../../folders/ui/folder_badge.dart';
-import 'edit_file_place.dart';
 
-/// Shows where the open file is, e.g. `Files/inbox/Milk.md`;
-/// tapping it asks for another folder, subfolder or name
-/// ([editFilePlace]).
-class FilePlaceChip extends ConsumerWidget {
-  const FilePlaceChip(this.session, {required this.enabled, super.key});
+/// Shows where an open file is, the file at [path] in [folder], e.g.
+/// `Files/inbox/Milk.md`; tapping it asks for another folder, subfolder
+/// or name ([onPressed]; `null` while it can't change).
+class FilePlaceChip extends StatelessWidget {
+  const FilePlaceChip(
+    this.folder,
+    this.path, {
+    required this.onPressed,
+    super.key,
+  });
 
-  final TextEditSession session;
-  final bool enabled;
+  final Folder folder;
+  final RelPath path;
+  final VoidCallback? onPressed;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final file = session.file;
-    return Tooltip(
-      message: placeLabel,
-      child: ActionChip(
-        label: FolderBadge(file.folder, file: session.path, withName: true),
-        onPressed: enabled ? () => editFilePlace(context, ref, session) : null,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Tooltip(
+    message: placeLabel,
+    child: ActionChip(
+      label: FolderBadge(folder, file: path, withName: true),
+      onPressed: onPressed,
+    ),
+  );
 }
 
 /// What the chip and the file's menu call the file's place.

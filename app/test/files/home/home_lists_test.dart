@@ -20,6 +20,7 @@ void main() {
       final recent = recentOf(
         files,
         isPinned: (file) => file == pinned,
+        counts: (_) => true,
         count: 2,
       );
 
@@ -31,7 +32,12 @@ void main() {
     test('all others when fewer than the count, hiding none', () {
       final files = [doc('a.md')];
 
-      final recent = recentOf(files, isPinned: (_) => false, count: 50);
+      final recent = recentOf(
+        files,
+        isPinned: (_) => false,
+        counts: (_) => true,
+        count: 50,
+      );
 
       expect(recent.newest, files);
       expect(recent.hidesSome, isFalse);
@@ -41,7 +47,12 @@ void main() {
       final pinned = doc('old.md');
       final files = [doc('b.md'), pinned, doc('a.md')];
 
-      final recent = recentOf(files, isPinned: (f) => f == pinned, count: 2);
+      final recent = recentOf(
+        files,
+        isPinned: (f) => f == pinned,
+        counts: (_) => true,
+        count: 2,
+      );
 
       expect(recent.hidesSome, isFalse);
     });
@@ -59,12 +70,31 @@ void main() {
       final recent = recentOf(
         files,
         isPinned: (file) => file == pinned,
+        counts: (_) => true,
         count: 50,
         since: DateTime(2026, 1, 5),
       );
 
       expect(recent.pinned, [pinned]);
       expect(recent.newest, [files[0], files[1]]);
+      expect(recent.hidesSome, isTrue);
+    });
+
+    test('only files that count, hiding the others; pinned ones even if '
+        'they do not', () {
+      final photo = doc('photo.jpg', day: 9);
+      final pinnedPhoto = doc('pinned.jpg');
+      final files = [photo, doc('a.md'), pinnedPhoto];
+
+      final recent = recentOf(
+        files,
+        isPinned: (file) => file == pinnedPhoto,
+        counts: (file) => !file.path.name.endsWith('.jpg'),
+        count: 50,
+      );
+
+      expect(recent.pinned, [pinnedPhoto]);
+      expect(recent.newest, [files[1]]);
       expect(recent.hidesSome, isTrue);
     });
   });

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -8,24 +9,23 @@ import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
 
+/// The recovery of edits left as drafts of saved text files, on the
+/// app's real files and types, and of drafts an older app version left.
 void main() {
   late Directory dir;
+  late Directory draftsDir;
   late FileDrafts drafts;
   late FolderServices services;
-  late DraftRecovery recovery;
+  late FilesOfFolder files;
   final later = DateTime.now().add(const Duration(days: 1));
 
   setUp(() {
     dir = tempFolder();
     final folder = folderAt(dir);
-    drafts = tempDrafts();
+    draftsDir = tempFolder();
+    drafts = FileDrafts(draftsDir);
     services = servicesFor(folder);
-    final files = FilesOfFolder(folder, services, appFileTypes());
-    recovery = DraftRecovery(
-      drafts,
-      files: TextFiles(files),
-      types: appFileTypes(),
-    );
+    files = FilesOfFolder(folder, services, appFileTypes());
   });
 
   File diskFile() => File('${dir.path}/a.md');
@@ -35,29 +35,44 @@ void main() {
       if (file.path.contains('.sync-conflict-')) file.readAsStringSync(),
   ];
 
-  Future<void> leaveDraft(String text) => drafts.keep(
-    FileDraft(id: '1', path: path('a.md'), base: '# a\nv1\n', text: text),
+  Future<void> recover() => recoverFolderDrafts(
+    drafts,
+    files,
+    recoverOwn: recoverEdits,
+    before: later,
   );
+
+  /// Leaves [text] as the draft of `a.md`, edited from [base].
+  Future<void> leaveDraft(String text, {String base = '# a\nv1\n'}) =>
+      drafts.keep(
+        Draft(
+          DraftHead(
+            id: '1',
+            path: path('a.md'),
+            of: OwnDraft(fingerprintOf(utf8.encode(base))),
+          ),
+          utf8.encode(text),
+        ),
+      );
 
   test('writes the edits into an unchanged file', () async {
     diskFile().writeAsStringSync('# a\nv1\n');
     await leaveDraft('# a\nmine\n');
 
-    expect(await recovery.recover(before: later), 1);
+    await recover();
 
     expect(diskFile().readAsStringSync(), '# a\nmine\n');
     expect(conflictCopies(), isEmpty);
-    expect(await drafts.all(before: later), isEmpty);
+    expect(await drafts.heads(before: later), isEmpty);
   });
 
   test('backs up the file before writing the edits', () async {
     diskFile().writeAsStringSync('# a\nv1\n');
     await leaveDraft('# a\nmine\n');
 
-    await recovery.recover(before: later);
+    await recover();
 
     final backup = (await services.backups.list()).value.single;
-    expect(backup.filePath, path('a.md'));
     expect(backup.kind, BackupKind.beforeEdit);
     expect(
       String.fromCharCodes((await services.backups.read(backup)).value),
@@ -69,86 +84,76 @@ void main() {
     diskFile().writeAsStringSync('# a\ntheirs\n');
     await leaveDraft('# a\nmine\n');
 
-    expect(await recovery.recover(before: later), 1);
+    await recover();
 
     expect(diskFile().readAsStringSync(), '# a\ntheirs\n');
     expect(conflictCopies(), ['# a\nmine\n']);
-    expect(await drafts.all(before: later), isEmpty);
+    expect(await drafts.heads(before: later), isEmpty);
+  });
+
+  test('a change elsewhere only in line breaks is a change too', () async {
+    diskFile().writeAsStringSync('# a\r\nv1\r\n');
+    await leaveDraft('# a\nmine\n');
+
+    await recover();
+
+    expect(diskFile().readAsStringSync(), '# a\r\nv1\r\n');
+    expect(conflictCopies(), ['# a\nmine\n']);
   });
 
   test('drops a draft the file already holds', () async {
     diskFile().writeAsStringSync('# a\nmine\n');
     await leaveDraft('# a\nmine\n');
 
-    expect(await recovery.recover(before: later), 1);
+    await recover();
 
     expect(dir.listSync(), hasLength(1));
-    expect(await drafts.all(before: later), isEmpty);
+    expect(await drafts.heads(before: later), isEmpty);
   });
 
   test('keeps the edits of a deleted document as a conflict copy', () async {
     await leaveDraft('# a\nmine\n');
 
-    expect(await recovery.recover(before: later), 1);
+    await recover();
 
     expect(diskFile().existsSync(), isFalse);
     expect(conflictCopies(), ['# a\nmine\n']);
   });
 
-  test('leaves drafts written since the app started', () async {
-    diskFile().writeAsStringSync('# a\nv1\n');
-    await leaveDraft('# a\nmine\n');
+  group('a draft of an older app version', () {
+    Future<void> leaveOld(Map<String, Object> json) async =>
+        File('${draftsDir.path}/9.json').writeAsStringSync(jsonEncode(json));
 
-    expect(await recovery.recover(before: DateTime(2000)), 0);
+    Future<void> recoverOld() => recoverOldDraftsWith(
+      (_) => OldDrafts(draftsDir),
+      appFileTypes(),
+    )(files, before: later);
 
-    expect(diskFile().readAsStringSync(), '# a\nv1\n');
-    expect(await drafts.all(before: later), hasLength(1));
-  });
+    test('goes into its unchanged file, and then goes', () async {
+      diskFile().writeAsStringSync('# a\nv1\n');
+      await leaveOld({'path': 'a.md', 'base': '# a\nv1\n', 'text': '# a\nB\n'});
 
-  group('a new document', () {
-    Future<void> leaveNew(String file, String text) =>
-        drafts.keep(FileDraft(id: '2', path: path(file), text: text));
+      await recoverOld();
 
-    test('gets its file', () async {
-      await leaveNew('Milk.md', 'Milk\n');
-
-      expect(await recovery.recover(before: later), 1);
-
-      expect(File('${dir.path}/Milk.md').readAsStringSync(), 'Milk\n');
-      expect(await drafts.all(before: later), isEmpty);
+      expect(diskFile().readAsStringSync(), '# a\nB\n');
+      expect(await OldDrafts(draftsDir).count(), 0);
     });
 
-    test(
-      'goes into its subfolder, with a number if the name is taken',
-      () async {
-        File('${dir.path}/inbox/Milk.md').writeCreatingFolders('other');
-        await leaveNew('inbox/Milk.md', 'Milk\n');
+    test('goes into a conflict copy if its file changed', () async {
+      diskFile().writeAsStringSync('# a\ntheirs\n');
+      await leaveOld({'path': 'a.md', 'base': '# a\nv1\n', 'text': '# a\nB\n'});
 
-        await recovery.recover(before: later);
+      await recoverOld();
 
-        expect(
-          File('${dir.path}/inbox/Milk 2.md').readAsStringSync(),
-          'Milk\n',
-        );
-      },
-    );
-
-    test('goes to the top level if its subfolder is gone', () async {
-      await leaveNew('gone/Milk.md', 'Milk\n');
-
-      expect(await recovery.recover(before: later), 1);
-
-      expect(File('${dir.path}/Milk.md').readAsStringSync(), 'Milk\n');
-      expect(Directory('${dir.path}/gone').existsSync(), isFalse);
+      expect(conflictCopies(), ['# a\nB\n']);
     });
 
-    test('created before the app was ended is not created again', () async {
-      File('${dir.path}/Milk.md').writeAsStringSync('Milk\n');
-      await leaveNew('Milk.md', 'Milk\n');
+    test('of a new document gets its file', () async {
+      await leaveOld({'path': 'Milk.md', 'text': 'Milk\n'});
 
-      expect(await recovery.recover(before: later), 1);
+      await recoverOld();
 
-      expect(dir.listSync().whereType<File>(), hasLength(1));
+      expect(File('${dir.path}/Milk.md').readAsStringSync(), 'Milk\n');
     });
   });
 }

@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart'
-    show Err, FolderId, Ok, Result, StoreError;
+    show Err, FolderId, Ok, RelPath, Result, StoreError;
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_markdown/truce_markdown.dart';
@@ -80,13 +81,13 @@ final class FileFixture {
   /// Creates a file in the fixture's folders.
   Future<Result<FileBytes, StoreError>> createFile(
     FilePlace place, {
-    required ShownFileType type,
+    required String extension,
     required String title,
     required Uint8List bytes,
     bool newSubfolder = false,
   }) => this.bytes[place.folder.id]!.create(
     title,
-    type: type,
+    extension: extension,
     subfolder: place.subfolder,
     newSubfolder: newSubfolder,
     bytes: bytes,
@@ -143,9 +144,20 @@ final class FileFixture {
     return file.existsSync() ? file.readAsStringSync() : null;
   }
 
-  /// The drafts kept in folder [id].
-  Future<List<FileDraft>> draftsIn(String id) =>
-      drafts[folderId(id)]!.all(before: later);
+  /// The drafts kept in folder [id], each with its content as text.
+  Future<List<({RelPath path, DraftOf of, String text})>> draftsIn(
+    String id,
+  ) async {
+    final kept = drafts[folderId(id)]!;
+    return [
+      for (final head in await kept.heads(before: later))
+        (
+          path: head.path,
+          of: head.of,
+          text: utf8.decode((await kept.content(head))!),
+        ),
+    ];
+  }
 
   /// The file as another device or app changed it to [text].
   Future<FileText> editElsewhere(String text) async {

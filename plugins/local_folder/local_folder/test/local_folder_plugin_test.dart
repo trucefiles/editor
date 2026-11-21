@@ -114,8 +114,7 @@ void main() {
         BoundedPlace(
           store,
           null,
-          handles: (_) => true,
-          keptApart: (_) => false,
+          bounds: FileBounds(handles: (_) => true, keptApart: (_) => false),
           checkEvery: () => Duration.zero,
         ),
       );

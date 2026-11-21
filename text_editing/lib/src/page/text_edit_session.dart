@@ -152,15 +152,19 @@ final class TextEditSession {
 
   /// Keeps the edits somewhere lasting now, for [reason]; whether they
   /// are kept. A new file is created now, unless it is empty.
-  /// The question goes to the editor, which sends its text first; the
-  /// file owner answers.
-  Future<bool> secure(SecureReason reason) async {
+  Future<bool> secure(SecureReason reason) async =>
+      (await secureResult(reason)).kept;
+
+  /// Keeps the edits as [secure] does; whether they are kept, and else
+  /// whether this device holds them. The question goes to the editor,
+  /// which sends its text first; the file owner answers.
+  Future<({bool kept, bool onDevice})> secureResult(SecureReason reason) async {
     final answer = await ask<EditorRequest, Answer>(
       editor.send,
       _file.events,
       (ticket) => SecureEditor(ticket, reason),
     );
-    return answer?.kept ?? false;
+    return (kept: answer?.kept ?? false, onDevice: answer?.onDevice ?? false);
   }
 
   /// Keeps typing that waits for a draft on this device now (e.g. the
@@ -250,6 +254,33 @@ final class TextEditSession {
 
   /// Drops the edits that could be kept nowhere.
   void discard() => _file.send(const Discard());
+
+  /// Takes the place and name the user [picked]: a new file only changes
+  /// where its file will go; one with a file is moved or renamed. The
+  /// file as moved, `null` where it did not move; why not, if it can't.
+  Future<Result<ListedFile?, MoveFailure>> placeAt(PickedPlace picked) async {
+    final now = file;
+    final change = PlaceChange.of(
+      picked,
+      isNew: now is NewFile,
+      saved: read?.listed,
+      unnamed: summary.firstLine,
+    );
+    return switch ((change, now)) {
+      (final NewPlace to, final NewFile from) => switch (await place(
+        from.placedAt(to),
+      )) {
+        Ok() => const Ok(null),
+        Err(:final error) => Err(error),
+      },
+      (NewPlace(), ExistingFile()) || (SamePlace(), _) => const Ok(null),
+      (CantMove(:final failure), _) => Err(failure),
+      (MoveTo(:final to), _) => switch (await move(to)) {
+        Ok(:final value) => Ok(value.listed),
+        Err(:final error) => Err(error),
+      },
+    };
+  }
 
   /// Moves or renames the file to [to], with every edit: those not in
   /// its file yet are saved first; how it went.

@@ -22,7 +22,6 @@ void main() {
   });
 
   FilePages pages() => FilePages(
-    types: appFileTypes(),
     create: fixture.createFile,
     move: fixture.moveFile,
     delete: (_, _) async => const Err(DeleteNotDone(StoreError.notFound)),
@@ -39,7 +38,11 @@ void main() {
   );
 
   test('a page tells that it closed, once, as it closes', () async {
-    final page = pages().open(fixture.file, withFile: (_) async {});
+    final page = pages().open(
+      fixture.file,
+      type: appTextType(appFileTypes().ofFile(fixture.file.type)),
+      withFile: (_) async {},
+    );
     expect(closings, 0);
 
     final closed = page.close();
@@ -51,7 +54,11 @@ void main() {
 
   test('an open page is one of the open documents, and closes once its '
       'edits are in the file', () async {
-    final page = pages().open(fixture.file, withFile: (_) async {});
+    final page = pages().open(
+      fixture.file,
+      type: appTextType(appFileTypes().ofFile(fixture.file.type)),
+      withFile: (_) async {},
+    );
     await page.session.replaceAll('mine\n');
 
     // A folder change keeps the edits of the open files first.
@@ -67,7 +74,11 @@ void main() {
 
   test('as the app ends, every open page keeps its edits, then waits for '
       'its file', () async {
-    final page = pages().open(fixture.file, withFile: (_) async {});
+    final page = pages().open(
+      fixture.file,
+      type: appTextType(appFileTypes().ofFile(fixture.file.type)),
+      withFile: (_) async {},
+    );
     addTearDown(page.close);
     await page.session.replaceAll('mine\n');
 
@@ -79,10 +90,10 @@ void main() {
   test("a new document's page goes where it is placed, of the type it was "
       'made as', () {
     final made = pages();
-    final document = made.types.newFileChoices.first;
+    final document = appFileTypes().newFileChoices.first;
     final page = made.openNew(
       (folder: fixture.folders[1], subfolder: null),
-      made: document,
+      made: NewFileChoice(document.kind, appTextType(document.type)),
       withFile: (_) async {},
     );
     addTearDown(page.close);
@@ -99,7 +110,7 @@ void main() {
     );
     final page = pages().openNew(
       (folder: fixture.folders[0], subfolder: null),
-      made: health,
+      made: NewFileChoice(health.kind, appTextType(health.type)),
       withFile: (_) async {},
     );
     addTearDown(page.close);

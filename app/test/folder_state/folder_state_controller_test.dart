@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
-import 'package:truce_editor/file_types/file_types.dart';
 import 'package:truce_editor/files/files_wiring.dart';
 import 'package:truce_editor/folder_state/folder_state_controller.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
@@ -94,22 +93,24 @@ void main() {
     await start([folderAt(dir, id: 'f1')]);
     final drafts = FileDrafts(Directory(storage.draftsPath(folderId('f1'))));
     await drafts.keep(
-      FileDraft(
-        id: '1',
-        path: path('plan.md'),
-        base: '# Plan\nv1\n',
-        text: '# Plan\nmine\n',
+      Draft(
+        DraftHead(
+          id: '1',
+          path: path('plan.md'),
+          of: OwnDraft(fingerprintOf(utf8.encode('# Plan\nv1\n'))),
+        ),
+        utf8.encode('# Plan\nmine\n'),
       ),
     );
     // Written before this run started.
-    File('${storage.draftsPath(folderId('f1'))}/1.json')
+    File('${storage.draftsPath(folderId('f1'))}/1.draft')
         .setLastModifiedSync(DateTime(2000));
 
     final found = await scans();
 
     expect(names(found), ['plan.md']);
     expect(File('${dir.path}/plan.md').readAsStringSync(), '# Plan\nmine\n');
-    expect(await drafts.all(before: DateTime.now()), isEmpty);
+    expect(await drafts.heads(before: DateTime.now()), isEmpty);
   });
 
   test('finds documents, marks and conflicts several levels deep', () async {
@@ -236,11 +237,7 @@ void main() {
     await container
         .read(fileAccessProvider)
         .of(folder)
-        .create(
-          'New',
-          type: container.read(fileTypesProvider).forNew,
-          bytes: utf8.encode('# New'),
-        );
+        .create('New', extension: '.md', bytes: utf8.encode('# New'));
 
     await eventually(
       () => names(shown.read().requireValue.shown).contains('New.md'),

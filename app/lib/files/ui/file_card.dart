@@ -3,12 +3,16 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/card_frame.dart';
 import '../../common/time_texts.dart';
 import '../../conflicts/ui/conflict_label.dart';
+import '../../file_page/listed_content.dart';
+import '../../file_types/file_types.dart';
 import '../../folders/ui/folder_badge.dart';
+import '../file_actions.dart';
 import '../file_colors.dart';
 import 'file_type_icon.dart';
 
@@ -65,15 +69,24 @@ class FileCard extends ConsumerWidget {
       onActionsAt: onActionsAt,
       leading: FileTypeIcon(file),
       title: cardTitle(file, preview),
-      body: switch (preview) {
-        Previewed(:final summary)
-            when summary.preview(settings.view).isNotEmpty =>
-          CardLines(summary.preview(settings.view)),
-        PreviewNotShown() => const CardLines(
-          "Can't be shown as text.",
-          italic: true,
+      body: switch (ref.watch(fileTypesProvider).ofFile(file.type)) {
+        final ViewType type => type.thumbnail(
+          listedContent(file, ref.read(fileActionsProvider).read),
+          label: cardTitle(file, preview),
         ),
-        Previewed() || PreviewReading() || PreviewUnreadable() => null,
+        EditableType() => switch (preview) {
+          Previewed(:final summary)
+              when summary.preview(settings.view).isNotEmpty =>
+            CardLines(summary.preview(settings.view)),
+          PreviewNotShown() => const CardLines(
+            "Can't be shown as text.",
+            italic: true,
+          ),
+          Previewed() ||
+          PreviewReading() ||
+          NotPreviewed() ||
+          PreviewUnreadable() => null,
+        },
       },
       footer: _Footer(
         file,

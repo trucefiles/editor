@@ -194,7 +194,7 @@ final class _Step<V extends Version>
     effects.add(
       KeepDraft(
         id,
-        base: (work.editsOver ?? work.expected)?.text,
+        base: (work.editsOver ?? work.expected)?.version,
         text: state.text,
         file: _file,
         firstLine: _file == null ? work.firstLine : null,
@@ -748,7 +748,10 @@ final class _Step<V extends Version>
   void _answer({required bool kept}) {
     final asks = work.securing!.asks;
     _work(work.copyWith(securing: null));
-    events.addAll([for (final ask in asks) Answer(ask.ticket, kept: kept)]);
+    events.addAll([
+      for (final ask in asks)
+        Answer(ask.ticket, kept: kept, onDevice: _onDevice),
+    ]);
     if (kept && asks.any((ask) => ask.reason == SecureReason.close)) {
       _set(status: const Closed());
     }
@@ -778,7 +781,9 @@ final class _Step<V extends Version>
         ),
       ),
     );
-    events.addAll([for (final ask in exits) Answer(ask.ticket, kept: true)]);
+    events.addAll([
+      for (final ask in exits) Answer(ask.ticket, kept: true, onDevice: true),
+    ]);
   }
 
   /// Whether the device's draft holds the edits as they are now.

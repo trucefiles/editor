@@ -5,6 +5,9 @@ import 'package:truce_folders/truce_folders.dart';
 
 import 'backups/folder_backups.dart';
 import 'delete_failure.dart';
+import 'drafts/draft.dart';
+import 'drafts/draft_recovery.dart';
+import 'drafts/file_drafts.dart';
 import 'file_arrival.dart';
 import 'file_bytes.dart';
 import 'file_place.dart';
@@ -12,7 +15,6 @@ import 'file_settings_keeper.dart';
 import 'files_of_folder.dart';
 import 'listed_file.dart';
 import 'move_failure.dart';
-import 'shown_file_type.dart';
 import 'shown_file_types.dart';
 import 'undoable_delete.dart';
 
@@ -24,7 +26,9 @@ final class FilesWork {
     required this.settings,
     required this.conflictWaits,
     required this.folders,
-    required this.recoverDrafts,
+    required this.drafts,
+    required this.recoverOwnDraft,
+    required this.recoverOldDrafts,
     required this.types,
     required this.arrivals,
   });
@@ -42,11 +46,18 @@ final class FilesWork {
   /// The folders once their list loaded; none if it can't be read.
   final Future<List<Folder>> Function() folders;
 
-  /// Puts the drafts written before [before] into the files of [files]'
-  /// folder: edits the last run left on this device. The app plugs in
-  /// how.
+  /// What waits on this device to go into each folder's files.
+  final DraftsByFolder drafts;
+
+  /// Puts a draft its user keeps itself into its file (see [OwnDraft]).
+  final OwnDraftRecovery recoverOwnDraft;
+
+  /// Puts the drafts an older app version left, in its own format, into
+  /// the files of [files]' folder; written before [before]. Only until
+  /// those are all recovered.
   final Future<void> Function(FilesOfFolder files, {required DateTime before})
-  recoverDrafts;
+  recoverOldDrafts;
+
   final ShownFileTypes types;
 
   /// How files arrive as they move or are restored.
@@ -75,13 +86,13 @@ base class FileSteps {
       _backupsOf(from.folder)
           .moveAll(from: from.path, to: to.path, into: _backupsOf(to.folder));
 
-  /// Creates a file of [type] holding [bytes] at [place], named after
-  /// [title]; [newSubfolder]: [place]'s subfolder is a new one the user
-  /// asked for, made first. Like every write of the app, the folder state
+  /// Creates a file holding [bytes] at [place], named after [title] with
+  /// [extension] (see [FilesOfFolder.create]); [newSubfolder]: [place]'s
+  /// subfolder is a new one the user asked for, made first. Like every write of the app, the folder state
   /// sees it at once.
   Future<Result<FileBytes, StoreError>> create(
     FilePlace place, {
-    required ShownFileType type,
+    required String extension,
     required String title,
     required Uint8List bytes,
     bool newSubfolder = false,
@@ -89,7 +100,7 @@ base class FileSteps {
       .of(place.folder)
       .create(
         title,
-        type: type,
+        extension: extension,
         subfolder: place.subfolder,
         newSubfolder: newSubfolder,
         bytes: bytes,
@@ -255,11 +266,17 @@ base class FileSteps {
   }
 
   /// Recovers the drafts of every folder written before [before] (see
-  /// [FilesWork.recoverDrafts]). Recovers none if the folders can't be
-  /// loaded.
+  /// [recoverFolderDrafts]). Recovers none if the folders can't be loaded.
   Future<void> recoverDrafts({required DateTime before}) async {
     for (final folder in await _work.folders()) {
-      await _work.recoverDrafts(_files.of(folder), before: before);
+      final files = _files.of(folder);
+      await _work.recoverOldDrafts(files, before: before);
+      await recoverFolderDrafts(
+        _work.drafts.of(folder.id),
+        files,
+        recoverOwn: _work.recoverOwnDraft,
+        before: before,
+      );
     }
   }
 

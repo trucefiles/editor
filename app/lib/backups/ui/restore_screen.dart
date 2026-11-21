@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../common/snack.dart';
+import '../../file_types/file_types.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/compare_body.dart';
 import '../../versions/ui/resolve_error_text.dart';
@@ -62,14 +62,12 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
   Widget _chooser(RestoreChoice choice, {required bool busy}) {
     final current = choice.current;
     final deleted = current == null;
+    final type = ref.read(fileTypesProvider).of(choice.backup.filePath);
     return VersionChooser(
       current: ShownVersion(
         label: 'Current version',
         content: switch (current) {
-          final current? => SavedText(
-            versionText(current.bytes),
-            current.modified,
-          ),
+          final current? => savedVersion(type, current.bytes, current.modified),
           null => const DeletedFile(),
         },
         keepLabel: deleted ? 'Keep deleted' : 'Keep this',
@@ -79,7 +77,7 @@ class _RestoreScreenState extends ConsumerState<RestoreScreen> {
       ),
       other: ShownVersion(
         label: 'Backup',
-        content: SavedText(versionText(choice.bytes), choice.backup.savedAt),
+        content: savedVersion(type, choice.bytes, choice.backup.savedAt),
         keepLabel: 'Restore',
         keptMessage: deleted
             ? 'The file is restored from this backup.'

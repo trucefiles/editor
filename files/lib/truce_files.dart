@@ -1,5 +1,5 @@
 /// The files in the folders: their files (as bytes), steps and owner,
-/// settings, previews, search, backups, conflicts and compare.
+/// drafts, settings, previews, search, backups, conflicts and compare.
 ///
 /// Pure Dart, no UI; knows no sync tool and no file type, which the
 /// app wires in.
@@ -13,6 +13,10 @@ export 'src/conflicts/conflict_compare.dart';
 export 'src/conflicts/conflict_sides.dart';
 export 'src/conflicts/folder_conflicts.dart';
 export 'src/delete_failure.dart';
+export 'src/drafts/draft.dart';
+export 'src/drafts/draft_recovery.dart';
+export 'src/drafts/file_drafts.dart';
+export 'src/drafts/page_draft.dart';
 export 'src/file_arrival.dart';
 export 'src/file_bytes.dart';
 export 'src/file_card_summary.dart';
@@ -44,9 +48,13 @@ export 'src/open_edits.dart';
 export 'src/open_failure.dart';
 export 'src/open_file/observation.dart';
 export 'src/open_file/version.dart';
+export 'src/page_writes.dart';
+export 'src/place_change.dart';
 export 'src/previews/card_preview.dart';
 export 'src/previews/card_previews.dart';
 export 'src/search/file_search.dart';
+export 'src/shown_file/new_shown_file.dart';
+export 'src/shown_file/shown_file_owner.dart';
 export 'src/shown_file_type.dart';
 export 'src/shown_file_types.dart';
 export 'src/undoable_delete.dart';

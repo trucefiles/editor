@@ -91,6 +91,16 @@ void main() {
     expect(named(overSpaceLimit(backups, 10)), [('a.md', 2)]);
   });
 
+  test("deleted files' backups don't count toward the limit", () {
+    final backups = [
+      backup('gone.jpg', 0, 500, kind: BackupKind.beforeDelete),
+      backup('a.md', 1, 40),
+      backup('a.md', 2, 40),
+    ];
+
+    expect(overSpaceLimit(backups, 100), isEmpty);
+  });
+
   test('the same path in two folders is two files', () {
     final backups = [
       backup('a.md', 1, 50),

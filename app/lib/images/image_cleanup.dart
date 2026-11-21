@@ -12,6 +12,7 @@ class ImageCleanup {
     required this._servicesOf,
     required this._storeOf,
     required this._draftsOf,
+    required this._oldDraftsOf,
     required this._openEdits,
     required this._isDocument,
     this._now,
@@ -20,6 +21,7 @@ class ImageCleanup {
   final FolderServices Function(FolderId folder) _servicesOf;
   final DocumentImageStore Function(FolderId folder) _storeOf;
   final FileDrafts Function(FolderId folder) _draftsOf;
+  final OldDrafts Function(FolderId folder) _oldDraftsOf;
   final OpenEdits _openEdits;
 
   /// Whether a file is a Markdown document.
@@ -40,7 +42,8 @@ class ImageCleanup {
     return UnusedImages(
       _storeOf(folder),
       _servicesOf(folder),
-      drafts: _draftsOf(folder).every,
+      drafts: _draftsOf(folder),
+      oldDrafts: _oldDraftsOf(folder),
       isDocument: _isDocument,
       now: _now,
     );

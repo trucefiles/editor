@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../support.dart';
@@ -60,10 +63,17 @@ void main() {
     )).value;
 
     await effects.run(
-      KeepDraft(id, base: 'one\n', text: 'x', file: copy.seen.version),
+      KeepDraft(
+        id,
+        base: copy.seen.version,
+        text: 'x',
+        file: copy.seen.version,
+      ),
     );
 
-    expect((await fixture.draftsIn('f2')).single.path, path('b.md'));
+    final [kept] = await fixture.draftsIn('f2');
+    expect((kept.path, kept.text), (path('b.md'), 'x'));
+    expect((kept.of as OwnDraft).part, copy.fingerprint);
     expect(await fixture.draftsIn('f1'), isEmpty);
     await effects.run(DropDraft(file: copy.seen.version));
     expect(await fixture.draftsIn('f2'), isEmpty);
@@ -113,6 +123,54 @@ void main() {
     expect(await fixture.draftsIn('f1'), isEmpty);
   });
 
+  group("a new document's draft, placed in a folder that refuses it", () {
+    late TextEditEffects effects;
+    late FileDrafts second;
+
+    /// Drafts in a place that is a file, so none can be kept there.
+    FileDrafts refusing() => FileDrafts(
+      Directory('${(File('${tempFolder().path}/file')..createSync()).path}/d'),
+    );
+
+    Future<void> keep(String text) => effects.run(
+      KeepDraft(id, base: null, text: text, file: null, firstLine: text),
+    );
+
+    setUp(() async {
+      effects = fixture.effects(fixture.newFile);
+      await keep('Milk');
+      second = fixture.drafts[folderId('f2')]!;
+      fixture.drafts[folderId('f2')] = refusing();
+      effects.place(
+        NewFile((
+          folder: fixture.folders[1],
+          subfolder: null,
+        ), type: appNewTextType()),
+      );
+      // The refused keep has run once the next one, queued after it, has.
+      await keep('Milk');
+      fixture.drafts[folderId('f2')] = second;
+    });
+
+    test('stays kept where it was', () async {
+      expect((await fixture.draftsIn('f1')).single.path, path('Milk.md'));
+    });
+
+    test('kept there later, it is dropped where it was', () async {
+      await keep('Milk and eggs');
+
+      expect(await fixture.draftsIn('f1'), isEmpty);
+      expect((await fixture.draftsIn('f2')).single.text, 'Milk and eggs');
+    });
+
+    test('dropped, no draft is left anywhere', () async {
+      await effects.run(const DropDraft(file: null));
+
+      expect(await fixture.draftsIn('f1'), isEmpty);
+      expect(await fixture.draftsIn('f2'), isEmpty);
+    });
+  });
+
   test("a new document's draft, recovered at the next start, goes into the "
       'new subfolder the user asked for', () async {
     final effects = fixture.effects(
@@ -132,12 +190,12 @@ void main() {
       ),
     );
 
-    final recovery = DraftRecovery(
+    await recoverFolderDrafts(
       fixture.drafts[folderId('f1')]!,
-      files: fixture.files[folderId('f1')]!,
-      types: appFileTypes(),
+      fixture.bytes[folderId('f1')]!,
+      recoverOwn: recoverEdits,
+      before: fixture.later,
     );
-    expect(await recovery.recover(before: fixture.later), 1);
 
     expect(fixture.onDisk('2026/Milk.md'), 'Milk');
     expect(fixture.onDisk('Milk.md'), isNull);

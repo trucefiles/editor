@@ -2,8 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_images/truce_images.dart';
 
-import 'image_picking.dart';
-
 /// Keeping a picture for a document and linking it there.
 abstract interface class ImageKeeping {
   /// Keeps [bytes], an image with [extension] (without its dot), for the
@@ -60,10 +58,10 @@ final class ImageInsert extends ChangeNotifier {
 
   Future<void> _add(ImageSource source) async {
     final (:picking, :kept, :hint) = _adding();
-    final bytes = await picking.pick(source);
-    if (bytes == null || _closed) return;
+    final picked = await picking.pick(source);
+    if (picked == null || _closed) return;
     _to(_Step.preparing);
-    final prepared = await prepareInBackground(bytes, picking.settings);
+    final prepared = await prepareInBackground(picked.bytes, picking.settings);
     if (_closed) return;
     if (prepared == null) {
       return hint("That file isn't an image the app can show.");

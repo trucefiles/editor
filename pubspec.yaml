@@ -23,6 +23,8 @@ workspace:
   - types/calendar/calendar_alerts
   - types/calendar/calendar_editor
   - types/document_editor
+  - types/image/image_file
+  - types/image/image_view
   - types/markdown/markdown
   - types/markdown/markdown_images
   - types/plain_text/plain_text

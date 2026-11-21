@@ -1,5 +1,5 @@
 name: truce_files
-description: The files in the folders, their drafts, settings, backups and conflicts, and the open file's page. Pure Dart, no UI.
+description: The files in the folders, their drafts, settings, backups and conflicts, and the owner of a shown file's page. Pure Dart, no UI.
 publish_to: none
 resolution: workspace
 

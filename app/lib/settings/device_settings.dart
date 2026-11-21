@@ -79,7 +79,8 @@ final class DeviceSettings {
   /// Start in the tray when the user logs in, where the app has a tray.
   final bool startAtLogin;
 
-  /// How pictures added to documents are made ready.
+  /// How pictures the user adds (to a document or as a file) are made
+  /// ready.
   final ImageSettings images;
 
   /// How large the text of [target] shows.

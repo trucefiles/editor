@@ -122,8 +122,8 @@ class FoldersScreen extends ConsumerWidget {
     }
   }
 
-  /// Whether the user wants to remove [folder] from the app; the edits
-  /// of [lost] files kept only on this device may be lost.
+  /// Whether the user wants to remove [folder] from the app; [lost]
+  /// files saved only on this device (edits or a new file) may be lost.
   Future<bool> _confirmRemove(BuildContext context, Folder folder, int lost) =>
       showConfirmDialog(
         context,
@@ -134,12 +134,12 @@ class FoldersScreen extends ConsumerWidget {
                 'are.',
           1 =>
             'The folder disappears from the app. Its files stay where they '
-                'are, but edits to 1 file that are only on this device may be '
+                'are, but 1 file that is only saved on this device may be '
                 'lost.',
           _ =>
             'The folder disappears from the app. Its files stay where they '
-                'are, but edits to $lost files that are only on this device '
-                'may be lost.',
+                'are, but $lost files that are only saved on this device may '
+                'be lost.',
         },
         yes: 'Remove',
       );

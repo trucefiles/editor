@@ -14,15 +14,18 @@ typedef Recent = ({
 });
 
 /// Recent of [files], newest first: every pinned one, and the newest
-/// [count] others changed at [since] or later (any time if `null`).
+/// [count] others that [counts] (e.g. those edited in the app) changed at
+/// [since] or later (any time if `null`).
 Recent recentOf(
   List<ListedFile> files, {
   required bool Function(ListedFile file) isPinned,
+  required bool Function(ListedFile file) counts,
   required int count,
   DateTime? since,
 }) {
   final others = files.whereNot(isPinned).toList();
   final newest = others
+      .where(counts)
       .where((file) => since == null || !file.modified.isBefore(since))
       .take(count)
       .toList();

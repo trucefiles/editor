@@ -23,7 +23,9 @@ final folderListOwnerProvider = Provider<FolderListOwner>((ref) {
       plugins: ref.watch(folderPluginsProvider),
       secureOpen: ref.read(openEditsProvider).secureIn,
       forgetDrafts: (folder) => ref.read(draftsProvider).of(folder).forget(),
-      countDrafts: (folder) => ref.read(draftsProvider).of(folder).count(),
+      countDrafts: (folder) async =>
+          await ref.read(draftsProvider).of(folder).count() +
+          await ref.read(oldDraftsProvider)(folder).count(),
     ),
   );
   ref.onDispose(() => unawaited(owner.close()));

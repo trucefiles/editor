@@ -13,13 +13,11 @@ import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
-import '../../common/store_error_text.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../files/file_actions.dart';
 import '../../files/file_colors.dart';
 import '../../files/file_settings_controller.dart';
 import '../../files/files_wiring.dart';
-import '../../files/ui/delete_failure_text.dart';
 import '../../files/ui/file_actions_menu.dart';
 import '../../files/ui/file_heading.dart';
 import '../../folder_state/folder_state_controller.dart';
@@ -33,13 +31,16 @@ import '../../versions/merge_outcome.dart';
 import '../file_page_wiring.dart';
 import '../file_pages.dart';
 import '../text_edit_page_controller.dart';
-import 'edit_file_place.dart';
+import 'discard_dialog.dart';
+import 'edit_place.dart';
 import 'edit_state_banner.dart';
 import 'file_backups.dart';
 import 'file_place_chip.dart';
 import 'file_place_spot.dart';
 import 'history_buttons.dart';
 import 'history_end_text.dart';
+import 'page_close.dart';
+import 'page_delete.dart';
 import 'save_indicator.dart';
 
 /// The one page for an open text document of any type; its type's editor
@@ -47,15 +48,16 @@ import 'save_indicator.dart';
 /// Markdown document). Saves as the user types; a new file is
 /// created as the user leaves it or the app is hidden.
 class TextEditPage extends ConsumerStatefulWidget {
-  /// The page of [file], as read just before.
-  TextEditPage(FileText file, {super.key})
-    : _open = ((pages, withFile) => pages.open(file, withFile: withFile)),
+  /// The page of [file], of [type], as read just before.
+  TextEditPage(FileText file, {required EditableType type, super.key})
+    : _open = ((pages, withFile) =>
+          pages.open(file, type: type, withFile: withFile)),
       _isNew = false;
 
   /// A new file [made], to go into [place].
   TextEditPage.fresh(
     FilePlace place, {
-    required NewFileChoice<FilePageType> made,
+    required NewFileChoice<EditableType> made,
     super.key,
   }) : _open = ((pages, withFile) =>
            pages.openNew(place, made: made, withFile: withFile)),
@@ -167,7 +169,9 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   /// While the folder can't be reached, they stay on this device and go
   /// into the file at the next start.
   Future<void> _leave() async {
-    if (await _controller.mayGo(SecureReason.close, _askToDiscard)) _close();
+    if (await _controller.mayGo(SecureReason.close, _askToDiscard) && mounted) {
+      closeIfOnTop(context);
+    }
   }
 
   /// On desktop: quits once the edits are kept, or the user discards them.
@@ -177,30 +181,16 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
       : AppExitResponse.cancel;
 
   /// Whether the user drops edits that can be kept nowhere.
-  Future<bool> _askToDiscard() async {
-    if (!mounted) return false;
-    final discard = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Your edits can't be saved"),
-        content: const Text(
-          'Neither the file nor a copy of it could be saved. '
-          'Stay and copy your text somewhere else.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Close and lose edits'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Stay'),
-          ),
-        ],
-      ),
-    );
-    return discard ?? false;
-  }
+  Future<bool> _askToDiscard() async =>
+      mounted &&
+      await askToDiscard(
+        context,
+        title: "Your edits can't be saved",
+        message:
+            'Neither the file nor a copy of it could be saved. '
+            'Stay and copy your text somewhere else.',
+        discard: 'Close and lose edits',
+      );
 
   /// Once the file's folder was removed: closes if nothing is unsaved
   /// (its edits were saved before, see `FolderListWork.secureOpen`);
@@ -209,44 +199,21 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   void _closeIfNotShown(List<Folder> folders) {
     if (_controller.folderShownIn(folders)) return;
     if (!_controller.folderRemoved()) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showHint('The file closed because its folder was removed from the app.');
-    _closeWithAllOnTop();
-  }
-
-  /// Closes the editor and every screen or dialog open on top of it.
-  void _closeWithAllOnTop() {
-    final route = mounted ? ModalRoute.of(context) : null;
-    if (route == null || !route.isActive) return;
-    Navigator.of(context)
-      ..popUntil((top) => top == route)
-      ..pop();
-  }
-
-  /// Closes the editor if it is still the top screen (the user may have
-  /// left it meanwhile).
-  void _close() {
-    if (mounted && (ModalRoute.of(context)?.isCurrent ?? false)) {
-      Navigator.pop(context);
-    }
+    closeAsFolderRemoved(context);
   }
 
   /// [context] is this screen's, below its own messenger.
   Future<void> _delete(BuildContext context) async {
     final outcome = await _controller.deleteFile();
-    if (!context.mounted) return;
-    switch (outcome) {
-      case NewDropped():
-        Navigator.pop(context);
-      case DeletedForUndo(:final deleted):
-        _offerUndo(ref.read(fileActionsProvider), deleted);
-        Navigator.pop(context);
-      case DeleteRefused(:final failure):
-        showSnack(context, deleteFailureText(failure));
-      case AlreadyGone() || FileStopped():
-        break;
-    }
+    if (!context.mounted || !mounted) return;
+    tellDeleted(
+      context,
+      outcome,
+      // The hint outlives this screen, so it shows on the app's
+      // messenger, found from above this screen's own.
+      appMessenger: ScaffoldMessenger.of(this.context),
+      actions: ref.read(fileActionsProvider),
+    );
   }
 
   /// Runs [action] on the file (see
@@ -272,21 +239,6 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
     }
   }
 
-  /// The hint outlives this screen, so it shows on the app's messenger,
-  /// found from above this screen's own.
-  void _offerUndo(FileActions actions, UndoableDelete deleted) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.showHint(
-      'File deleted',
-      actionLabel: 'Undo',
-      onAction: () async {
-        if (await actions.undoDelete(deleted) case Err(:final error)) {
-          messenger.showHint(error.text);
-        }
-      },
-    );
-  }
-
   /// [context] is this screen's, below its own messenger; [settings] are
   /// the file's. Has the file's place where [placeSpot] says.
   Widget _menu(
@@ -305,7 +257,7 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
       ..._page.view.menu(context, settings.view),
       if (placeSpot == FilePlaceSpot.menu)
         PopupMenuItem(
-          value: () => unawaited(editFilePlace(context, ref, _session)),
+          value: () => unawaited(_editPlace(context)),
           child: const Text('$placeLabel…'),
         ),
       PopupMenuItem(
@@ -324,6 +276,20 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
         child: const Text('Delete file'),
       ),
     ],
+  );
+
+  /// Asks the user for another place or name of the file, then takes it;
+  /// [context] is this screen's, below its own messenger.
+  Future<void> _editPlace(BuildContext context) => editPlace(
+    context,
+    ref,
+    at: (folder: _session.file.folder, subfolder: _session.path.parent),
+    nameField: nameFieldOf(
+      _session.file,
+      _session.path,
+      _session.summary.firstLine,
+    ),
+    take: _session.placeAt,
   );
 
   void _refresh() => unawaited(_pull.currentState!.refresh());
@@ -479,8 +445,11 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
                 alignment: AlignmentDirectional.centerStart,
                 // A new file can still go to another folder.
                 child: FilePlaceChip(
-                  _session,
-                  enabled: _session.file is NewFile || !readOnly,
+                  _folder,
+                  path,
+                  onPressed: _session.file is NewFile || !readOnly
+                      ? () => unawaited(_editPlace(context))
+                      : null,
                 ),
               ),
             ),

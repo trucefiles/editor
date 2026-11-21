@@ -18,8 +18,10 @@ const _name = 'img-0123456789abcdef.png';
 FolderServices _services(FakeFolder raw) => folderServices(
   raw,
   reach: folderReach(raw.files),
-  handles: (file) => file.name.endsWith('.md'),
-  keptApart: ImageNames.isKept,
+  bounds: FileBounds(
+    handles: (file) => file.name.endsWith('.md'),
+    keptApart: ImageNames.isKept,
+  ),
   checkEvery: () => const Duration(seconds: 1),
   backupsPath: tempFolder().path,
   deviceId: '0123456789abcdef',

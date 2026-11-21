@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_folders/truce_folders.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
@@ -29,6 +30,7 @@ final class UnusedImages {
     this._store,
     this._services, {
     required this._drafts,
+    required this._oldDrafts,
     required this._isDocument,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
@@ -39,8 +41,10 @@ final class UnusedImages {
   final DocumentImageStore _store;
   final FolderServices _services;
 
-  /// The folder's drafts on this device; `null` if one can't be read.
-  final Future<List<FileDraft>?> Function() _drafts;
+  /// The folder's drafts on this device, and those an older app version
+  /// left.
+  final FileDrafts _drafts;
+  final OldDrafts _oldDrafts;
   final DateTime Function() _now;
 
   /// Whether a file is a Markdown document, by the app's file types.
@@ -90,12 +94,8 @@ final class UnusedImages {
       case Ok() || Err():
         return null;
     }
-    final drafts = await _drafts();
-    if (drafts == null) return null;
-    final used = {
-      for (final draft in drafts)
-        if (_isDocument(draft.path)) ...ImageNames.linkedBy(draft.text),
-    };
+    final used = await _linkedByDrafts();
+    if (used == null) return null;
     for (final file in scan.files.where((f) => _isDocument(f.path))) {
       switch (await _services.store.read(file.path)) {
         case Ok(:final value):
@@ -114,6 +114,24 @@ final class UnusedImages {
         case Err():
           return null;
       }
+    }
+    return used;
+  }
+
+  /// The image names the folder's document drafts link; `null` if any
+  /// can't be read. Other drafts (e.g. a new image's) are never loaded.
+  Future<Set<String>?> _linkedByDrafts() async {
+    final heads = await _drafts.every();
+    final old = await _oldDrafts.all();
+    if (heads == null || old == null || old.contains(null)) return null;
+    final used = {
+      for (final draft in old.nonNulls)
+        if (_isDocument(draft.path)) ...ImageNames.linkedBy(draft.text),
+    };
+    for (final head in heads.where((head) => _isDocument(head.path))) {
+      final content = await _drafts.content(head);
+      if (content == null) return null;
+      used.addAll(_linkedBy(content));
     }
     return used;
   }

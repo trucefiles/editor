@@ -88,7 +88,7 @@ void main() {
 
     final file = (await actions.create(
       (folder: folders[1], subfolder: null),
-      type: markdown,
+      extension: '.md',
       title: 'Plan',
       bytes: bytesOf('Plan\nsteps\n'),
     )).value;
@@ -101,7 +101,7 @@ void main() {
     // Drafts are recovered first, so the action's rescan can run.
     final created = await actions.create(
       (folder: folders[0], subfolder: null),
-      type: markdown,
+      extension: '.md',
       title: 'Plan',
       bytes: bytesOf('Plan\n'),
     );
@@ -115,7 +115,7 @@ void main() {
 
     final file = (await actions.create(
       (folder: folders[0], subfolder: path('a/b')),
-      type: markdown,
+      extension: '.md',
       title: 'Plan',
       bytes: bytesOf('# Plan\n'),
     )).value;

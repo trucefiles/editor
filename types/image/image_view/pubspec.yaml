@@ -1,0 +1,23 @@
+name: truce_image_view
+description: How pictures show in Truce (card, page, comparison) and how the user adds one.
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: 3.47.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  truce_common_ui: any
+  truce_file_page: any
+  truce_files: any
+  truce_image_file: any
+  truce_images: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  truce_lints: any
+  truce_test_support: any

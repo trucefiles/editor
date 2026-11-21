@@ -32,6 +32,16 @@ void main() {
     return search;
   }
 
+  test('an item with nothing to read matches by name, done at once', () {
+    final search = ReadingSearch([
+      const Searchable('photo.jpg', names: ['photo'], read: null),
+    ]);
+    addTearDown(search.close);
+
+    expect(search.complete, isTrue);
+    expect(search.find('photo'), ['photo.jpg']);
+  });
+
   test('finds items whose text holds every word, ignoring case', () async {
     final search = await opened([
       item('a.md', text: 'Buy Milk and bread'),

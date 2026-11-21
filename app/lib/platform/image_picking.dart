@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart' as picker;
-import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_images/truce_images.dart';
 
 /// Picks pictures on this platform from [sources]: a file dialog (on
@@ -22,14 +21,24 @@ final class PlatformImagePicking implements ImagePicking {
   ImageSettings get settings => read();
 
   @override
-  Future<Uint8List?> pick(ImageSource source) async {
+  Future<PickedImage?> pick(ImageSource source) async {
     try {
       return switch (source) {
-        ImageSource.file => await (await openFile(
-          acceptedTypeGroups: [_images],
-        ))?.readAsBytes(),
-        ImageSource.gallery => await _picked(picker.ImageSource.gallery),
-        ImageSource.camera => await _picked(picker.ImageSource.camera),
+        ImageSource.file => await _named(
+          await openFile(acceptedTypeGroups: [_images]),
+        ),
+        ImageSource.gallery => await _named(
+          await picker.ImagePicker().pickImage(
+            source: picker.ImageSource.gallery,
+          ),
+        ),
+        // A new photo has no name of its own.
+        ImageSource.camera => switch (await picker.ImagePicker().pickImage(
+          source: picker.ImageSource.camera,
+        )) {
+          final photo? => (bytes: await photo.readAsBytes(), name: null),
+          null => null,
+        },
       };
     } on PlatformException {
       return null;
@@ -38,8 +47,11 @@ final class PlatformImagePicking implements ImagePicking {
     }
   }
 
-  static Future<Uint8List?> _picked(picker.ImageSource source) async =>
-      (await picker.ImagePicker().pickImage(source: source))?.readAsBytes();
+  /// [file] with its name; `null` if none was picked.
+  static Future<PickedImage?> _named(XFile? file) async => switch (file) {
+    final file? => (bytes: await file.readAsBytes(), name: file.name),
+    null => null,
+  };
 }
 
 const _images = XTypeGroup(

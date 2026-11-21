@@ -225,8 +225,7 @@ void main() {
 BoundedPlace _bounded(FileStore store, LiveChanges? live) => BoundedPlace(
   store,
   live,
-  handles: (_) => true,
-  keptApart: (_) => false,
+  bounds: FileBounds(handles: (_) => true, keptApart: (_) => false),
   checkEvery: () => Duration.zero,
 );
 

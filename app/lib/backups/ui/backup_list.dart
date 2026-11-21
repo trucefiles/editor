@@ -1,16 +1,22 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/empty_state.dart';
 import '../../common/snack.dart';
 import '../../common/store_error_text.dart';
 import '../../common/time_texts.dart';
+import '../../file_types/file_types.dart';
 import '../../files/ui/listed_file.dart';
+import '../../folders/open_folders_wiring.dart';
 import '../../folders/ui/folder_badge.dart';
 import '../backup_actions.dart';
+
 import 'backup_kind_text.dart';
 import 'restore_as_new.dart';
 
@@ -68,7 +74,16 @@ class _BackupTile extends ConsumerWidget {
     final (:folder, backup: shown) = backup;
     final title = watchTitle(ref, (folder: folder.id, path: shown.filePath));
     return ListTile(
-      leading: const Icon(Icons.history),
+      leading: switch (ref.watch(fileTypesProvider).of(shown.filePath)) {
+        final ViewType type => SizedBox(
+          width: 56,
+          child: type.thumbnail(
+            ShownContent(backup, () => _bytes(ref)),
+            label: title,
+          ),
+        ),
+        _ => const Icon(Icons.history),
+      },
       title: Text(title),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,6 +111,15 @@ class _BackupTile extends ConsumerWidget {
       onTap: onOpen,
     );
   }
+
+  /// What the backup holds; `null` if it can't be read.
+  Future<Uint8List?> _bytes(WidgetRef ref) async => switch (await ref
+      .read(folderServicesProvider(backup.folder.id))
+      .backups
+      .read(backup.backup)) {
+    Ok(:final value) => value,
+    Err() => null,
+  };
 
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     if (!await _confirmDelete(context)) return;

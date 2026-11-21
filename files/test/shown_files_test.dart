@@ -27,8 +27,7 @@ void main() {
     services = folderServices(
       raw,
       reach: folderReach(raw.files),
-      handles: _types.handles,
-      keptApart: (_) => false,
+      bounds: FileBounds(handles: _types.handles, keptApart: (_) => false),
       checkEvery: () => const Duration(seconds: 1),
       backupsPath: tempFolder().path,
       deviceId: '0123456789abcdef',
@@ -112,7 +111,7 @@ void main() {
       types: _types,
     );
 
-    expect((await searchable.read())!.text, 'teal');
+    expect((await searchable.read!())!.text, 'teal');
   });
   test('documents are read again only once they change', () async {
     put('a.md', 'k:1');

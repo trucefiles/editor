@@ -241,7 +241,7 @@ void main() {
     expect(app.file('todo.md').readAsStringSync(), '# Todo\nmine\n');
   });
 
-  testApp('removing a folder tells of the edits kept only on this device', (
+  testApp('removing a folder tells of the edits saved only on this device', (
     tester,
   ) async {
     app.write('plan.md', '# Plan\nv1\n');
@@ -258,7 +258,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(AlertDialog),
-        matching: find.textContaining('edits'),
+        matching: find.textContaining('only saved on this device'),
       ),
       findsOne,
     );

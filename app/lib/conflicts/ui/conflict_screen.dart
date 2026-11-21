@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
-import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../backups/ui/both_backed_up_text.dart';
 import '../../common/snack.dart';
+import '../../file_types/file_types.dart';
 import '../../versions/merge_outcome.dart';
 import '../../versions/ui/compare_app_bar.dart';
 import '../../versions/ui/compare_body.dart';
@@ -101,12 +101,14 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
     required bool busy,
   }) {
     final deleted = sides.current == null;
+    final type = ref.read(fileTypesProvider).of(conflict.mainPath);
     return VersionChooser(
       current: ShownVersion(
         label: 'Current version',
         content: switch ((sides.current, conflict.main)) {
-          (final bytes?, final main?) => SavedText(
-            versionText(bytes),
+          (final bytes?, final main?) => savedVersion(
+            type,
+            bytes,
             main.modified,
           ),
           _ => const DeletedFile(),
@@ -119,7 +121,7 @@ class _ConflictScreenState extends ConsumerState<ConflictScreen> {
       ),
       other: ShownVersion(
         label: 'Other version',
-        content: SavedText(versionText(sides.other), sides.copy.createdAt),
+        content: savedVersion(type, sides.other, sides.copy.createdAt),
         keepLabel: deleted ? 'Restore' : 'Keep this',
         keptMessage: deleted
             ? 'The file is restored from this version. $bothBackedUp'
