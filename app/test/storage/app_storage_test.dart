@@ -48,4 +48,17 @@ void main() {
       '<exclude domain="sharedpref" path="scheduled_notifications.xml" />',
     );
   });
+
+  test('drafts and backups are never backed up or moved to a new phone, '
+      'so old edits cannot land in synced folders there', () {
+    final storage = AppStorage('/data/files');
+    String relative(String path) => path.substring('/data/files/'.length);
+
+    _expectLeftOut(
+      '<exclude domain="file" path="${relative(storage.draftsRootPath)}" />',
+    );
+    _expectLeftOut(
+      '<exclude domain="file" path="${relative(storage.backupsRootPath)}" />',
+    );
+  });
 }

@@ -18,16 +18,18 @@ final class AppStorage {
   /// `android/app/src/main/res/xml`).
   String get deviceIdPath => '$settingsPath/device_id';
 
-  /// Holds one backup folder per folder.
+  /// Holds one backup folder per folder; kept out of Android backups.
   String get backupsRootPath => '$rootPath/backups';
 
   /// Backups of one folder's files.
   String backupsPath(FolderId folder) =>
       '$backupsRootPath/${folder.storageName}';
 
+  /// Holds one drafts folder per folder; kept out of Android backups.
+  String get draftsRootPath => '$rootPath/drafts';
+
   /// Edits not yet in one folder's files.
-  String draftsPath(FolderId folder) =>
-      '$rootPath/drafts/${folder.storageName}';
+  String draftsPath(FolderId folder) => '$draftsRootPath/${folder.storageName}';
 }
 
 /// Set in `main` once [AppStorage.resolve] is done.

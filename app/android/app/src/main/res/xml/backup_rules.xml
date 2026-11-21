@@ -4,4 +4,6 @@
     <exclude domain="file" path="settings/device_id" />
     <exclude domain="file" path="settings/ring_state.json" />
     <exclude domain="sharedpref" path="scheduled_notifications.xml" />
+    <exclude domain="file" path="drafts" />
+    <exclude domain="file" path="backups" />
 </full-backup-content>
