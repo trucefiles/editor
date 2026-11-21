@@ -63,18 +63,33 @@ final class Within extends DecodeSize {
 typedef SizedImage = ImageProvider Function(Within size);
 
 /// A picture read as bytes when it first shows, decoded at [size] (whole
-/// if `null`), kept in Flutter's image cache by its own equality, which
-/// subclasses define with [size] in it. A read or decode that fails
-/// leaves the cache, so the picture is tried again when it shows again
-/// (Flutter would keep a failed load for good).
+/// if `null`), kept in Flutter's image cache by its [identity] and
+/// [size]. A read or decode that fails leaves the cache, so the picture
+/// is tried again when it shows again (Flutter would keep a failed load
+/// for good).
 abstract class BytesImage<T extends BytesImage<T>> extends ImageProvider<T> {
   const BytesImage({this.size});
 
   final DecodeSize? size;
 
+  /// What tells this picture apart from others of its kind, as values
+  /// compared one by one (e.g. a file's id and version).
+  @protected
+  List<Object?> get identity;
+
   /// The picture's bytes; `null` if they can't be read now.
   @protected
   Future<Uint8List?> readBytes();
+
+  @override
+  bool operator ==(Object other) =>
+      other.runtimeType == runtimeType &&
+      other is BytesImage<T> &&
+      other.size == size &&
+      listEquals(other.identity, identity);
+
+  @override
+  int get hashCode => Object.hash(runtimeType, size, Object.hashAll(identity));
 
   @override
   Future<T> obtainKey(ImageConfiguration configuration) =>

@@ -21,13 +21,33 @@ final class _Picture extends BytesImage<_Picture> {
   Future<Uint8List?> readBytes() async => read();
 
   @override
-  bool operator ==(Object other) => other is _Picture && other.size == size;
+  List<Object?> get identity => const [];
+}
+
+/// A picture told apart by [name].
+final class _Named extends BytesImage<_Named> {
+  const _Named(this.name, {super.size});
+
+  final String name;
 
   @override
-  int get hashCode => size.hashCode;
+  Future<Uint8List?> readBytes() async => null;
+
+  @override
+  List<Object?> get identity => [name];
 }
 
 void main() {
+  test('pictures are equal by their identity and their size', () {
+    expect(
+      const _Named('a', size: Within(1, 1)),
+      const _Named('a', size: Within(1, 1)),
+    );
+    expect(const _Named('a').hashCode, const _Named('a').hashCode);
+    expect(const _Named('a'), isNot(const _Named('b')));
+    expect(const _Named('a'), isNot(const _Named('a', size: Within(1, 1))));
+  });
+
   group('a picture covering a box', () {
     const box = Covering(400, 300);
 

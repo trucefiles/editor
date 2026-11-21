@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_markdown_images/truce_markdown_images.dart';
 
@@ -43,28 +44,12 @@ class _RemoveUnusedImagesTileState
     if (message != null) showSnack(context, message);
   }
 
-  Future<bool> _confirm(int count) async {
-    final images = count == 1 ? '1 unused image' : '$count unused images';
-    final go = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        scrollable: true,
-        title: Text('Remove $images?'),
-        content: const Text('No document in this folder shows them.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    return go ?? false;
-  }
+  Future<bool> _confirm(int count) => showConfirmDialog(
+    context,
+    title: 'Remove ${count == 1 ? '1 unused image' : '$count unused images'}?',
+    message: 'No document in this folder shows them.',
+    yes: 'Remove',
+  );
 
   static String _refusedText(CleanupRefused refused) => switch (refused) {
     CleanupRefused.notAllRead =>

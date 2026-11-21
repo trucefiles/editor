@@ -19,13 +19,13 @@ const _maxBaseBytes = 200;
 /// Leading dots (hidden files) and trailing dots and spaces (invalid on
 /// Windows) are dropped.
 String newFileName(String title, {required String extension, int attempt = 1}) {
-  final base = _baseName(title);
+  final base = fileBaseName(title);
   return attempt == 1 ? '$base$extension' : '$base $attempt$extension';
 }
 
 /// The name [newFileName] gives [title], without number and
-/// extension.
-String _baseName(String title) {
+/// extension: what a typed name becomes as a file name.
+String fileBaseName(String title) {
   var base = title
       .replaceAll(_unsafe, ' ')
       .replaceAll(RegExp(r'\s+'), ' ')
@@ -64,7 +64,7 @@ String _cut(String text) {
 /// only the case, which some storage (e.g. Android's) can't tell apart.
 bool isNamedAfter(String name, String title) {
   final base = splitFileName(name).base.toLowerCase();
-  final wanted = _baseName(title).toLowerCase();
+  final wanted = fileBaseName(title).toLowerCase();
   return base == wanted ||
       RegExp('^${RegExp.escape(wanted)} [0-9]+\$').hasMatch(base);
 }

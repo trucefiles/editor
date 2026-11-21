@@ -24,11 +24,7 @@ final class BoundedPlace {
     final gate = ClosingStore(files);
     return BoundedPlace._(
       gate,
-      BoundedStore(
-        gate,
-        handles: bounds.shows,
-        enters: (folder) => !bounds.keptApart(folder),
-      ),
+      BoundedStore(gate, handles: bounds.shows, enters: bounds.holdsFilesIn),
       BoundedStore(gate, handles: bounds.keptApart),
       live == null
           ? null
@@ -53,9 +49,8 @@ final class BoundedPlace {
   final ClosingStore _gate;
   final FileBounds _bounds;
 
-  /// Whether the folder at [folder] may hold files of [files]: none at
-  /// or inside what is kept apart.
-  bool holdsFilesIn(RelPath folder) => !_bounds.keptApart(folder);
+  /// See [FileBounds.holdsFilesIn].
+  bool holdsFilesIn(RelPath folder) => _bounds.holdsFilesIn(folder);
 
   /// See [BoundedStore]; never lists, walks or writes what is kept
   /// apart.

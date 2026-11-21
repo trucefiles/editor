@@ -39,8 +39,7 @@ sealed class PlaceChange {
     // number added when it was taken.
     final named = name.isEmpty
         ? isNamedAfter(saved.path.name, unnamed)
-        : splitFileName(saved.path.name).base ==
-              newFileName(name, extension: '');
+        : splitFileName(saved.path.name).base == fileBaseName(name);
     if (picked.place.folder.id == saved.folder.id &&
         picked.place.subfolder == saved.path.parent &&
         named) {

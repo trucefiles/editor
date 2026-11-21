@@ -58,7 +58,7 @@ class ZoomableImage extends StatelessWidget {
   static const sharpZoom = 3.0;
 
   /// The size it is decoded at most on the screen of [context].
-  static Within sizeOn(BuildContext context) {
+  static Within _sizeOn(BuildContext context) {
     final screen =
         MediaQuery.sizeOf(context) *
         MediaQuery.devicePixelRatioOf(context) *
@@ -72,7 +72,7 @@ class ZoomableImage extends StatelessWidget {
     maxScale: maxZoom,
     child: SizedBox.expand(
       child: Image(
-        image: image(sizeOn(context)),
+        image: image(_sizeOn(context)),
         semanticLabel: alt,
         fit: BoxFit.contain,
         errorBuilder: (context, _, _) => Center(

@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
@@ -97,18 +96,5 @@ final class FolderImage extends BytesImage<FolderImage> {
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is FolderImage &&
-      other.folder == folder &&
-      const ListEquality<RelPath>().equals(other.paths, paths) &&
-      other.openedAt == openedAt &&
-      other.size == size;
-
-  @override
-  int get hashCode => Object.hash(
-    folder,
-    const ListEquality<RelPath>().hash(paths),
-    openedAt,
-    size,
-  );
+  List<Object?> get identity => [folder, openedAt, ...paths];
 }

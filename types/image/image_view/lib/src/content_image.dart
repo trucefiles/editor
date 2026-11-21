@@ -15,11 +15,5 @@ final class ContentImage extends BytesImage<ContentImage> {
   Future<Uint8List?> readBytes() => content.read();
 
   @override
-  bool operator ==(Object other) =>
-      other is ContentImage &&
-      other.content.id == content.id &&
-      other.size == size;
-
-  @override
-  int get hashCode => Object.hash(content.id, size);
+  List<Object?> get identity => [content.id];
 }
