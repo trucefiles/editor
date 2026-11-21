@@ -95,6 +95,7 @@ class _LinkDialogState extends State<_LinkDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
     title: Text(_editing ? 'Edit link' : 'Add link'),
     content: Column(
       mainAxisSize: MainAxisSize.min,

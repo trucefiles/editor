@@ -19,6 +19,17 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.18.0" date="2026-11-21">
+      <description>
+        <ul>
+          <li>Calendar tasks: to-dos beside events, in a Tasks view, checked off date by date.</li>
+          <li>Calendar alerts ring: on Android even with the app closed, on Linux while it runs.</li>
+          <li>Images in documents, from a file or the camera, with location removed by default.</li>
+          <li>Images as files of their own: cards with thumbnails, an Images chip, backups and conflicts.</li>
+          <li>Fixes from five bug hunt rounds: memory use of photos, dialogs on small screens, Android backups and more.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.2" date="2026-11-15">
       <description>
         <ul>

@@ -10,6 +10,7 @@ import '../doc/doc_nodes.dart';
 import '../doc/doc_tree.dart';
 import '../doc/origin.dart';
 import '../document_tree.dart';
+import '../read/front_matter.dart';
 import '../tree/blocks.dart';
 import 'as_read.dart';
 import 'frames.dart';
@@ -110,11 +111,22 @@ final class _Printer {
       _children(root);
       _path.removeLast();
       _copyLines(trailing, count);
+      _apartFromFrontMatter(root);
     }
     return (
       text: [..._out, if (endsWithNewline) ''].join('\n'),
       lines: _ranges,
     );
+  }
+
+  /// A divider on the text's first line as `***` where its `---` would
+  /// read as the start of front matter, closed by a later `---` or `...`
+  /// line (e.g. a second divider): what follows would no longer show.
+  void _apartFromFrontMatter(DocRoot root) {
+    if (_printable(root.children).firstOrNull is DividerNode &&
+        frontMatterLength(_out) > 0) {
+      _out[0] = '***';
+    }
   }
 
   /// [children] without empty paragraphs, which print nothing (unless

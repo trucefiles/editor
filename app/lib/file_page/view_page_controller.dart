@@ -188,6 +188,16 @@ final class ViewPageController extends ChangeNotifier {
   /// Tries again to keep a new file that could be kept nowhere.
   void retry() => _owner.send(const KeepNew());
 
+  /// The file's folder left the app; whether the page may close. A new
+  /// file not written yet stays open, so it can go elsewhere: its draft
+  /// went with the folder, so it is kept nowhere now and the page says
+  /// so.
+  bool folderRemoved() {
+    if (state is! WaitingNew) return true;
+    _owner.send(const NewFolderRemoved());
+    return false;
+  }
+
   /// Keeps a new file for [reason]; whether it is kept: in its folder,
   /// or on this device while hidden, while its folder can't be reached,
   /// or as the app ends (within [endWait]).

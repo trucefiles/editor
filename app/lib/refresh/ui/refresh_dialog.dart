@@ -27,6 +27,7 @@ class _RefreshDialogState extends State<_RefreshDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
     title: const Text('Check folders for changes'),
     content: RadioGroup<RefreshMode>(
       groupValue: _settings.mode,

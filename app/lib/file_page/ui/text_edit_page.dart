@@ -42,6 +42,7 @@ import 'history_end_text.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
 import 'save_indicator.dart';
+import 'unreachable_texts.dart';
 
 /// The one page for an open text document of any type; its type's editor
 /// part shows the text (e.g. Visual edit, Markdown edit or Read of a
@@ -340,9 +341,9 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   }
 
   /// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo while the file is
-  /// edited; the type's own keys work while it can be edited. Esc is the
-  /// app's: it leaves, unless a menu above the editor takes it.
-  late final Map<SingleActivator, VoidCallback> _keys = {
+  /// edited, as a text field's own keys (a field on the page keeps them
+  /// while it has the focus).
+  late final Map<SingleActivator, VoidCallback> _undoKeys = {
     const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
       if (_isEdited) _editor.send(const Undo());
     },
@@ -356,6 +357,11 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
     const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
       if (_isEdited) _editor.send(const Redo());
     },
+  };
+
+  /// The type's own keys work while the file can be edited. Esc is the
+  /// app's: it leaves, unless a menu above the editor takes it.
+  late final Map<SingleActivator, VoidCallback> _typeKeys = {
     for (final MapEntry(key: keys, value: action) in _page.view.keys.entries)
       keys: () {
         if (!_controller.readOnly) action();
@@ -368,7 +374,8 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   Widget _scaffold() => ScaffoldMessenger(
     key: _messenger,
     child: ScreenShortcuts(
-      bindings: _keys,
+      bindings: _typeKeys,
+      editingBindings: _undoKeys,
       child: Builder(builder: _content),
     ),
   );
@@ -431,7 +438,7 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,
-            message: 'Your text is kept on this device.',
+            message: textUnreachableText(_session.state),
           ),
           EditStateBanner(
             _controller,

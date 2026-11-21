@@ -12,6 +12,7 @@ Future<bool> showConfirmDialog(
     await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: Text(title),
         content: switch (message) {
           final message? => Text(message),

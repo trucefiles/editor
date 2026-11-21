@@ -156,6 +156,7 @@ class _FilePlaceDialogState extends State<_FilePlaceDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(widget.title),
       content: Column(
         mainAxisSize: MainAxisSize.min,

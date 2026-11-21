@@ -72,4 +72,11 @@ void main() {
     expect(isNamedAfter('Milk 2.md', 'Eggs'), isFalse);
     expect(isNamedAfter('Milky.md', 'Milk'), isFalse);
   });
+
+  test('fileBaseName is the name a title gives, without number and '
+      'extension', () {
+    expect(fileBaseName('Plan?'), 'Plan');
+    expect(fileBaseName(' ..a  b. '), 'a b');
+    expect(fileBaseName(''), 'Untitled');
+  });
 }

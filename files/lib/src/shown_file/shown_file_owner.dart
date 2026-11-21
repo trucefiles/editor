@@ -97,6 +97,10 @@ final class _ShownSteps {
           out.state = const ShownDropped();
           await _draft.drop();
         }
+      case NewFolderRemoved():
+        if (out.state case WaitingNew(:final file)) {
+          out.state = WaitingNew(file, kept: NewKept.nowhere);
+        }
     }
   }
 

@@ -1,8 +1,6 @@
-import 'dart:ui' show Codec, ImmutableBuffer;
-
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'ui/document_image.dart';
@@ -36,13 +34,27 @@ final class FolderImages implements DocumentImageLookup {
   final DateTime openedAt;
 
   @override
-  ImageProvider? of(String url) {
+  SizedImage? of(String url) {
     final scheme = Uri.tryParse(url)?.scheme.toLowerCase();
-    if (scheme == 'http' || scheme == 'https') return NetworkImage(url);
+    if (scheme == 'http' || scheme == 'https') {
+      return (size) => ResizeImage(
+        NetworkImage(url),
+        width: size.width,
+        height: size.height,
+        policy: ResizeImagePolicy.fit,
+        allowUpscaling: false,
+      );
+    }
     final paths = {?keptAt(url), ?document.linked(url)}.toList();
     return paths.isEmpty
         ? null
-        : FolderImage(folder, paths, bytesOf, openedAt: openedAt);
+        : (size) => FolderImage(
+            folder,
+            paths,
+            bytesOf,
+            openedAt: openedAt,
+            size: size,
+          );
   }
 
   @override
@@ -57,17 +69,17 @@ final class FolderImages implements DocumentImageLookup {
 }
 
 /// The image in the first file of [paths] in [folder] that [read]
-/// gives, for the open of its document at [openedAt]. Equal to another
-/// of the same files and open, so the image cache decodes it once per
-/// open; one that can't be read leaves the cache, so it is read again as
-/// it shows again (e.g. once synced in).
+/// gives, for the open of its document at [openedAt], decoded at [size]
+/// (see [BytesImage]). Equal to another of the same files, open and size,
+/// so the image cache decodes it once per open.
 @immutable
-final class FolderImage extends ImageProvider<FolderImage> {
+final class FolderImage extends BytesImage<FolderImage> {
   const FolderImage(
     this.folder,
     this.paths,
     this.read, {
     required this.openedAt,
+    required super.size,
   });
 
   final FolderId folder;
@@ -76,39 +88,13 @@ final class FolderImage extends ImageProvider<FolderImage> {
   final DateTime openedAt;
 
   @override
-  Future<FolderImage> obtainKey(ImageConfiguration configuration) =>
-      SynchronousFuture(this);
-
-  @override
-  ImageStreamCompleter loadImage(
-    FolderImage key,
-    ImageDecoderCallback decode,
-  ) => MultiFrameImageStreamCompleter(
-    codec: _codec(decode),
-    scale: 1,
-    debugLabel: paths.first.value,
-  );
-
-  Future<Codec> _codec(ImageDecoderCallback decode) async {
+  Future<Uint8List?> readBytes() async {
     for (final path in paths) {
-      if (await read(path) case final bytes?) {
-        return decode(await ImmutableBuffer.fromUint8List(bytes));
-      }
+      if (await read(path) case final bytes?) return bytes;
     }
-    // Flutter keeps a failed load in its cache for good; the next look
-    // at this image tries again.
-    PaintingBinding.instance.imageCache.evict(this);
-    throw StateError('Image ${paths.first.value} unreadable');
+    return null;
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is FolderImage &&
-      other.folder == folder &&
-      const ListEquality<RelPath>().equals(other.paths, paths) &&
-      other.openedAt == openedAt;
-
-  @override
-  int get hashCode =>
-      Object.hash(folder, const ListEquality<RelPath>().hash(paths), openedAt);
+  List<Object?> get identity => [folder, openedAt, ...paths];
 }

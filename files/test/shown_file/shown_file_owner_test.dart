@@ -267,6 +267,21 @@ void main() {
       expect(await work.draftPaths(_home), [path('Photo.jpg')]);
     });
 
+    test('its folder removed, it is kept nowhere, with no draft or write '
+        'again', () async {
+      final owner = newShownFileOwner(_photo(_home), work.work);
+      await _kept(owner);
+      final writes = await work.draftPaths(_home);
+
+      final changed = owner.changes.first;
+      owner.send(const NewFolderRemoved());
+
+      expect(await changed, isA<WaitingNew>());
+      expect((owner.state as WaitingNew).kept, NewKept.nowhere);
+      expect(await work.draftPaths(_home), writes);
+      expect(work.created, isEmpty);
+    });
+
     test('goes to another folder: kept there, then dropped here', () async {
       final owner = newShownFileOwner(_photo(_home), work.work);
 

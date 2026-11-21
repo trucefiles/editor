@@ -5,7 +5,6 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 import '../views/new_event_spot.dart';
 import 'alert_field.dart';
 import 'color_choice.dart';
-import 'leave_check.dart';
 import 'repeat_field.dart';
 import 'time_row.dart';
 
@@ -198,11 +197,6 @@ class _EventFormState extends State<EventForm> {
               maxLines: null,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: 'Notes'),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "Alerts are saved, but the app doesn't remind you yet.",
-              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),

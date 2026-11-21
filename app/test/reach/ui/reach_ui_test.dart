@@ -57,8 +57,9 @@ void main() {
   group('banner', () {
     Future<void> pumpBanner(
       WidgetTester tester,
-      Reach reach,
-    ) => tester.pumpWidget(
+      Reach reach, {
+      String? message = 'Wait.',
+    }) => tester.pumpWidget(
       ProviderScope(
         overrides: [
           // The Retry button reaches the real folder stack.
@@ -68,7 +69,7 @@ void main() {
               .overrideWith(() => _FixedReach(folder.id, reach)),
         ],
         child: MaterialApp(
-          home: Scaffold(body: UnreachableBanner(folder, message: 'Wait.')),
+          home: Scaffold(body: UnreachableBanner(folder, message: message)),
         ),
       ),
     );
@@ -78,6 +79,12 @@ void main() {
 
       expect(find.text("Documents can't be reached. Wait."), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets('with no message, tells only that', (tester) async {
+      await pumpBanner(tester, Reach.unreachable, message: null);
+
+      expect(find.text("Documents can't be reached."), findsOneWidget);
     });
 
     testWidgets('shows nothing while it can', (tester) async {

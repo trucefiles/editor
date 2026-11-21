@@ -13,4 +13,8 @@ final class FileBounds {
   /// Whether [file] is one of the folder's files the app shows as a file:
   /// listed, followed, and backed up as one.
   bool shows(RelPath file) => handles(file) && !keptApart(file);
+
+  /// Whether files the app shows may go in the folder at [folder]: not
+  /// at or inside what is kept apart.
+  bool holdsFilesIn(RelPath folder) => !keptApart(folder);
 }

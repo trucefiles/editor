@@ -35,6 +35,7 @@ import 'file_place_spot.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
 import 'shown_state_banners.dart';
+import 'unreachable_texts.dart';
 
 /// The page of a file the app only shows (e.g. an image): its [type]
 /// draws it; the page has its name, place and actions. A new file is
@@ -136,12 +137,11 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
 
   /// Once the file's folder was removed: closes, unless a new file
   /// could not be written before; that one stays, so it can go
-  /// elsewhere.
+  /// elsewhere ([ViewPageController.folderRemoved]).
   void _closeIfNotShown(List<Folder> folders) {
     final folder = _controller.folder;
     if (folder == null || folders.any((shown) => shown.id == folder)) return;
-    if (_controller.state is WaitingNew) return;
-    closeAsFolderRemoved(context);
+    if (_controller.folderRemoved()) closeAsFolderRemoved(context);
   }
 
   /// [context] is this screen's.
@@ -286,9 +286,7 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           if (place != null)
             UnreachableBanner(
               place.folder,
-              message: _controller.state is WaitingNew
-                  ? 'The file is kept on this device.'
-                  : 'You see the last version on this device.',
+              message: shownUnreachableText(_controller.state),
             ),
           ...shownStateBanners(
             _controller.state,

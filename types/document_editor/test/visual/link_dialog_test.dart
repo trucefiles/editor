@@ -108,4 +108,26 @@ void main() {
     }, url: 'https://a.b');
     expect(opened, isA<LinkOpened>());
   });
+
+  testWidgets('fits a phone with its keyboard up, every action reachable', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 700);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+
+    final saved = await answer(
+      tester,
+      () async {
+        expect(tester.takeException(), isNull);
+        await tester.ensureVisible(find.text('Save'));
+        await tester.tap(find.text('Save'));
+      },
+      url: 'https://a.b',
+      removable: true,
+    );
+
+    expect(saved, isA<LinkSet>());
+  });
 }
