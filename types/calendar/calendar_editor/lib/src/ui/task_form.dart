@@ -4,7 +4,6 @@ import 'package:truce_common_ui/truce_common_ui.dart';
 
 import 'alert_field.dart';
 import 'color_choice.dart';
-import 'leave_check.dart';
 import 'repeat_field.dart';
 import 'time_row.dart';
 

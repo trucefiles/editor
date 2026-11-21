@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:truce_calendar/truce_calendar.dart';
-
-import 'leave_check.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// The kinds of health entry the user can add, as the Add list names
 /// them, each with the entry a new one starts as: the general ones first.

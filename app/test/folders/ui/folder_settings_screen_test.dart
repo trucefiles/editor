@@ -75,6 +75,35 @@ void main() {
     expect(find.byType(FolderSettingsScreen), findsNothing);
   });
 
+  testWidgets('leaving with nothing changed asks nothing', (tester) async {
+    await open(tester);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(FolderSettingsScreen), findsNothing);
+  });
+
+  testWidgets('leaving with a changed name asks first; Keep editing stays, '
+      'Discard leaves without saving', (tester) async {
+    await open(tester);
+    await tester.enterText(find.byType(TextField), 'Work');
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Discard changes?'), findsOne);
+    await tester.tap(find.text('Keep editing'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FolderSettingsScreen), findsOne);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Discard'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FolderSettingsScreen), findsNothing);
+    expect(folders.changed, isEmpty);
+  });
+
   testWidgets('a blank name can not be saved', (tester) async {
     await open(tester);
 

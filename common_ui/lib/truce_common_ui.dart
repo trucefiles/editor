@@ -2,8 +2,9 @@
 /// scrolling row of chips, whether the app is used by touch, how far a
 /// mouse wheel step goes, a full-screen image viewer that zooms, pictures
 /// read as bytes and decoded only as large as they show, a yes or no
-/// dialog, Esc that closes a popup first, the lazy masonry
-/// grid for cards (items as tall as their content, in columns), the page
+/// dialog, a check before a form is left with unsaved changes, Esc that
+/// closes a popup first, the lazy masonry grid for cards (items as tall
+/// as their content, in columns), the page
 /// width that keeps settings and forms in one centered column, the keys
 /// the keypad stands for, and how text fits: a line's height, the first
 /// of some texts that fits.
@@ -11,6 +12,7 @@ library;
 
 export 'src/chip_row/chip_row.dart';
 export 'src/dialogs/confirm_dialog.dart';
+export 'src/dialogs/leave_check.dart';
 export 'src/image_viewer/bytes_image.dart';
 export 'src/image_viewer/image_viewer.dart';
 export 'src/keypad/keypad_keys.dart';
