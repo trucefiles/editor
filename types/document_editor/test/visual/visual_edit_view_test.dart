@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_test_robots/flutter_test_robots.dart';
 import 'package:super_editor/super_editor.dart';
 import 'package:super_editor/super_editor_test.dart';
+import 'package:truce_common_ui/truce_common_ui.dart' show SizedImage;
 import 'package:truce_document_editor/truce_document_editor.dart';
 import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 import 'package:truce_markdown/truce_markdown.dart'
@@ -1115,7 +1116,8 @@ final class _OneImage implements DocumentImageLookup {
   final ImageProvider image;
 
   @override
-  ImageProvider? of(String url) => image;
+  SizedImage? of(String url) =>
+      (_) => image;
 }
 
 /// A PNG picture of one pixel.

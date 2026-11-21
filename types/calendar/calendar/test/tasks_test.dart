@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_text_editing/truce_text_editing.dart' show MergedText;
 
 final _at = DateTime.utc(2026, 11, 10, 12);
 
@@ -267,6 +268,33 @@ void _checking() {
     ).taskOf('rent@thunderbird')!.changedAt(december)!;
     expect(kept.summary, 'Pay rent (late)');
     expect(kept.done, isFalse);
+  });
+
+  test('a date open again wins a merge with a text that still has it '
+      'checked', () {
+    final checked = applyEdit(
+      monthly,
+      CheckTask('rent@thunderbird', december, done: true, at: _at),
+    );
+    final open = applyEdit(
+      checked,
+      CheckTask(
+        'rent@thunderbird',
+        december,
+        done: false,
+        at: _at.add(const Duration(hours: 1)),
+      ),
+    );
+
+    for (final (main, other) in [(open, checked), (checked, open)]) {
+      final merged = const CalendarMerge().merge(main.text, other.text);
+      expect(
+        Calendar.read((merged as MergedText).text)!
+            .taskOf('rent@thunderbird')!
+            .changed,
+        isEmpty,
+      );
+    }
   });
 
   test('in a file of changed dates only, a date open again stays, though '

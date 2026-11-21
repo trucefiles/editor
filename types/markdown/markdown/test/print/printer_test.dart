@@ -145,6 +145,46 @@ void main() {
       );
     });
 
+    group('a divider first in the text apart from front matter', () {
+      DocTree withDivider(DocTree doc, {required int at}) {
+        final fresh = doc.freshIds;
+        final divider = DividerNode(fresh.take());
+        final children = doc.root.children;
+        return DocTree(
+          doc.root.withChildren([
+            ...children.take(at),
+            divider,
+            ...children.skip(at),
+          ]),
+          nextId: fresh.next,
+        );
+      }
+
+      test('a new one before a later divider', () {
+        expect(
+          edited('a\n\n---\n\nb', (doc) => withDivider(doc, at: 0)),
+          '***\n\na\n\n---\n\nb',
+        );
+      });
+
+      test('one as read, once what was above it goes', () {
+        expect(
+          edited('a\n\n---\n\nb\n\n---', (doc) {
+            final first = nth<ParagraphNode>(doc, 0);
+            return doc.replaced(first.id, const [], fresh: doc.freshIds);
+          }),
+          '***\n\nb\n\n---',
+        );
+      });
+
+      test('kept where nothing closes it', () {
+        expect(
+          edited('a\n\nb', (doc) => withDivider(doc, at: 0)),
+          '---\n\na\n\nb',
+        );
+      });
+    });
+
     test('a new paragraph after HTML apart from it', () {
       expect(
         edited('<div>\nx\n</div>', (doc) {

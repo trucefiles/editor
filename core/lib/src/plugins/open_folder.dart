@@ -22,11 +22,12 @@ final class OpenFolder {
     required this.conflicts,
     required this.notices,
     required this.changes,
-    required this.showsFolder,
+    required this._showsFolder,
     this._settle,
   });
 
   final BoundedPlace _bounded;
+  final bool Function(RelPath folder) _showsFolder;
   final Future<void> Function()? _settle;
 
   /// The folder's files, read and written by the plugin's rules.
@@ -42,10 +43,12 @@ final class OpenFolder {
   /// `null` where they can't be followed live.
   final FolderChanges? changes;
 
-  /// Whether files in the folder at a path in it show, as the plugin's
-  /// rules see it: none in hidden folders or the sync tool's own. New
-  /// files go only where they show.
-  final bool Function(RelPath folder) showsFolder;
+  /// Whether files in the folder at a path in it show: none in hidden
+  /// folders or the sync tool's own, as the plugin's rules see it, and
+  /// none where the app keeps files apart. New files go only where they
+  /// show.
+  bool showsFolder(RelPath folder) =>
+      _bounded.holdsFilesIn(folder) && _showsFolder(folder);
 
   /// Moves the file at [from], at version [ifUnchanged], to [to] in
   /// [target] (this folder too): the one call for every move. For now by

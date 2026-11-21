@@ -90,6 +90,16 @@ void main() {
     expect(images('f2').has(nameA), isTrue);
   });
 
+  test('in another folder, an image in a table comes along', () async {
+    final arrived = await arrive(
+      '| a |\n|---|\n| ![](document-images/$nameA) |\n',
+      to: 'f2',
+    );
+
+    expect(arrived.value, isNull);
+    expect(images('f2').has(nameA), isTrue);
+  });
+
   test('fails if its images can not come along', () async {
     final files = images('f2').files..failWith = StoreError.ioFailure;
     addTearDown(() => files.failWith = null);

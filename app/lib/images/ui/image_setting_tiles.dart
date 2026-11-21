@@ -5,8 +5,8 @@ import 'package:truce_images/truce_images.dart';
 import '../../settings/device_settings_controller.dart';
 
 /// Settings rows for pictures the user adds, to a document or as a file
-/// of their own: take out where a photo was taken, and make large ones
-/// smaller.
+/// of their own: take out where a photo was taken (which also drops an
+/// HDR layer and a motion photo's video), and make large ones smaller.
 class ImageSettingTiles extends ConsumerWidget {
   const ImageSettingTiles({super.key});
 
@@ -23,6 +23,8 @@ class ImageSettingTiles extends ConsumerWidget {
       children: [
         SwitchListTile(
           title: const Text('Remove location from photos'),
+          // Only the main picture is kept, so its extra parts go too.
+          subtitle: const Text('Also drops HDR and motion video'),
           value: images.removeLocation,
           onChanged: (remove) =>
               change((images) => images.copyWith(removeLocation: remove)),

@@ -60,6 +60,16 @@ void main() {
     expect(folder.has(nameB), isFalse);
   });
 
+  test('an image a table shows stays', () async {
+    folder.putImage(nameA);
+    folder.files.put(
+      'a.md',
+      '| a | b |\n|---|---|\n| ![](document-images/$nameA) | x |\n',
+    );
+
+    expect((await cleanup().find()).value, isEmpty);
+  });
+
   test('an image a conflict copy or a draft shows stays', () async {
     folder.putImage(nameA);
     folder.putImage(nameB);

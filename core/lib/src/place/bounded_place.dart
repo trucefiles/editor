@@ -4,6 +4,7 @@ import '../changes/live_changes.dart';
 import '../storage/bounded_store.dart';
 import '../storage/closing_store.dart';
 import '../storage/file_store.dart';
+import '../storage/rel_path.dart';
 import 'file_bounds.dart';
 
 /// What the app may touch in one folder, its files and their changes,
@@ -37,12 +38,24 @@ final class BoundedPlace {
               counts: bounds.shows,
               checkEvery: checkEvery,
             ),
+      bounds,
     );
   }
 
-  BoundedPlace._(this._gate, this.files, this.apart, this.changes);
+  BoundedPlace._(
+    this._gate,
+    this.files,
+    this.apart,
+    this.changes,
+    this._bounds,
+  );
 
   final ClosingStore _gate;
+  final FileBounds _bounds;
+
+  /// Whether the folder at [folder] may hold files of [files]: none at
+  /// or inside what is kept apart.
+  bool holdsFilesIn(RelPath folder) => !_bounds.keptApart(folder);
 
   /// See [BoundedStore]; never lists, walks or writes what is kept
   /// apart.

@@ -169,6 +169,32 @@ void main() {
     expect(await page.keep(SecureReason.close), isFalse);
   });
 
+  test('once its folder is removed while it waits on the device, it is '
+      'kept nowhere, and leaving asks', () async {
+    // In a folder of their own: removing the folder removes it too.
+    drafts = FileDrafts(Directory('${tempFolder().path}/drafts'));
+    createFails = true;
+    reach = Reach.unreachable;
+    final page = newPhoto();
+    expect(await page.keep(SecureReason.close), isTrue);
+    expect(await draftPaths(), [path('Photo.jpg')]);
+
+    await drafts.forget();
+    expect(page.folderRemoved(), isFalse);
+    var asked = false;
+    final mayGo = await page.mayGo(SecureReason.close, () async {
+      asked = true;
+      return false;
+    });
+
+    expect(
+      page.state,
+      isA<WaitingNew>().having((s) => s.kept, 'kept', NewKept.nowhere),
+    );
+    expect(asked, isTrue);
+    expect(mayGo, isFalse);
+  });
+
   test('if it can be written nowhere, the user may drop it', () async {
     final page = newPhoto();
     await eventually(() async => (await draftPaths()).isNotEmpty);

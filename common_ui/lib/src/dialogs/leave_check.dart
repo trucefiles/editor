@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:truce_common_ui/truce_common_ui.dart';
 
-/// Asks before the form [child] closes without saving (back, Esc, a tap
-/// outside) while [changed] tells that the user changed something;
-/// leaves only if they discard the changes. Save closes it unasked.
+import 'confirm_dialog.dart';
+
+/// Asks before the form or screen [child] closes without saving (back,
+/// Esc, a tap outside) while [changed] tells that the user changed
+/// something; leaves only if they discard the changes. Save closes it
+/// unasked.
 class LeaveCheck extends StatelessWidget {
   const LeaveCheck({required this.changed, required this.child, super.key});
 

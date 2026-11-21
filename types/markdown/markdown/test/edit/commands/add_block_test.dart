@@ -85,7 +85,8 @@ void main() {
   test('on an empty paragraph takes its place', () {
     final document = Shown.read('---');
     final edited = document.run(AddDivider(document.place(1, 0).leaf));
-    expect(edited.document.text, startsWith('---\n\n---'));
+    // Not `---` twice: that reads back as front matter.
+    expect(edited.document.text, startsWith('***\n\n---'));
     expect(edited.document.rows, ['[DividerNode]', '[DividerNode]', '']);
   });
 

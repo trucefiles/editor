@@ -12,9 +12,9 @@ import 'folder_color_picker.dart';
 import 'folder_error_text.dart';
 import 'folder_notices_view.dart';
 
-/// A folder's settings: its name and color; where it is, its kind (the
-/// plugin), and what its plugin tells about it; the cleanup of its
-/// unused images.
+/// A folder's settings: its name and color (leaving with unsaved changes
+/// asks first); where it is, its kind (the plugin), and what its plugin
+/// tells about it; the cleanup of its unused images.
 class FolderSettingsScreen extends ConsumerStatefulWidget {
   const FolderSettingsScreen(this.folder, {super.key});
 
@@ -36,9 +36,10 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
     super.dispose();
   }
 
+  /// Saves the name and color, once at a time, if the name is one.
   Future<void> _save() async {
     final name = Folder.nameFrom(_name.text);
-    if (name == null) return;
+    if (name == null || _busy) return;
     setState(() => _busy = true);
     final saved = await ref
         .read(folderActionsProvider)
@@ -58,43 +59,52 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
     final folder = widget.folder;
     final plugin = ref.watch(folderPluginsProvider).of(folder.id.plugin);
     final small = Theme.of(context).textTheme.bodySmall;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Folder'),
-        actions: [
-          ValueListenableBuilder(
-            valueListenable: _name,
-            builder: (context, typed, _) => TextButton(
-              onPressed: _busy || Folder.nameFrom(typed.text) == null
-                  ? null
-                  : _save,
-              child: const Text('Save'),
+    return LeaveCheck(
+      changed: () => _changed,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Folder'),
+          actions: [
+            ValueListenableBuilder(
+              valueListenable: _name,
+              builder: (context, typed, _) => TextButton(
+                onPressed: _busy || Folder.nameFrom(typed.text) == null
+                    ? null
+                    : _save,
+                child: const Text('Save'),
+              ),
             ),
-          ),
-        ],
-      ),
-      body: PageWidth(
-        builder: (_, padding) => ListView(
-          padding: padding + const EdgeInsets.all(16),
-          children: [
-            Text(folder.location, style: small),
-            Text('${plugin.name}: ${plugin.helpLine}', style: small),
-            FolderNoticesView(folder),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _name,
-              decoration: const InputDecoration(labelText: 'Name'),
-            ),
-            const SizedBox(height: 16),
-            FolderColorPicker(
-              selected: _color,
-              onPicked: (color) => setState(() => _color = color),
-            ),
-            const SizedBox(height: 16),
-            RemoveUnusedImagesTile(folder.id),
           ],
+        ),
+        body: PageWidth(
+          builder: (_, padding) => ListView(
+            padding: padding + const EdgeInsets.all(16),
+            children: [
+              Text(folder.location, style: small),
+              Text('${plugin.name}: ${plugin.helpLine}', style: small),
+              FolderNoticesView(folder),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Name'),
+                onSubmitted: (_) => _save(),
+              ),
+              const SizedBox(height: 16),
+              FolderColorPicker(
+                selected: _color,
+                onPicked: (color) => setState(() => _color = color),
+              ),
+              const SizedBox(height: 16),
+              RemoveUnusedImagesTile(folder.id),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  /// Whether the name or color differs from the folder's.
+  bool get _changed =>
+      Folder.nameFrom(_name.text) != widget.folder.name ||
+      _color != widget.folder.color;
 }
