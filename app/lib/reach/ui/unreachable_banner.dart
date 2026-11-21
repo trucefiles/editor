@@ -22,12 +22,7 @@ class UnreachableBanner extends ConsumerWidget {
     }
     return MaterialBanner(
       leading: const Icon(Icons.cloud_off_outlined),
-      content: Text(
-        [
-          "${folder.name} can't be reached.",
-          ?message,
-        ].join(' '),
-      ),
+      content: Text(["${folder.name} can't be reached.", ?message].join(' ')),
       actions: [
         TextButton(
           // Any access that works brings the folder back.
