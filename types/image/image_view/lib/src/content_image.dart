@@ -7,7 +7,7 @@ import 'package:truce_file_page/truce_file_page.dart';
 /// another version is read anew.
 @immutable
 final class ContentImage extends BytesImage<ContentImage> {
-  const ContentImage(this.content, {super.size});
+  const ContentImage(this.content, {required super.size});
 
   final ShownContent content;
 

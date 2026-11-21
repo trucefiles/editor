@@ -62,15 +62,14 @@ final class Within extends DecodeSize {
 /// A picture to show, decoded no larger than the size it is asked at.
 typedef SizedImage = ImageProvider Function(Within size);
 
-/// A picture read as bytes when it first shows, decoded at [size] (whole
-/// if `null`), kept in Flutter's image cache by its [identity] and
+/// A picture read as bytes when it first shows, decoded at [size], kept in Flutter's image cache by its [identity] and
 /// [size]. A read or decode that fails leaves the cache, so the picture
 /// is tried again when it shows again (Flutter would keep a failed load
 /// for good).
 abstract class BytesImage<T extends BytesImage<T>> extends ImageProvider<T> {
-  const BytesImage({this.size});
+  const BytesImage({required this.size});
 
-  final DecodeSize? size;
+  final DecodeSize size;
 
   /// What tells this picture apart from others of its kind, as values
   /// compared one by one (e.g. a file's id and version).
@@ -104,10 +103,7 @@ abstract class BytesImage<T extends BytesImage<T>> extends ImageProvider<T> {
       final bytes = await readBytes();
       if (bytes == null) throw StateError('The picture could not be read.');
       final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-      return await switch (size) {
-        final size? => decode(buffer, getTargetSize: size.targetFor),
-        null => decode(buffer),
-      };
+      return await decode(buffer, getTargetSize: size.targetFor);
     } on Object {
       PaintingBinding.instance.imageCache.evict(key);
       rethrow;

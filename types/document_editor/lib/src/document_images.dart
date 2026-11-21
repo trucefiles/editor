@@ -79,7 +79,7 @@ final class FolderImage extends BytesImage<FolderImage> {
     this.paths,
     this.read, {
     required this.openedAt,
-    super.size,
+    required super.size,
   });
 
   final FolderId folder;

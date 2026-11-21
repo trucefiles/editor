@@ -278,8 +278,7 @@ List<Component>? _checked(
   if (!asSeries) return _withDate(task, old, stamped(changed, at));
   // The date's stamp goes with it, so the series carries the edit's: a
   // merge with a text that still has the date checked keeps this one.
-  final [series, ...dates] = _withDate(task, old, null);
-  return [stamped(series, at), ...dates];
+  return _withDate(task, old, null, series: stamped(task.series.component, at));
 }
 
 /// What [part] says now, as a draft; `null` for an event whose times
@@ -316,13 +315,14 @@ String _unchecked(Component task) => _withDone(task, false, DateTime(0))
 
 /// [item]'s components with [changed] in place of its changed date
 /// [old] (`null`: it had none), or added; [old] gone if [changed] is
-/// `null`.
+/// `null`. Its [series] in place of its own, if given.
 List<Component> _withDate(
   CalendarItem item,
   ItemPart? old,
-  Component? changed,
-) => [
-  item.series.component,
+  Component? changed, {
+  Component? series,
+}) => [
+  series ?? item.series.component,
   for (final part in item.changed)
     if (part != old) part.component else ?changed,
   if (old == null) ?changed,

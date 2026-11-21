@@ -13,7 +13,7 @@ final _onePixel = base64.decode(
 
 /// A picture whose bytes [read] gives, at [size].
 final class _Picture extends BytesImage<_Picture> {
-  const _Picture(this.read, {super.size});
+  const _Picture(this.read, {required super.size});
 
   final Uint8List? Function() read;
 
@@ -26,7 +26,7 @@ final class _Picture extends BytesImage<_Picture> {
 
 /// A picture told apart by [name].
 final class _Named extends BytesImage<_Named> {
-  const _Named(this.name, {super.size});
+  const _Named(this.name, {super.size = const Within(1, 1)});
 
   final String name;
 
@@ -45,7 +45,7 @@ void main() {
     );
     expect(const _Named('a').hashCode, const _Named('a').hashCode);
     expect(const _Named('a'), isNot(const _Named('b')));
-    expect(const _Named('a'), isNot(const _Named('a', size: Within(1, 1))));
+    expect(const _Named('a'), isNot(const _Named('a', size: Within(2, 1))));
   });
 
   group('a picture covering a box', () {
