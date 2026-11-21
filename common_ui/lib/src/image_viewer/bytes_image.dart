@@ -62,10 +62,10 @@ final class Within extends DecodeSize {
 /// A picture to show, decoded no larger than the size it is asked at.
 typedef SizedImage = ImageProvider Function(Within size);
 
-/// A picture read as bytes when it first shows, decoded at [size], kept in Flutter's image cache by its [identity] and
-/// [size]. A read or decode that fails leaves the cache, so the picture
-/// is tried again when it shows again (Flutter would keep a failed load
-/// for good).
+/// A picture read as bytes when it first shows, decoded at [size], kept
+/// in Flutter's image cache by its [identity] and [size]. A read or
+/// decode that fails leaves the cache, so the picture is tried again when
+/// it shows again (Flutter would keep a failed load for good).
 abstract class BytesImage<T extends BytesImage<T>> extends ImageProvider<T> {
   const BytesImage({required this.size});
 
