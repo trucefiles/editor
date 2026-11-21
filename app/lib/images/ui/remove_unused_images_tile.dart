@@ -48,6 +48,7 @@ class _RemoveUnusedImagesTileState
     final go = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: Text('Remove $images?'),
         content: const Text('No document in this folder shows them.'),
         actions: [

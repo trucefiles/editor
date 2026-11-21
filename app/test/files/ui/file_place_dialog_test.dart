@@ -137,6 +137,40 @@ void main() {
     ));
   });
 
+  testWidgets('with a name, fits a phone with its keyboard up and still '
+      'confirms', (tester) async {
+    tester.view.physicalSize = const Size(360, 700);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    late Future<PickedPlace?> result;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => result = showFileNameDialog(
+              context,
+              folders: [files],
+              initial: (folder: files, subfolder: null),
+              name: 'Milk',
+              nameHint: 'Shopping list',
+              subfoldersOf: (_) => [path('a')],
+              canHold: (_, _) => true,
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.text('OK'));
+    await tester.tap(find.text('OK'));
+    expect((await result)?.name, 'Milk');
+  });
+
   testWidgets('an empty name shows what it gives as a hint and stays '
       'empty', (tester) async {
     late Future<PickedPlace?> result;

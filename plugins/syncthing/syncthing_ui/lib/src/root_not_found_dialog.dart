@@ -15,6 +15,7 @@ Future<RootChoice?> showRootNotFound(BuildContext context) =>
     showDialog<RootChoice>(
       context: context,
       builder: (context) => AlertDialog(
+        scrollable: true,
         title: const Text('Pick the whole Syncthing folder?'),
         content: const Text(
           "This folder is inside a Syncthing folder the app can't find. "

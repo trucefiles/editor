@@ -154,53 +154,48 @@ class _FileSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     void choose(FileChoice chosen) => Navigator.pop(context, chosen);
+    // Scrolls where the sheet's height can't hold it all (a phone on its
+    // side, large text).
     return SafeArea(
-      child: Padding(
+      child: ListView(
+        shrinkWrap: true,
         padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (header case (:final title, :final place)) ...[
-              ListTile(
-                title: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(place),
-              ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(_openIcon),
-                title: const Text('Open'),
-                onTap: () => choose(const OpenChoice()),
-              ),
-            ],
+        children: [
+          if (header case (:final title, :final place)) ...[
             ListTile(
-              leading: Icon(_pinIcon(pinned: pinned)),
-              title: Text(_pinLabel(pinned: pinned)),
-              onTap: () => choose(PinChoice(pinned: !pinned)),
+              title: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis),
+              subtitle: Text(place),
             ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(_openIcon),
+              title: const Text('Open'),
+              onTap: () => choose(const OpenChoice()),
+            ),
+          ],
+          ListTile(
+            leading: Icon(_pinIcon(pinned: pinned)),
+            title: Text(_pinLabel(pinned: pinned)),
+            onTap: () => choose(PinChoice(pinned: !pinned)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ColorCircles(
+              selected: color,
+              onPicked: (color) => choose(ColorChoice(color)),
+            ),
+          ),
+          if (header != null)
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: ColorCircles(
-                selected: color,
-                onPicked: (color) => choose(ColorChoice(color)),
-              ),
-            ),
-            if (header != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(
-                  _openToChange,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                _openToChange,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

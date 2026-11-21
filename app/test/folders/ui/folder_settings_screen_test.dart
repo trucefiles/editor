@@ -64,6 +64,17 @@ void main() {
     expect(find.byType(FolderSettingsScreen), findsNothing);
   });
 
+  testWidgets('Enter in the name saves, as Save does', (tester) async {
+    await open(tester);
+
+    await tester.enterText(find.byType(TextField), 'Work');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(folders.changed.single.name, 'Work');
+    expect(find.byType(FolderSettingsScreen), findsNothing);
+  });
+
   testWidgets('a blank name can not be saved', (tester) async {
     await open(tester);
 

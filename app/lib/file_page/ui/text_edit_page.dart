@@ -13,6 +13,7 @@ import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
+import '../../common/text_field_focus.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../files/file_actions.dart';
 import '../../files/file_colors.dart';
@@ -42,6 +43,7 @@ import 'history_end_text.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
 import 'save_indicator.dart';
+import 'unreachable_texts.dart';
 
 /// The one page for an open text document of any type; its type's editor
 /// part shows the text (e.g. Visual edit, Markdown edit or Read of a
@@ -340,21 +342,23 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   }
 
   /// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo while the file is
-  /// edited; the type's own keys work while it can be edited. Esc is the
-  /// app's: it leaves, unless a menu above the editor takes it.
+  /// edited, unless a text field on the page (e.g. a calendar's name) has
+  /// the focus, which undoes its own typing; the type's own keys work
+  /// while it can be edited. Esc is the app's: it leaves, unless a menu
+  /// above the editor takes it.
   late final Map<SingleActivator, VoidCallback> _keys = {
     const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
-      if (_isEdited) _editor.send(const Undo());
+      if (_undoesByKeys) _editor.send(const Undo());
     },
     const SingleActivator(
       LogicalKeyboardKey.keyZ,
       control: true,
       shift: true,
     ): () {
-      if (_isEdited) _editor.send(const Redo());
+      if (_undoesByKeys) _editor.send(const Redo());
     },
     const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
-      if (_isEdited) _editor.send(const Redo());
+      if (_undoesByKeys) _editor.send(const Redo());
     },
     for (final MapEntry(key: keys, value: action) in _page.view.keys.entries)
       keys: () {
@@ -375,6 +379,9 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
 
   /// Open for editing: undo and redo work.
   bool get _isEdited => !_controller.readOnly && _page.part.isEditing;
+
+  /// Whether the undo and redo keys are the file's now.
+  bool get _undoesByKeys => _isEdited && !textFieldHasFocus();
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.
@@ -431,7 +438,7 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
               ConflictBanner(conflict),
           UnreachableBanner(
             _folder,
-            message: 'Your text is kept on this device.',
+            message: textUnreachableText(_session.state),
           ),
           EditStateBanner(
             _controller,

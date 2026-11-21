@@ -36,9 +36,10 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
     super.dispose();
   }
 
+  /// Saves the name and color, once at a time, if the name is one.
   Future<void> _save() async {
     final name = Folder.nameFrom(_name.text);
-    if (name == null) return;
+    if (name == null || _busy) return;
     setState(() => _busy = true);
     final saved = await ref
         .read(folderActionsProvider)
@@ -84,6 +85,7 @@ class _FolderSettingsScreenState extends ConsumerState<FolderSettingsScreen> {
             TextField(
               controller: _name,
               decoration: const InputDecoration(labelText: 'Name'),
+              onSubmitted: (_) => _save(),
             ),
             const SizedBox(height: 16),
             FolderColorPicker(

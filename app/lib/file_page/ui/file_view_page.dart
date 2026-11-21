@@ -35,6 +35,7 @@ import 'file_place_spot.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
 import 'shown_state_banners.dart';
+import 'unreachable_texts.dart';
 
 /// The page of a file the app only shows (e.g. an image): its [type]
 /// draws it; the page has its name, place and actions. A new file is
@@ -285,9 +286,7 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           if (place != null)
             UnreachableBanner(
               place.folder,
-              message: _controller.state is WaitingNew
-                  ? 'The file is kept on this device.'
-                  : 'You see the last version on this device.',
+              message: shownUnreachableText(_controller.state),
             ),
           ...shownStateBanners(
             _controller.state,

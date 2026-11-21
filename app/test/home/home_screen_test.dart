@@ -460,6 +460,36 @@ void main() {
     expect(find.byType(TextEditPage), findsOne);
   });
 
+  testWidgets("Ctrl+Z in a calendar's name undoes only the typing there, "
+      'not the calendar\'s last edit', (tester) async {
+    // Tall enough for the month's rows to show their events.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
+    await showCalendarTab(tester);
+    await tester.tap(find.byTooltip('Open calendar'));
+    await showsSoon(tester, find.byType(TextEditPage));
+    await tester.pumpAndSettle();
+    final name = find.descendant(
+      of: find.byType(AppBar),
+      matching: find.byType(TextField),
+    );
+
+    await tester.tap(name);
+    // Past the text field's own grouping of changes into undo steps.
+    await tester.pump(const Duration(seconds: 1));
+    await tester.enterText(name, 'Home and garden');
+    await tester.pump(const Duration(seconds: 1));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<TextField>(name).controller!.text, 'Home');
+    expect(find.text('Call'), findsWidgets);
+  });
+
   testWidgets('a task in the Calendar tab shows, but is checked off on its '
       'calendar page; Edit opens its form there', (tester) async {
     final home = applyEdit(

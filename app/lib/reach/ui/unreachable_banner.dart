@@ -6,13 +6,14 @@ import 'package:truce_folders/truce_folders.dart';
 import '../../folder_state/folder_state_controller.dart';
 import '../folder_reach_controller.dart';
 
-/// Tells that [folder] can't be reached, with [message] on what that means
-/// for the screen, and offers to try again. Shows nothing while it can.
+/// Tells that [folder] can't be reached, with [message] (if any) on what
+/// that means for the screen, and offers to try again. Shows nothing
+/// while it can.
 class UnreachableBanner extends ConsumerWidget {
   const UnreachableBanner(this.folder, {required this.message, super.key});
 
   final Folder folder;
-  final String message;
+  final String? message;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,7 +22,12 @@ class UnreachableBanner extends ConsumerWidget {
     }
     return MaterialBanner(
       leading: const Icon(Icons.cloud_off_outlined),
-      content: Text("${folder.name} can't be reached. $message"),
+      content: Text(
+        [
+          "${folder.name} can't be reached.",
+          ?message,
+        ].join(' '),
+      ),
       actions: [
         TextButton(
           // Any access that works brings the folder back.
