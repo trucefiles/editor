@@ -248,7 +248,8 @@ CalendarUnit? _editedItem(Calendar calendar, CalendarEdit edit) {
 /// [task]'s components once it, or its date [date], is checked off
 /// ([done]) or open again at [at]; `null` if it is so already. A date
 /// is checked in a changed date of its own (made if there is none); one
-/// made open again goes once it is the series' date again.
+/// made open again goes once it is the series' date again, and the
+/// series is stamped instead.
 List<Component>? _checked(
   CalendarTask task,
   CalendarTime? date,
@@ -274,7 +275,11 @@ List<Component>? _checked(
       !task.series.changesOccurrence &&
       !task.series.done &&
       _unchecked(changed) == _unchecked(_dateOf(task, date));
-  return _withDate(task, old, asSeries ? null : stamped(changed, at));
+  if (!asSeries) return _withDate(task, old, stamped(changed, at));
+  // The date's stamp goes with it, so the series carries the edit's: a
+  // merge with a text that still has the date checked keeps this one.
+  final [series, ...dates] = _withDate(task, old, null);
+  return [stamped(series, at), ...dates];
 }
 
 /// What [part] says now, as a draft; `null` for an event whose times

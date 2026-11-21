@@ -13,13 +13,23 @@ import '../visible/visible_text.dart';
 /// How an image link changes: its new destination, `null` to keep it.
 typedef Relink = String? Function(String destination);
 
-/// Where every image of [doc] leads, inline and reference ones; never
-/// a text that only looks like a link (e.g. in code).
+/// Where every image of [doc] leads, inline and reference ones, in a
+/// table's cells too; never a text that only looks like a link (e.g. in
+/// code).
 Set<String> imageLinksIn(DocTree doc) => {
-  for (final node in nodesIn(doc.root).whereType<TextNode>())
-    for (final piece in node.text.pieces)
-      if (piece case ObjectPiece(inline: final ImageInline image))
-        image.destination,
+  for (final node in nodesIn(doc.root))
+    for (final text in _textsOf(node))
+      for (final piece in text.pieces)
+        if (piece case ObjectPiece(inline: final ImageInline image))
+          image.destination,
+};
+
+/// The texts [node] shows with their images: its own, or a table's
+/// cells.
+Iterable<VisibleText> _textsOf(DocBlock node) => switch (node) {
+  TextNode(:final text) => [text],
+  TableNode(:final rows) => rows.expand((cells) => cells),
+  _ => const [],
 };
 
 /// [imageLinksIn] the document [text] reads as.

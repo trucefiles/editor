@@ -16,6 +16,15 @@ void main() {
       );
     });
 
+    test('gives where the images in a table lead', () {
+      expect(
+        imageLinksOf(
+          '| a | b |\n|---|---|\n| ![](a.png) | [![x](b/c.jpg)](https://e.org) |\n',
+        ),
+        {'a.png', 'b/c.jpg'},
+      );
+    });
+
     test('never finds a link in code or plain text', () {
       expect(
         imageLinksOf(

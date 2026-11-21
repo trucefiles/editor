@@ -136,12 +136,11 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
 
   /// Once the file's folder was removed: closes, unless a new file
   /// could not be written before; that one stays, so it can go
-  /// elsewhere.
+  /// elsewhere ([ViewPageController.folderRemoved]).
   void _closeIfNotShown(List<Folder> folders) {
     final folder = _controller.folder;
     if (folder == null || folders.any((shown) => shown.id == folder)) return;
-    if (_controller.state is WaitingNew) return;
-    closeAsFolderRemoved(context);
+    if (_controller.folderRemoved()) closeAsFolderRemoved(context);
   }
 
   /// [context] is this screen's.
