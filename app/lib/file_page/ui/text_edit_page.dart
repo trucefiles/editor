@@ -13,7 +13,6 @@ import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../../common/screen_shortcuts.dart';
 import '../../common/snack.dart';
-import '../../common/text_field_focus.dart';
 import '../../conflicts/ui/conflict_banner.dart';
 import '../../files/file_actions.dart';
 import '../../files/file_colors.dart';
@@ -342,24 +341,27 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   }
 
   /// Ctrl+Z undoes, Ctrl+Shift+Z and Ctrl+Y redo while the file is
-  /// edited, unless a text field on the page (e.g. a calendar's name) has
-  /// the focus, which undoes its own typing; the type's own keys work
-  /// while it can be edited. Esc is the app's: it leaves, unless a menu
-  /// above the editor takes it.
-  late final Map<SingleActivator, VoidCallback> _keys = {
+  /// edited, as a text field's own keys (a field on the page keeps them
+  /// while it has the focus).
+  late final Map<SingleActivator, VoidCallback> _undoKeys = {
     const SingleActivator(LogicalKeyboardKey.keyZ, control: true): () {
-      if (_undoesByKeys) _editor.send(const Undo());
+      if (_isEdited) _editor.send(const Undo());
     },
     const SingleActivator(
       LogicalKeyboardKey.keyZ,
       control: true,
       shift: true,
     ): () {
-      if (_undoesByKeys) _editor.send(const Redo());
+      if (_isEdited) _editor.send(const Redo());
     },
     const SingleActivator(LogicalKeyboardKey.keyY, control: true): () {
-      if (_undoesByKeys) _editor.send(const Redo());
+      if (_isEdited) _editor.send(const Redo());
     },
+  };
+
+  /// The type's own keys work while the file can be edited. Esc is the
+  /// app's: it leaves, unless a menu above the editor takes it.
+  late final Map<SingleActivator, VoidCallback> _typeKeys = {
     for (final MapEntry(key: keys, value: action) in _page.view.keys.entries)
       keys: () {
         if (!_controller.readOnly) action();
@@ -372,16 +374,14 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   Widget _scaffold() => ScaffoldMessenger(
     key: _messenger,
     child: ScreenShortcuts(
-      bindings: _keys,
+      bindings: _typeKeys,
+      editingBindings: _undoKeys,
       child: Builder(builder: _content),
     ),
   );
 
   /// Open for editing: undo and redo work.
   bool get _isEdited => !_controller.readOnly && _page.part.isEditing;
-
-  /// Whether the undo and redo keys are the file's now.
-  bool get _undoesByKeys => _isEdited && !textFieldHasFocus();
 
   Widget _content(BuildContext context) {
     // Rebuilds when the folder's reach changes.

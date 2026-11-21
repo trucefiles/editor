@@ -62,4 +62,45 @@ void main() {
 
     expect(presses, 0);
   });
+
+  group('editing bindings', () {
+    Future<TextEditingController> showWithField(WidgetTester tester) async {
+      final field = TextEditingController();
+      addTearDown(field.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ScreenShortcuts(
+            bindings: const {},
+            editingBindings: {
+              const SingleActivator(
+                LogicalKeyboardKey.digit1,
+                control: true,
+              ): () =>
+                  presses++,
+            },
+            child: Scaffold(body: TextField(controller: field)),
+          ),
+        ),
+      );
+      return field;
+    }
+
+    testWidgets('run while no text field has the focus', (tester) async {
+      await showWithField(tester);
+
+      await pressCtrl1(tester);
+
+      expect(presses, 1);
+    });
+
+    testWidgets('are left to a text field that has the focus', (tester) async {
+      await showWithField(tester);
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+
+      await pressCtrl1(tester);
+
+      expect(presses, 0);
+    });
+  });
 }
