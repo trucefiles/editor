@@ -71,8 +71,9 @@ final class _ShownSteps {
   /// When the last own write ended; listings seen before it are old.
   Moment? _wroteAt;
 
-  /// Equal bytes: the same list at once, else compared once per own move
-  /// (as cheap as the move's own read and write).
+  /// Equal bytes. A move hands back the very list it was given unless
+  /// the type changed it (no store returns bytes), so this is one
+  /// identity check in practice.
   static const _sameBytes = ListEquality<int>();
 
   ShownFileOwner ownerFrom(ShownState start) =>
@@ -161,6 +162,20 @@ final class _ShownSteps {
     found,
     content: found.version == last.version ? content : ContentTag.listed(found),
   );
+
+  /// The content of [moved], the copy of [read], moved from [shown]
+  /// holding [content]: the same if it is the version shown and its
+  /// type left the bytes as they were.
+  static ContentTag _movedContent(
+    ListedFile shown,
+    ContentTag content,
+    FileBytes read,
+    FileBytes moved,
+  ) =>
+      read.listed.version == shown.version &&
+          _sameBytes.equals(moved.bytes, read.bytes)
+      ? content
+      : ContentTag.listed(moved.listed);
 
   /// Keeps [file] on the device; where it can't be, writes it into its
   /// folder at once.
@@ -283,11 +298,7 @@ final class _ShownSteps {
       _wroteAt = Moment.now();
       out.state = ShownListed(
         copy.listed,
-        content:
-            read.listed.version == file.version &&
-                _sameBytes.equals(copy.bytes, read.bytes)
-            ? content
-            : ContentTag.listed(copy.listed),
+        content: _movedContent(file, content, read, copy),
       );
     }
     return switch (moved) {
