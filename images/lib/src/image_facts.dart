@@ -58,6 +58,11 @@ typedef MapPoint = ({double latitude, double longitude});
 /// for any other. Reads its header and EXIF data only, never its pixels:
 /// JPEG, WebP and PNG (its `eXIf` chunk) carry EXIF data; GIF and BMP
 /// only a size.
+///
+/// The tags are read by the `image` package. The `exif` package was
+/// checked too: it finds EXIF in the same kinds but tells no picture
+/// size, turns no GPS into degrees, adds five dependencies and has had
+/// no release since 2023.
 ImageFacts? imageFactsOf(Uint8List bytes) {
   final kind = ImageKind.of(bytes);
   if (kind == null) return null;

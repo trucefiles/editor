@@ -56,7 +56,7 @@ Prefer the simpler option when in doubt.
 - No quadratic work (e.g. a copy or full walk per item).
 
 ## Quality
-- A trusted, maintained library (or the framework's own) beats own code; own code only where none fits these rules, and the code says why.
+- Library first, always: before writing code for a general problem (a file format, metadata, units, dates, text, encoding, math), search for a widely used, trusted, maintained library (or the framework's own, or a dependency already in use) and use it. Check this unasked, at the start of the work, and name what was checked in the plan. Own code only where none fits these rules; the code says which library was checked and why it doesn't fit.
 - Only well-trusted dependencies, pinned where normal (actions by commit SHA, SDKs by version, packages via lock files, wrappers by hash). Report where pinning isn't possible.
 - A dependency version is at least 2 days old. One less than 7 days old is checked by hand first: the published package matches its source tag, no new dependencies, no new file, network, process or native access, the commit authors are the known ones and the publisher is unchanged.
 - Small files and units; split when a unit does two jobs.
