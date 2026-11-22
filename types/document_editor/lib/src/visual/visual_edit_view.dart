@@ -110,7 +110,7 @@ class _VisualEditViewState extends State<VisualEditView> {
       (notice) => switch (notice) {
         final md.AskLink ask => unawaited(_askLink(ask)),
         md.ShowRow(:final leaf) => _showRow(leaf),
-        md.Notice() => null,
+        md.Notice() || md.ShownTextAnswer() => null,
       },
     );
     widget.gate.addListener(_keyboardFollowsCaret);

@@ -6,7 +6,8 @@
 /// text to the file owner as the save timing says.
 library;
 
-import 'package:truce_core/truce_core.dart' show EffectId, Wait;
+import 'package:truce_core/truce_core.dart'
+    show Answering, Asking, EffectId, Ticket, Wait;
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../doc/doc_nodes.dart';
@@ -219,6 +220,15 @@ final class RelinkImages extends EditorInput {
   final Relink relink;
 }
 
+/// What text shows now? Answered by [ShownTextAnswer]: the text printed as it
+/// would be sent; nothing is sent, kept or timed anew.
+final class AskShownText extends EditorInput implements Asking {
+  const AskShownText(this.ticket);
+
+  @override
+  final Ticket ticket;
+}
+
 /// A request of the document page (see core's editor contract).
 final class Request extends EditorInput {
   const Request(this.request);
@@ -270,6 +280,15 @@ final class Notice extends EditorEvent {
   const Notice(this.notice);
 
   final EditorNotice notice;
+}
+
+/// The answer to [AskShownText]: the [text] that shows now.
+final class ShownTextAnswer extends EditorEvent implements Answering {
+  const ShownTextAnswer(this.ticket, this.text);
+
+  @override
+  final Ticket ticket;
+  final String text;
 }
 
 /// Undo or redo changed the document at [leaf]'s row: Visual edit shows

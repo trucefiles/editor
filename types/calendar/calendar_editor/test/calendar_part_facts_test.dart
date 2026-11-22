@@ -4,7 +4,8 @@ import 'package:truce_files/truce_files.dart';
 import 'page_harness.dart';
 
 void main() {
-  test('tells the events and tasks of the calendar it shows', () {
+  test('tells the events and tasks of the calendar it shows, and sends '
+      'nothing', () {
     final part = calendarPart(
       [
         'BEGIN:VCALENDAR',
@@ -24,19 +25,24 @@ void main() {
       ].join('\n'),
     );
     addTearDown(part.dispose);
+    final sent = <Object?>[];
+    part.editor.events.listen(sent.add);
+    final before = part.editor.state;
 
-    final facts = part.facts('not read');
+    final facts = part.facts();
 
     expect(
       [for (final fact in facts.cast<TextFact>()) (fact.label, fact.text)],
       [('Events', '1'), ('Tasks', '2')],
     );
+    expect(part.editor.state, same(before));
+    expect(sent, isEmpty);
   });
 
   test('tells nothing while the text is no calendar', () {
     final part = calendarPart('no calendar');
     addTearDown(part.dispose);
 
-    expect(part.facts('no calendar'), isEmpty);
+    expect(part.facts(), isEmpty);
   });
 }

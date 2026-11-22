@@ -26,5 +26,5 @@ final class _Part extends FixedViewEditorPart {
   PageEditor get editor => throw UnimplementedError();
 
   @override
-  List<FileFact> facts(String text) => const [];
+  List<FileFact> facts() => const [];
 }

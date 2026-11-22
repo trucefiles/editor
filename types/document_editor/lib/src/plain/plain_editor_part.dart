@@ -25,6 +25,7 @@ final class PlainEditorPart extends FixedViewEditorPart {
     event: (event) => event.notice,
   );
 
+  /// The text as the editor shows it, typing not sent yet included.
   @override
-  List<FileFact> facts(String text) => textFacts(text);
+  List<FileFact> facts() => textFacts(owner.state.text);
 }

@@ -2,8 +2,9 @@ import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_files/truce_files.dart';
 import 'package:truce_images/truce_images.dart';
 
-/// What the File info panel tells of the picture [content] holds: read
-/// once, its header and EXIF data only; none if it can't be read.
+/// What the picture [content] holds tells of itself (its size, when,
+/// with what and where it was taken): read once, its header and EXIF
+/// data only; none if it can't be read.
 Future<List<FileFact>> imageFileFacts(ShownContent content) async =>
     switch (await content.read()) {
       final bytes? => switch (imageFactsOf(bytes)) {

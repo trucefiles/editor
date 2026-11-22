@@ -161,6 +161,8 @@ final class _Step
     switch ((input, state.content)) {
       case (Request(:final request), _):
         handleRequest(request);
+      case (AskShownText(:final ticket), _):
+        events.add(ShownTextAnswer(ticket, _printedFrom().printed.text));
       case (final ShownInput input, final FormattedContent shown)
           when state.mode == EditMode.visual:
         _visual(input, shown);

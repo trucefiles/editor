@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:truce_core/truce_core.dart' show answerOf;
 import 'package:truce_markdown/truce_markdown.dart';
 
 /// The one way into an open document's editor owner. Holds box taps for a
@@ -54,6 +55,16 @@ final class EditorGate extends ChangeNotifier {
   /// Completes once the owner ended, after [dispose].
   Future<void> get closed => _closed.future;
   final _closed = Completer<void>();
+
+  /// The text that shows now, printed by the owner but not sent; `null`
+  /// once the owner ended. Not a user input: taps that wait keep waiting.
+  Future<String?> shownText() =>
+      answerOf<EditorInput, ShownTextAnswer, String?>(
+        _owner,
+        AskShownText.new,
+        read: (answer) => answer.text,
+        orElse: null,
+      );
 
   /// The items whose box tap waits: their boxes show flipped meanwhile.
   Set<NodeId> get waiting => Set.unmodifiable(_waiting);

@@ -171,13 +171,6 @@ final class TextEditSession {
   /// app lost the focus); the file follows as after a pause.
   void draftNow() => editor.send(const DraftNow());
 
-  /// The text as the editor shows it now: typing that waits for a draft
-  /// is kept on this device first ([draftNow]), so [text] holds it.
-  String textNow() {
-    draftNow();
-    return text;
-  }
-
   /// Keeps the edits as the app ends ([SecureReason.exit]: on this
   /// device at least), then waits until the file holds them, as far as
   /// it can now; all within [within], so a folder that hangs never holds

@@ -303,7 +303,7 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
     path: _session.path,
     type: _page.type,
     saved: _session.read?.listed,
-  ), facts: _page.part.facts(_session.textNow()));
+  ), facts: _page.part.facts());
 
   /// Asks the user for another place or name of the file, then takes it;
   /// [context] is this screen's, below its own messenger.
