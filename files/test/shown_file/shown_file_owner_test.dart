@@ -67,6 +67,9 @@ final class _Work {
   bool createFails = false;
   Result<FileBytes, MoveFailure>? moveResult;
 
+  /// The version a reload finds; by default the one asked for.
+  int? reloadVersion;
+
   /// Drafts in a place that is a file, so none can be kept there.
   late final _refusing = FileDrafts(
     Directory('${(File('${tempFolder().path}/file')..createSync()).path}/d'),
@@ -81,7 +84,16 @@ final class _Work {
         );
 
   late final work = ShownWork(
-    reload: (file) async => Ok(FileBytes(file, Uint8List(0))),
+    reload: (file) async => Ok(
+      FileBytes(switch (reloadVersion) {
+        final version? => _listed(
+          file.folder,
+          file.path.name,
+          version: version,
+        ),
+        null => file,
+      }, Uint8List(0)),
+    ),
     draftsOf: draftsIn,
     create:
         (
@@ -239,6 +251,17 @@ void main() {
       work.moveResult = Ok(
         FileBytes(_listed(_work, 'b.md'), Uint8List.fromList([9])),
       );
+
+      await _place(owner, _work, title: 'b');
+
+      expect(contentOf(owner), isNot(before));
+    });
+
+    test('changes when the moved file was changed elsewhere before the '
+        'listing showed it', () async {
+      final owner = shownFileOwner(_listed(_home, 'a.md'), work.work);
+      final before = contentOf(owner);
+      work.reloadVersion = 2;
 
       await _place(owner, _work, title: 'b');
 

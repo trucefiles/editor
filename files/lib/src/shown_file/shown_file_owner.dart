@@ -252,8 +252,9 @@ final class _ShownSteps {
   }
 
   /// Moves [file], holding [content], where [ask] says, as the user
-  /// picked it; why not, if it can't. Its content stays unless its type
-  /// changed the bytes on the way.
+  /// picked it; why not, if it can't. Its content stays if the moved
+  /// bytes are the ones [content] names: read at the version shown, and
+  /// not changed by its type on the way.
   Future<MoveFailure?> _move(
     ListedFile file,
     ContentTag content,
@@ -282,7 +283,9 @@ final class _ShownSteps {
       _wroteAt = Moment.now();
       out.state = ShownListed(
         copy.listed,
-        content: _sameBytes.equals(copy.bytes, read.bytes)
+        content:
+            read.listed.version == file.version &&
+                _sameBytes.equals(copy.bytes, read.bytes)
             ? content
             : ContentTag.listed(copy.listed),
       );
