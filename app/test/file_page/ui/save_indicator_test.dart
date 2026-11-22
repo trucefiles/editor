@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/file_page/ui/save_indicator.dart';
-import 'package:truce_text_editing/truce_text_editing.dart';
+import 'package:truce_files/truce_files.dart';
 
 void main() {
   Future<int Function()> pump(WidgetTester tester, SaveState state) async {

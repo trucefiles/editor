@@ -34,6 +34,7 @@ import 'file_place_chip.dart';
 import 'file_place_spot.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
+import 'save_indicator.dart';
 import 'shown_state_banners.dart';
 import 'unreachable_texts.dart';
 
@@ -269,6 +270,10 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           edited: _controller.listed?.modified,
         ),
         actions: [
+          SaveIndicator(
+            _controller.saveState,
+            onSave: () => unawaited(_controller.saveNow()),
+          ),
           if (!acts || !usesTouch(Theme.of(context)))
             IconButton(
               tooltip: 'Refresh',
@@ -278,34 +283,12 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           if (acts) _menu(context, placeSpot: placeSpot),
         ],
       ),
-      body: Column(
+      // The picture fills the whole page, so it sits in the middle of the
+      // screen; the bar, banners and place go over it.
+      extendBodyBehindAppBar: true,
+      body: Stack(
         children: [
-          if (key != null)
-            if (shown?.conflicts.forFile(key) case final conflict?)
-              ConflictBanner(conflict),
-          if (place != null)
-            UnreachableBanner(
-              place.folder,
-              message: shownUnreachableText(_controller.state),
-            ),
-          ...shownStateBanners(
-            _controller.state,
-            close: () => closeIfOnTop(context),
-            retry: _controller.retry,
-          ),
-          if (place != null && placeSpot == FilePlaceSpot.aboveText)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: FilePlaceChip(
-                  place.folder,
-                  place.path,
-                  onPressed: acts ? () => unawaited(_editPlace()) : null,
-                ),
-              ),
-            ),
-          Expanded(
+          Positioned.fill(
             child: PullToRefresh(
               key: _pull,
               onRefresh: ref.read(folderContentsProvider.notifier).refresh,
@@ -316,6 +299,46 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
                 ),
                 null => const SizedBox.shrink(),
               },
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (key != null)
+                    if (shown?.conflicts.forFile(key) case final conflict?)
+                      ConflictBanner(conflict),
+                  if (place != null)
+                    UnreachableBanner(
+                      place.folder,
+                      message: shownUnreachableText(_controller.state),
+                    ),
+                  ...shownStateBanners(
+                    _controller.state,
+                    close: () => closeIfOnTop(context),
+                    retry: _controller.retry,
+                  ),
+                  if (place != null && placeSpot == FilePlaceSpot.aboveText)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: FilePlaceChip(
+                          place.folder,
+                          place.path,
+                          onPressed: acts
+                              ? () => unawaited(_editPlace())
+                              : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],

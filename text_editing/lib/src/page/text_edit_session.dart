@@ -13,8 +13,8 @@ import '../text/text_merge.dart';
 import '../text/text_summary.dart';
 import '../text_file_owner/text_file_owner.dart';
 import 'page_file.dart';
-import 'save_state.dart';
 import 'text_edit_effects.dart';
+import 'text_save_state.dart';
 
 /// Whether an open file takes edits.
 sealed class SessionState {

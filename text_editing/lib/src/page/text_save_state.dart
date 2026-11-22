@@ -1,20 +1,6 @@
+import 'package:truce_files/truce_files.dart';
+
 import '../text_file_owner/text_file_contract.dart';
-
-/// Where an open file's edits are, as its save icon shows.
-enum SaveState {
-  /// Nothing to show: a new file with nothing to keep, or one that
-  /// takes no more edits.
-  none,
-
-  /// Being edited: the latest edits are only in memory.
-  editing,
-
-  /// Kept on this device; not in the folder yet.
-  onDevice,
-
-  /// In the file in the folder.
-  inFolder,
-}
 
 /// The [SaveState] of a file whose file stands at [status]; [unsent]:
 /// the editor holds edits not yet sent to be kept.

@@ -48,6 +48,18 @@ void main() {
     await tester.waitUntil(() => tester.shownPictureWidth == 2);
   });
 
+  testApp('an image sits in the middle of the screen, under its bar', (
+    tester,
+  ) async {
+    app.writePicture('cat.png', width: 1);
+    await tester.addFolder(app);
+    await openImage(tester, 'cat');
+    await tester.waitUntil(() => tester.shownPictureWidth == 1);
+
+    final screen = tester.getRect(find.byType(FileViewPage));
+    expect(tester.getRect(find.byType(InteractiveViewer)), screen);
+  });
+
   testApp('an image is renamed from its page', (tester) async {
     app.writePicture('cat.png', width: 1);
     await tester.addFolder(app);
@@ -124,6 +136,24 @@ void main() {
 
     await tester.waitFor(find.text('Saved to Documents'));
     await waitForPageClosed(tester);
+    expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
+  });
+
+  testApp('an added image shows it waits on this device, then is saved', (
+    tester,
+  ) async {
+    app.picking
+      ..picked = onePixelPng
+      ..name = 'Milk.png';
+    await tester.addFolder(app);
+
+    await tester.tapAndSettle(find.byTooltip('New file'));
+    await tester.tapAndSettle(find.text('Image'));
+    await tester.waitFor(find.byIcon(Icons.save_outlined));
+    expect(app.namesIn(), isEmpty);
+    await tester.tapAndSettle(find.byIcon(Icons.save_outlined));
+
+    await tester.waitFor(find.byIcon(Icons.cloud_done_outlined));
     expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
   });
 }

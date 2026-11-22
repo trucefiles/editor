@@ -112,6 +112,8 @@ class PullToRefreshState extends State<PullToRefresh> {
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     key: _indicator,
+    // Below what covers the top, e.g. an app bar drawn over [child].
+    edgeOffset: MediaQuery.paddingOf(context).top,
     onRefresh: _refresh,
     notificationPredicate: _pulls,
     child: NotificationListener<ScrollNotification>(
