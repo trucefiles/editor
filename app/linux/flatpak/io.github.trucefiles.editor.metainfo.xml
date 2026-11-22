@@ -19,6 +19,16 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.19.0" date="2026-11-22">
+      <description>
+        <ul>
+          <li>File info: where a file is, its size and dates, lines and words, and for photos the camera, time and place.</li>
+          <li>Images in Recently edited, switched on per folder.</li>
+          <li>Pictures zoom by pinch, sit below the bar, and stay shown when renamed or moved.</li>
+          <li>Choose image on Android keeps the picture's own name.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.18.0" date="2026-11-21">
       <description>
         <ul>
