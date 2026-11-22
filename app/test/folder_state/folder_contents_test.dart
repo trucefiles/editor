@@ -124,6 +124,7 @@ void main() {
             type: kept.type,
             version: kept.version,
             modified: kept.modified,
+            size: 0,
           ),
         ],
         folders: [work],

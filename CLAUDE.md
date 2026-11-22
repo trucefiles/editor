@@ -52,7 +52,7 @@ Prefer the simpler option when in doubt.
 
 ## Performance and memory
 - Work grows with the change, not with the data, where the data can grow (a file's text, a folder's files): handle only what changed, and say what changed, so no receiver has to find it by comparing whole values. A full pass only where the result needs the whole (a save) or its cost was agreed.
-- Compute once, when asked: derive each answer once per input, in the entity that owns the input (e.g. a parsed tree per file version), and look it up there; hold no second copy of data for convenience, ask its owner.
+- Compute once, when asked: derive each answer once per input, in the entity that owns the input (e.g. a parsed tree per file version), and look it up there; hold no second copy of data for convenience, ask its owner. Needless work counts even when it is fast: before computing an answer, ask who already holds it (an open editor, the listing); re-reading, re-parsing or re-encoding what is already in memory needs a reason.
 - No quadratic work (e.g. a copy or full walk per item).
 
 ## Quality

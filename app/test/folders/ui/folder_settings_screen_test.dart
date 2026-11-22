@@ -5,6 +5,9 @@ import 'package:truce_core/truce_core.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/folders/open_folders_wiring.dart';
 import 'package:truce_editor/folders/ui/folder_settings_screen.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
+import 'package:truce_editor/storage/app_storage.dart';
 import 'package:truce_folders/truce_folders.dart';
 
 import '../../support.dart';
@@ -12,6 +15,7 @@ import '../../support.dart';
 void main() {
   late Folder folder;
   late _Folders folders;
+  late ProviderContainer container;
 
   Future<void> open(WidgetTester tester) async {
     folder = folderAt(tempFolder());
@@ -22,6 +26,10 @@ void main() {
           foldersProvider.overrideWith(() => folders),
           folderNoticesProvider.overrideWith(
             (ref, _) async => const <FolderNotice>[],
+          ),
+          appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
+          loadedDeviceSettingsProvider.overrideWithValue(
+            DeviceSettings.standard,
           ),
         ],
         child: MaterialApp(
@@ -42,6 +50,7 @@ void main() {
       ),
     );
     await tester.pump();
+    container = ProviderScope.containerOf(tester.element(find.text('home')));
     await tester.tap(find.text('home'));
     await tester.pumpAndSettle();
   }
@@ -72,6 +81,35 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(folders.changed.single.name, 'Work');
+    expect(find.byType(FolderSettingsScreen), findsNothing);
+  });
+
+  testWidgets("switching the folder's images out of Recently edited takes "
+      'effect at once, with nothing to save', (tester) async {
+    await open(tester);
+    final images = find.widgetWithText(
+      SwitchListTile,
+      'Show images in Recently edited',
+    );
+    expect(tester.widget<SwitchListTile>(images).value, isTrue);
+
+    await tester.runAsync(() async {
+      await tester.tap(images);
+      await tester.pump();
+    });
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SwitchListTile>(images).value, isFalse);
+    expect(
+      container
+          .read(deviceSettingsProvider)
+          .requireValue
+          .home
+          .showsUneditedOf(folder.id),
+      isFalse,
+    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     expect(find.byType(FolderSettingsScreen), findsNothing);
   });
 

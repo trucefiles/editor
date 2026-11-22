@@ -138,6 +138,7 @@ ListedFile listedFile(
   type: appFileTypes().of(path(name))!.support,
   version: FileVersion(version),
   modified: modified ?? DateTime(2000),
+  size: 0,
 );
 
 /// A file as if read, holding [text]; never read from a file.
@@ -228,6 +229,7 @@ FolderContents contentsFinding(
                       file.path,
                       version: file.version,
                       modified: file.modified,
+                      size: file.size,
                     ),
               },
               conflicts: const {},

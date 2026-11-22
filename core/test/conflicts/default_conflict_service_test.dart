@@ -34,6 +34,7 @@ void main() {
         path('todo.md'),
         version: content.version,
         modified: content.modified,
+        size: 0,
       ),
       null => null,
     },

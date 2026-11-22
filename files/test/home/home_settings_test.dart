@@ -1,30 +1,65 @@
 import 'package:test/test.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
 void main() {
   test('reads back what it writes', () {
-    const settings = HomeSettings(
+    final settings = HomeSettings(
       recentCount: 100,
       recentDays: 10,
       order: FileOrder.name,
       view: FileView.list,
-      uneditedInRecent: true,
+      uneditedLeftOut: {FolderId('local', 'a'), FolderId('syncthing', 'b')},
     );
 
     expect(HomeSettings.fromJson(settings.toJson()), settings);
   });
 
-  test('leaves files not edited in the app out of Recently edited by '
-      'default, also in settings written before', () {
-    expect(HomeSettings.standard.uneditedInRecent, isFalse);
-    expect(
-      HomeSettings.fromJson({
-        'recentCount': 50,
-        'order': 'time',
-        'view': 'cards',
-      })!.uneditedInRecent,
-      isFalse,
-    );
+  group('files not edited in the app (e.g. pictures)', () {
+    const camera = FolderId('local', 'camera');
+    const notes = FolderId('local', 'notes');
+
+    test('show in Recently edited for every folder by default, also in '
+        'settings written before', () {
+      expect(HomeSettings.standard.showsUneditedOf(camera), isTrue);
+      expect(
+        HomeSettings.fromJson({
+          'recentCount': 50,
+          'order': 'time',
+          'view': 'cards',
+          'uneditedInRecent': false,
+        })!.showsUneditedOf(camera),
+        isTrue,
+      );
+    });
+
+    test('stay out for a folder switched off, and show again once it is '
+        'switched on or forgotten', () {
+      final off = HomeSettings.standard.withUneditedOf(camera, shown: false);
+
+      expect(off.showsUneditedOf(camera), isFalse);
+      expect(off.showsUneditedOf(notes), isTrue);
+      expect(off.withUneditedOf(camera, shown: true), HomeSettings.standard);
+      expect(off.forgetting(camera), HomeSettings.standard);
+      expect(
+        off.copyWith(view: FileView.list).showsUneditedOf(camera),
+        isFalse,
+      );
+      expect(off.withRecentDays(5).showsUneditedOf(camera), isFalse);
+    });
+
+    test('drops folders it cannot read', () {
+      final json = {
+        ...HomeSettings.standard.toJson(),
+        'uneditedLeftOut': [
+          ['local', 'camera'],
+          ['Bad id', 'x'],
+          'not a folder',
+        ],
+      };
+
+      expect(HomeSettings.fromJson(json)!.uneditedLeftOut, {camera});
+    });
   });
 
   test('reads nothing from a count the user cannot pick or an unknown '

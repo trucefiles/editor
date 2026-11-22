@@ -21,6 +21,7 @@ void main() {
       type: type.support,
       version: const FileVersion(0),
       modified: DateTime(2000),
+      size: 0,
     ),
     const TextFile.empty().withText(text),
   );

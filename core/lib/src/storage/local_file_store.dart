@@ -271,6 +271,7 @@ final class LocalFileStore implements FileStore {
     path,
     version: _version(stat),
     modified: stat.modified,
+    size: stat.size,
     arrived: stat.changed.isAfter(stat.modified) ? stat.changed : stat.modified,
   );
 

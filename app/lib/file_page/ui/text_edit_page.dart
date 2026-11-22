@@ -35,6 +35,7 @@ import 'discard_dialog.dart';
 import 'edit_place.dart';
 import 'edit_state_banner.dart';
 import 'file_backups.dart';
+import 'file_info_panel.dart';
 import 'file_place_chip.dart';
 import 'file_place_spot.dart';
 import 'history_buttons.dart';
@@ -241,43 +242,68 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
   }
 
   /// [context] is this screen's, below its own messenger; [settings] are
-  /// the file's. Has the file's place where [placeSpot] says.
+  /// the file's. Has the file's place where [placeSpot] says. While the
+  /// file is [readOnly], only File info.
   Widget _menu(
     BuildContext context,
     FileSettings settings, {
     required FilePlaceSpot placeSpot,
+    required bool readOnly,
   }) => PopupMenuButton<VoidCallback>(
     onSelected: (action) => action(),
     itemBuilder: (_) => [
-      if (_isEdited && _narrow(context))
-        PopupMenuItem(
-          value: () => _editor.send(const Redo()),
-          enabled: _editor.state.canRedo,
-          child: const Text('Redo'),
-        ),
-      ..._page.view.menu(context, settings.view),
-      if (placeSpot == FilePlaceSpot.menu)
-        PopupMenuItem(
-          value: () => unawaited(_editPlace(context)),
-          child: const Text('$placeLabel…'),
-        ),
+      if (!readOnly) ..._actionItems(context, settings, placeSpot: placeSpot),
       PopupMenuItem(
-        value: () => _withFile((file) => editPinOrColor(context, ref, file)),
-        child: const Text('Pin or color'),
+        value: () => unawaited(_showInfo(context)),
+        child: const Text('File info'),
       ),
-      if (_session.read != null)
+      if (!readOnly)
         PopupMenuItem(
-          value: () => unawaited(_openBackups(context)),
-          child: const Text('Backups'),
+          value: () => _delete(context),
+          child: const Text('Delete file'),
         ),
-      if (usesTouch(Theme.of(context)))
-        PopupMenuItem(value: _refresh, child: const Text('Refresh')),
-      PopupMenuItem(
-        value: () => _delete(context),
-        child: const Text('Delete file'),
-      ),
     ],
   );
+
+  /// The menu's actions on the file.
+  List<PopupMenuEntry<VoidCallback>> _actionItems(
+    BuildContext context,
+    FileSettings settings, {
+    required FilePlaceSpot placeSpot,
+  }) => [
+    if (_isEdited && _narrow(context))
+      PopupMenuItem(
+        value: () => _editor.send(const Redo()),
+        enabled: _editor.state.canRedo,
+        child: const Text('Redo'),
+      ),
+    ..._page.view.menu(context, settings.view),
+    if (placeSpot == FilePlaceSpot.menu)
+      PopupMenuItem(
+        value: () => unawaited(_editPlace(context)),
+        child: const Text('$placeLabel…'),
+      ),
+    PopupMenuItem(
+      value: () => _withFile((file) => editPinOrColor(context, ref, file)),
+      child: const Text('Pin or color'),
+    ),
+    if (_session.read != null)
+      PopupMenuItem(
+        value: () => unawaited(_openBackups(context)),
+        child: const Text('Backups'),
+      ),
+    if (usesTouch(Theme.of(context)))
+      PopupMenuItem(value: _refresh, child: const Text('Refresh')),
+  ];
+
+  /// Shows what the file is, its editor telling what its type knows
+  /// from what it holds.
+  Future<void> _showInfo(BuildContext context) => showFileInfo(context, (
+    folder: _folder,
+    path: _session.path,
+    type: _page.type,
+    saved: _session.read?.listed,
+  ), facts: _page.part.facts(_session.text));
 
   /// Asks the user for another place or name of the file, then takes it;
   /// [context] is this screen's, below its own messenger.
@@ -425,10 +451,8 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
               icon: const Icon(Icons.refresh),
               onPressed: _refresh,
             ),
-          if (!readOnly) ...[
-            ..._page.view.actions(context),
-            _menu(context, settings, placeSpot: placeSpot),
-          ],
+          if (!readOnly) ..._page.view.actions(context),
+          _menu(context, settings, placeSpot: placeSpot, readOnly: readOnly),
         ],
       ),
       body: Column(

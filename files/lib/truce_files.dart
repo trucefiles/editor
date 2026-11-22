@@ -20,6 +20,7 @@ export 'src/drafts/page_draft.dart';
 export 'src/file_arrival.dart';
 export 'src/file_bytes.dart';
 export 'src/file_card_summary.dart';
+export 'src/file_fact.dart';
 export 'src/file_merge.dart';
 export 'src/file_place.dart';
 export 'src/file_reads.dart';

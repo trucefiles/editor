@@ -189,5 +189,6 @@ final class _Device {
     type: appNewTextType().support,
     version: const FileVersion(0),
     modified: DateTime(2000),
+    size: 0,
   );
 }

@@ -6,6 +6,7 @@ import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../editor_gate.dart';
 import '../first_mode.dart';
+import '../text_facts.dart';
 import 'markdown_page_editor.dart';
 
 /// A Markdown document's part of the document page: its editor owner,
@@ -94,6 +95,9 @@ final class MarkdownEditorPart implements EditorPart {
     FormattedContent(:final view) => view.doc.hasCheckboxes,
     MarkdownContent(:final text) => DocumentSummary.of(text).hasCheckboxes,
   };
+
+  @override
+  List<FileFact> facts(String kept) => textFacts(kept);
 
   /// Keeps how the document's checked items show on this device, as
   /// [ask]ed from [current] once the document has a file; nothing moves.

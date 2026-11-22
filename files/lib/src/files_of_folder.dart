@@ -51,7 +51,13 @@ final class FilesOfFolder {
     if (type == null) return const Err(StoreError.outside);
     return (await _store.read(path)).map(
       (content) => FileBytes(
-        _file(path, type, content.version, content.modified),
+        _file(
+          path,
+          type,
+          content.version,
+          content.modified,
+          content.bytes.length,
+        ),
         content.bytes,
       ),
     );
@@ -107,7 +113,14 @@ final class FilesOfFolder {
   ) async => switch (await _store.read(path)) {
     Ok(:final value)
         when const ListEquality<int>().equals(value.bytes, bytes) =>
-      Ok(FileEntry(path, version: value.version, modified: value.modified)),
+      Ok(
+        FileEntry(
+          path,
+          version: value.version,
+          modified: value.modified,
+          size: bytes.length,
+        ),
+      ),
     _ => const Err(StoreError.alreadyExists),
   };
 
@@ -358,6 +371,7 @@ final class FilesOfFolder {
       _types.of(entry.path)!.support,
       entry.version,
       entry.modified,
+      entry.size,
     ),
     bytes,
   );
@@ -367,12 +381,14 @@ final class FilesOfFolder {
     FileTypeSupport type,
     FileVersion version,
     DateTime modified,
+    int size,
   ) => ListedFile(
     folder: _folder,
     path: path,
     type: type,
     version: version,
     modified: modified,
+    size: size,
   );
 }
 

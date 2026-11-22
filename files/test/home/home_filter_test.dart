@@ -17,6 +17,7 @@ void main() {
     type: const FakeFileType(),
     version: const FileVersion(0),
     modified: DateTime(2026),
+    size: 0,
   );
   final atWork = file(work, 'a.md');
   final atHome = file(home, 'b.md');

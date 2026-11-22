@@ -33,6 +33,7 @@ void main() {
     path('document-images/$name'),
     version: const FileVersion(1),
     modified: DateTime(2026),
+    size: 0,
   );
 
   testWidgets('asks with how many, then removes them', (tester) async {

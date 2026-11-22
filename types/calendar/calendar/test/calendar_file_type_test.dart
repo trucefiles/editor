@@ -44,6 +44,7 @@ void main() {
       type: const CalendarSupport(),
       version: const FileVersion(0),
       modified: DateTime(2000),
+      size: 0,
     ),
     const TextFile.empty().withText(_birthday),
   );

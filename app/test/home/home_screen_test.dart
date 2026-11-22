@@ -214,6 +214,31 @@ void main() {
     expect(find.text('Notes'), findsNothing);
   });
 
+  testWidgets("a folder's images show in Recently edited unless its "
+      'switch is off', (tester) async {
+    final dir = await start(tester, {
+      'notes.md': '# Notes',
+      'photo.png': 'not drawn here',
+    }, shows: find.text('photo'));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeScreen)),
+    );
+
+    await tester.runAsync(
+      () => container
+          .read(deviceSettingsProvider.notifier)
+          .change(
+            (s) => s.copyWith(
+              home: s.home.withUneditedOf(folderAt(dir).id, shown: false),
+            ),
+          ),
+    );
+    await showsSoon(tester, find.text('Notes'));
+
+    expect(find.text('photo'), findsNothing);
+    expect(find.text('Switch to all files'), findsOne);
+  });
+
   testWidgets('the title names the view; Back in All files returns to '
       'Home', (tester) async {
     await start(

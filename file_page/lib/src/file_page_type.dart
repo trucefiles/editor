@@ -46,6 +46,10 @@ abstract interface class ViewType implements FilePageType {
   /// [content] small, as a card shows it, filling the space it gets.
   Widget thumbnail(ShownContent content, {required String label});
 
+  /// What the File info panel tells of [content] beyond what every file
+  /// has (e.g. a picture's size and camera); read once, when asked.
+  Future<List<FileFact>> facts(ShownContent content);
+
   /// Asks the user for a new file of [kind] (e.g. a picture to choose or
   /// take); `null` if they made none. [hint] tells the user something
   /// short (e.g. that a file can't be used).

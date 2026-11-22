@@ -24,6 +24,18 @@ void main() {
       expect(paths, {'a.md', '.hidden', 'sub/deep/b.md'});
     });
 
+    test("tells each file's size in bytes", () async {
+      await fx.write('a.md', 'héllo');
+      await fx.write('empty.md', '');
+
+      final result = await fx.store.list();
+
+      expect(
+        {for (final file in result.value.files) file.path.value: file.size},
+        {'a.md': 6, 'empty.md': 0},
+      );
+    });
+
     test('lists the folders it walked, empty ones included', () async {
       await fx.write('a/b/c/x.md', 'x');
       await fx.write('.stversions/a.md', 'old');

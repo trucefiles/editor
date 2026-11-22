@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:truce_core/truce_core.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../../common/choice_tile.dart';
@@ -55,21 +56,23 @@ class RecentAgeTile extends ConsumerWidget {
   }
 }
 
-/// Settings row: whether files only looked at in the app (images) show
-/// in Recently edited too.
+/// Folder setting: whether [folder]'s files only looked at in the app
+/// (images) show in Recently edited too.
 class UneditedInRecentTile extends ConsumerWidget {
-  const UneditedInRecentTile({super.key});
+  const UneditedInRecentTile(this.folder, {super.key});
+
+  final FolderId folder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => SwitchListTile(
     title: const Text('Show images in Recently edited'),
     value: ref.watch(
       deviceSettingsProvider.select(
-        (s) => s.requireValue.home.uneditedInRecent,
+        (s) => s.requireValue.home.showsUneditedOf(folder),
       ),
     ),
-    onChanged: (on) =>
-        _changeHome(ref, (home) => home.copyWith(uneditedInRecent: on)),
+    onChanged: (shown) =>
+        _changeHome(ref, (home) => home.withUneditedOf(folder, shown: shown)),
   );
 }
 

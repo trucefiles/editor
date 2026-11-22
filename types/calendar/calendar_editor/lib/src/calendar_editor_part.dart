@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 import 'calendar_import_file.dart';
@@ -114,6 +115,17 @@ final class CalendarEditorPart extends FixedViewEditorPart {
     owner.send(RenameCalendar(name));
     return true;
   }
+
+  /// Its events and tasks, counted on the calendar it shows; none while
+  /// the text is no calendar.
+  @override
+  List<FileFact> facts(String kept) => switch (owner.state.calendar?.counts) {
+    (:final events, :final tasks) => [
+      TextFact('Events', '$events'),
+      TextFact('Tasks', '$tasks'),
+    ],
+    null => const [],
+  };
 
   DateTime _at() => _now().toUtc();
 

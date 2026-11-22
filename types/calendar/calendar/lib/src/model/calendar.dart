@@ -6,6 +6,9 @@ import 'calendar_head.dart';
 import 'calendar_item.dart';
 import 'calendar_unit.dart';
 
+/// How many events and tasks a calendar holds.
+typedef CalendarCounts = ({int events, int tasks});
+
 /// One calendar file, read: the lines up to its first unit ([head]: the
 /// calendar's own properties), its [units] in order, and the lines from
 /// its end on ([tail]). Prints back byte for byte, each unit's parts where
@@ -73,6 +76,10 @@ final class Calendar {
 
   /// The calendar's tasks, deleted ones' markers among them, in order.
   List<CalendarTask> get tasks => _body.tasks;
+
+  /// How many events and tasks it holds, deleted ones' markers left
+  /// out.
+  CalendarCounts get counts => _body.counts;
 
   /// The event or task [key]; `null` if there is none.
   CalendarItem? itemOf(UidKey key) => _body.itemsByKey[key];
@@ -235,6 +242,13 @@ final class _Body {
   late final List<CalendarTask> tasks = items
       .whereType<CalendarTask>()
       .toList();
+
+  late final CalendarCounts counts = (
+    events: events.where(_shown).length,
+    tasks: tasks.where(_shown).length,
+  );
+
+  static bool _shown(CalendarItem item) => !item.series.deleted;
 
   late final Map<UidKey, CalendarItem> itemsByKey = {
     for (final item in items) item.key: item,

@@ -261,7 +261,9 @@ class _PinnedAndRecent extends ConsumerWidget {
     final recent = recentOf(
       files,
       isPinned: (file) => settings.settingsOf(file.key).pinned,
-      counts: (file) => home.uneditedInRecent || types.ofFile(file.type).edited,
+      counts: (file) =>
+          types.ofFile(file.type).edited ||
+          home.showsUneditedOf(file.folder.id),
       count: home.recentCount,
       // Checked on each listing; no timer moves files out while shown.
       since: home.recentSince(DateTime.now()),

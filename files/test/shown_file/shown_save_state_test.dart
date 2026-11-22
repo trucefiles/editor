@@ -25,6 +25,7 @@ void main() {
       type: const FakeFileType(),
       version: FileVersion(0),
       modified: DateTime(2000),
+      size: 0,
     );
     final cases = <ShownState, SaveState>{
       WaitingNew(photo, kept: NewKept.keeping): SaveState.none,

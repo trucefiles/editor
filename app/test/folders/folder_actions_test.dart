@@ -5,6 +5,8 @@ import 'package:truce_editor/folders/folder_selection.dart';
 import 'package:truce_editor/folders/folders_controller.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 import 'package:truce_editor/platform/storage_access.dart';
+import 'package:truce_editor/settings/device_settings.dart';
+import 'package:truce_editor/settings/device_settings_controller.dart';
 import 'package:truce_editor/storage/app_storage.dart';
 
 import '../support.dart';
@@ -21,6 +23,7 @@ void main() {
         appStorageProvider.overrideWithValue(AppStorage(tempFolder().path)),
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         storageAccessProvider.overrideWithValue(access),
+        loadedDeviceSettingsProvider.overrideWithValue(DeviceSettings.standard),
       ],
     );
     addTearDown(container.dispose);
@@ -51,6 +54,22 @@ void main() {
     await actions.remove(b);
     expect(container.read(pickedFoldersProvider), isEmpty);
     expect(await container.read(foldersProvider.future), isEmpty);
+  });
+
+  test("remove forgets the folder's images switch", () async {
+    await add();
+    final [a] = await container.read(foldersProvider.future);
+    final settings = container.read(deviceSettingsProvider.notifier);
+    await settings.change(
+      (s) => s.copyWith(home: s.home.withUneditedOf(a.id, shown: false)),
+    );
+
+    await actions.remove(a);
+
+    expect(
+      container.read(deviceSettingsProvider).requireValue.home.uneditedLeftOut,
+      isEmpty,
+    );
   });
 
   test('change saves the folder', () async {

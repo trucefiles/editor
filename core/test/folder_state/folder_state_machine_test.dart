@@ -7,12 +7,14 @@ typedef _Run = MachineRun<FolderStateMessage, FolderState, Fresh, Object?>;
 _Run _run() => MachineRun.of(folderStateMachine());
 
 /// A file listed at [path], in version [version], changed at second
-/// [time].
-FileEntry _file(String name, {int version = 1, int time = 1}) => FileEntry(
-  path(name),
-  version: FileVersion(version),
-  modified: DateTime.utc(2026, 10, 28, 0, 0, time),
-);
+/// [time], holding [size] bytes.
+FileEntry _file(String name, {int version = 1, int time = 1, int size = 0}) =>
+    FileEntry(
+      path(name),
+      version: FileVersion(version),
+      modified: DateTime.utc(2026, 10, 28, 0, 0, time),
+      size: size,
+    );
 
 FolderScan _scan(
   List<FileEntry> files, {
@@ -555,11 +557,12 @@ void main() {
       final at = DateTime.utc(2026, 10, 28, 0, 0, 10);
       run
         ..send(AppWrote(_a, {path('x.md')}, at: at))
-        ..checked(part(_file('x.md', version: 2, time: 3)));
+        ..checked(part(_file('x.md', version: 2, time: 3, size: 7)));
 
       final shown = run.listedOf(_a).found.files[path('x.md')]!;
       expect(shown.modified, at);
       expect(shown.version, const FileVersion(2));
+      expect(shown.size, 7);
 
       run
         ..send(Hinted(_a, ListAgain()))

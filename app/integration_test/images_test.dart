@@ -28,12 +28,9 @@ void main() {
     timeout: const Duration(seconds: 15),
   );
 
-  /// Opens the image titled [title] from All files: Home's Recently
-  /// edited leaves images out.
-  Future<void> openImage(WidgetTester tester, String title) async {
-    await tester.tapAndSettle(find.text('Switch to all files'));
-    await tester.openFile(title);
-  }
+  /// Opens the image titled [title] from Home's Recently edited.
+  Future<void> openImage(WidgetTester tester, String title) =>
+      tester.openFile(title);
 
   testApp('an image opens on its page, and shows a change from elsewhere', (
     tester,
@@ -148,6 +145,7 @@ void main() {
     await tester.waitFor(find.text('Saved to Documents'));
     await waitForPageClosed(tester);
     expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
+    await tester.waitFor(find.text('Milk'));
   });
 
   testApp('an added image shows it waits on this device, then is saved', (
@@ -166,5 +164,19 @@ void main() {
 
     await tester.waitFor(find.byIcon(Icons.cloud_done_outlined));
     expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
+  });
+
+  testApp("File info tells an image's size and dimensions", (tester) async {
+    app.writePicture('cat.png', width: 2);
+    await tester.addFolder(app);
+    await openImage(tester, 'cat');
+
+    await tester.chooseInMenu('File info');
+
+    await tester.waitFor(find.text('Dimensions'));
+    expect(find.text('cat.png'), findsOne);
+    expect(find.text('Images'), findsOne);
+    expect(find.text('${TestApp.picture(2).length} bytes'), findsOne);
+    expect(find.textContaining('2 × '), findsOne);
   });
 }

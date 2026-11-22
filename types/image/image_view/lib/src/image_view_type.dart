@@ -6,6 +6,7 @@ import 'package:truce_image_file/truce_image_file.dart';
 import 'package:truce_images/truce_images.dart';
 
 import 'content_image.dart';
+import 'image_file_facts.dart';
 import 'new_image.dart';
 
 /// Pictures with how they show: a card shows the picture cut to its
@@ -31,6 +32,9 @@ final class ImageViewType extends ImageFileType implements ViewType {
   @override
   Widget thumbnail(ShownContent content, {required String label}) =>
       ImageThumbnail(content, label: label);
+
+  @override
+  Future<List<FileFact>> facts(ShownContent content) => imageFileFacts(content);
 
   @override
   Future<NewContent?> makeNew(
