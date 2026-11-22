@@ -11,6 +11,7 @@ import '../file_place.dart';
 import '../folder_state/folder_contents.dart';
 import '../listed_file.dart';
 import '../move_failure.dart';
+import '../open_file/observation.dart';
 import 'new_shown_file.dart';
 
 // Inputs.
@@ -80,6 +81,29 @@ sealed class ShownState {
   const ShownState();
 }
 
+/// Which bytes a shown file holds, as its owner knows: equal tags, equal
+/// bytes. It stays the same while the bytes do, wherever the file goes
+/// (e.g. after the owner's own rename or move, or once it writes a new
+/// file), so what was drawn of it is drawn again. Opaque.
+@immutable
+final class ContentTag {
+  /// The bytes of [file] as listed: of its version stamp, so a file
+  /// opened again gets the same tag.
+  ContentTag.listed(ListedFile file) : _token = versionStampOf(file);
+
+  /// Bytes no other tag names (e.g. of a new file).
+  ContentTag.unique() : _token = Object();
+
+  final Object _token;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ContentTag && other._token == _token;
+
+  @override
+  int get hashCode => _token.hashCode;
+}
+
 /// Where a new file is kept until it is written.
 enum NewKept {
   /// Not yet known: it is being kept.
@@ -93,49 +117,58 @@ enum NewKept {
 }
 
 /// A new file the user added, not written yet; [kept] tells where it
-/// waits.
+/// waits, [content] tags its bytes.
 @immutable
 final class WaitingNew extends ShownState {
-  const WaitingNew(this.file, {required this.kept});
+  const WaitingNew(this.file, {required this.kept, required this.content});
 
   final NewShownFile file;
   final NewKept kept;
+  final ContentTag content;
 
   @override
   bool operator ==(Object other) =>
-      other is WaitingNew && identical(other.file, file) && other.kept == kept;
+      other is WaitingNew &&
+      identical(other.file, file) &&
+      other.kept == kept &&
+      other.content == content;
 
   @override
-  int get hashCode => Object.hash(identityHashCode(file), kept);
+  int get hashCode => Object.hash(identityHashCode(file), kept, content);
 }
 
-/// The file, as listed now.
+/// The file, as listed now, holding [content].
 @immutable
 final class ShownListed extends ShownState {
-  const ShownListed(this.file);
+  const ShownListed(this.file, {required this.content});
 
   final ListedFile file;
+  final ContentTag content;
 
   @override
-  bool operator ==(Object other) => other is ShownListed && other.file == file;
+  bool operator ==(Object other) =>
+      other is ShownListed && other.file == file && other.content == content;
 
   @override
-  int get hashCode => file.hashCode;
+  int get hashCode => Object.hash(file, content);
 }
 
 /// The file is gone: deleted, moved or renamed elsewhere; [last] is how
-/// it was last listed. It is never written again by itself.
+/// it was last listed, holding [content]. It is never written again by
+/// itself.
 @immutable
 final class ShownGone extends ShownState {
-  const ShownGone(this.last);
+  const ShownGone(this.last, {required this.content});
 
   final ListedFile last;
+  final ContentTag content;
 
   @override
-  bool operator ==(Object other) => other is ShownGone && other.last == last;
+  bool operator ==(Object other) =>
+      other is ShownGone && other.last == last && other.content == content;
 
   @override
-  int get hashCode => last.hashCode;
+  int get hashCode => Object.hash(last, content);
 }
 
 /// A new file the user dropped before it was written.

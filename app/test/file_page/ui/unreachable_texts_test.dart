@@ -31,7 +31,13 @@ void main() {
 
     test('is said to be kept on this device once it is', () {
       expect(
-        shownUnreachableText(WaitingNew(file, kept: NewKept.onDevice)),
+        shownUnreachableText(
+          WaitingNew(
+            file,
+            kept: NewKept.onDevice,
+            content: ContentTag.unique(),
+          ),
+        ),
         'The file is kept on this device.',
       );
     });
@@ -39,11 +45,15 @@ void main() {
     test('is never said to be kept while it is kept nowhere, or not yet '
         'known', () {
       expect(
-        shownUnreachableText(WaitingNew(file, kept: NewKept.nowhere)),
+        shownUnreachableText(
+          WaitingNew(file, kept: NewKept.nowhere, content: ContentTag.unique()),
+        ),
         isNull,
       );
       expect(
-        shownUnreachableText(WaitingNew(file, kept: NewKept.keeping)),
+        shownUnreachableText(
+          WaitingNew(file, kept: NewKept.keeping, content: ContentTag.unique()),
+        ),
         isNull,
       );
     });

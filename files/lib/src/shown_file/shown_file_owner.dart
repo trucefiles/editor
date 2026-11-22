@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
@@ -38,13 +39,15 @@ final class ShownWork {
 
 /// The owner of [file], opened from its folder.
 ShownFileOwner shownFileOwner(ListedFile file, ShownWork work) =>
-    _ShownSteps(work).ownerFrom(ShownListed(file));
+    _ShownSteps(work)
+        .ownerFrom(ShownListed(file, content: ContentTag.listed(file)));
 
 /// The owner of [file], a new one the user just added; it is kept on
 /// the device at once.
 ShownFileOwner newShownFileOwner(NewShownFile file, ShownWork work) =>
-    _ShownSteps(work).ownerFrom(WaitingNew(file, kept: NewKept.keeping))
-      ..send(const KeepNew());
+    _ShownSteps(work).ownerFrom(
+      WaitingNew(file, kept: NewKept.keeping, content: ContentTag.unique()),
+    )..send(const KeepNew());
 
 /// The folder [state]'s file is in, or goes to; none once dropped.
 FolderId? folderOfShown(ShownState state) => switch (state) {
@@ -56,7 +59,9 @@ FolderId? folderOfShown(ShownState state) => switch (state) {
 /// How a shown file's owner handles each input. A new file waits as a
 /// draft on the device (one per page) until the user leaves or hides the
 /// app; then it is written. Its own writes end at moments, so a listing
-/// that started before one never undoes it.
+/// that started before one never undoes it. Its content tag changes only
+/// with the bytes: its own writes keep them, a listed version it didn't
+/// write brings new ones.
 final class _ShownSteps {
   _ShownSteps(this._work) : _draft = PageDraft(_work.draftsOf);
 
@@ -65,6 +70,10 @@ final class _ShownSteps {
 
   /// When the last own write ended; listings seen before it are old.
   Moment? _wroteAt;
+
+  /// Equal bytes: the same list at once, else compared once per own move
+  /// (as cheap as the move's own read and write).
+  static const _sameBytes = ListEquality<int>();
 
   ShownFileOwner ownerFrom(ShownState start) =>
       SimpleOwner<ShownInput, ShownState, ShownEvent>(start, _handle);
@@ -91,50 +100,80 @@ final class _ShownSteps {
           ),
         );
       case KeepNew():
-        if (out.state case WaitingNew(:final file)) await _keepNew(file, out);
+        if (out.state case WaitingNew(:final file, :final content)) {
+          await _keepNew(file, content, out);
+        }
       case DropNew():
         if (out.state is WaitingNew) {
           out.state = const ShownDropped();
           await _draft.drop();
         }
       case NewFolderRemoved():
-        if (out.state case WaitingNew(:final file)) {
-          out.state = WaitingNew(file, kept: NewKept.nowhere);
+        if (out.state case WaitingNew(:final file, :final content)) {
+          out.state = WaitingNew(file, kept: NewKept.nowhere, content: content);
         }
     }
   }
 
   /// [state] after [contents]: a listed file follows its listing, from
-  /// one that saw the last own write on.
-  ShownState _seen(ShownState state, FolderContents contents) {
-    final last = switch (state) {
-      ShownListed(:final file) || ShownGone(last: final file) => file,
-      WaitingNew() || ShownDropped() => null,
-    };
-    if (last == null) return state;
+  /// one that saw the last own write on; its content stays while its
+  /// version does.
+  ShownState _seen(ShownState state, FolderContents contents) =>
+      switch (state) {
+        ShownListed(:final file, :final content) ||
+        ShownGone(
+          last: final file,
+          :final content,
+        ) => _followed(state, file, content, contents),
+        WaitingNew() || ShownDropped() => state,
+      };
+
+  /// [state], last listed as [last] holding [content], after [contents].
+  ShownState _followed(
+    ShownState state,
+    ListedFile last,
+    ContentTag content,
+    FolderContents contents,
+  ) {
     final seenAt = contents.seenAt(last.key);
     final wroteAt = _wroteAt;
     if (seenAt == null || (wroteAt != null && seenAt.isBefore(wroteAt))) {
       return state;
     }
     return switch (contents.shown.observe(last.key)) {
-      Found() => ShownListed(contents.shown.findFile(last.key)!),
-      Gone() => ShownGone(last),
+      Found() => _listedAfter(
+        last,
+        content,
+        contents.shown.findFile(last.key)!,
+      ),
+      Gone() => ShownGone(last, content: content),
       Unknown() => state,
     };
   }
+
+  /// [found], listed after [last] held [content]: the same content while
+  /// its version is the same.
+  static ShownListed _listedAfter(
+    ListedFile last,
+    ContentTag content,
+    ListedFile found,
+  ) => ShownListed(
+    found,
+    content: found.version == last.version ? content : ContentTag.listed(found),
+  );
 
   /// Keeps [file] on the device; where it can't be, writes it into its
   /// folder at once.
   Future<void> _keepNew(
     NewShownFile file,
+    ContentTag content,
     OwnerOutlet<ShownState, ShownEvent> out,
   ) async {
-    out.state = WaitingNew(file, kept: NewKept.keeping);
+    out.state = WaitingNew(file, kept: NewKept.keeping, content: content);
     if (await _keepDraft(file)) {
-      out.state = WaitingNew(file, kept: NewKept.onDevice);
-    } else if (!await _write(file, out)) {
-      out.state = WaitingNew(file, kept: NewKept.nowhere);
+      out.state = WaitingNew(file, kept: NewKept.onDevice, content: content);
+    } else if (!await _write(file, content, out)) {
+      out.state = WaitingNew(file, kept: NewKept.nowhere, content: content);
     }
   }
 
@@ -150,9 +189,11 @@ final class _ShownSteps {
     ),
   );
 
-  /// Writes [file] into its folder; whether it is there.
+  /// Writes [file], holding [content], into its folder; whether it is
+  /// there.
   Future<bool> _write(
     NewShownFile file,
+    ContentTag content,
     OwnerOutlet<ShownState, ShownEvent> out,
   ) async {
     final (:base, :extension) = splitFileName(file.name);
@@ -165,7 +206,7 @@ final class _ShownSteps {
     );
     if (created case Ok(value: final written)) {
       _wroteAt = Moment.now();
-      out.state = ShownListed(written.listed);
+      out.state = ShownListed(written.listed, content: content);
       out.emit(NewWritten(written.listed));
       await _draft.drop();
       return true;
@@ -185,7 +226,7 @@ final class _ShownSteps {
     if (state is! WaitingNew) return true;
     final onDevice = state.kept == NewKept.onDevice;
     if (reason == SecureReason.exit && onDevice) return true;
-    if (await _write(state.file, out)) return true;
+    if (await _write(state.file, state.content, out)) return true;
     return reason == SecureReason.hide && onDevice;
   }
 
@@ -195,25 +236,27 @@ final class _ShownSteps {
     OwnerOutlet<ShownState, ShownEvent> out,
   ) async {
     switch (out.state) {
-      case WaitingNew(:final file):
+      case WaitingNew(:final file, :final content):
         final to = file.at(
           ask.place,
           title: ask.title,
           newSubfolder: ask.newSubfolder,
         );
-        await _keepNew(to, out);
+        await _keepNew(to, content, out);
         return null;
-      case ShownListed(:final file):
-        return _move(file, ask, out);
+      case ShownListed(:final file, :final content):
+        return _move(file, content, ask, out);
       case ShownGone() || ShownDropped():
         return const MoveNotWritten(StoreError.notFound);
     }
   }
 
-  /// Moves [file] where [ask] says, as the user picked it; why not, if
-  /// it can't.
+  /// Moves [file], holding [content], where [ask] says, as the user
+  /// picked it; why not, if it can't. Its content stays unless its type
+  /// changed the bytes on the way.
   Future<MoveFailure?> _move(
     ListedFile file,
+    ContentTag content,
     PlaceShown ask,
     OwnerOutlet<ShownState, ShownEvent> out,
   ) async {
@@ -237,7 +280,12 @@ final class _ShownSteps {
     };
     if (copy != null) {
       _wroteAt = Moment.now();
-      out.state = ShownListed(copy.listed);
+      out.state = ShownListed(
+        copy.listed,
+        content: _sameBytes.equals(copy.bytes, read.bytes)
+            ? content
+            : ContentTag.listed(copy.listed),
+      );
     }
     return switch (moved) {
       Ok() => null,

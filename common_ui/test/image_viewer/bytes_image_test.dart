@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -35,6 +36,17 @@ final class _Named extends BytesImage<_Named> {
 
   @override
   List<Object?> get identity => [name];
+}
+
+/// A picture whose bytes never come.
+final class _Pending extends BytesImage<_Pending> {
+  const _Pending({required super.size});
+
+  @override
+  Future<Uint8List?> readBytes() => Completer<Uint8List?>().future;
+
+  @override
+  List<Object?> get identity => const ['pending'];
 }
 
 void main() {
@@ -165,5 +177,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getTopLeft(find.byType(Image)).dy, 50);
+  });
+
+  testWidgets('the zoomable view keeps showing a picture until the next '
+      'one is drawn', (tester) async {
+    Future<void> show(SizedImage image) async {
+      await tester.pumpWidget(
+        MaterialApp(home: ZoomableImage(image, alt: 'a picture')),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
+      await tester.pump();
+    }
+
+    RawImage drawn() => tester.widget(find.byType(RawImage));
+
+    await show((size) => _Picture(() => _onePixel, size: size));
+    expect(drawn().image, isNotNull);
+
+    await show((size) => _Pending(size: size));
+
+    expect(drawn().image, isNotNull);
   });
 }

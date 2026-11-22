@@ -292,13 +292,51 @@ void main() {
         name: 'Cat',
         newSubfolder: false,
       ));
-      expect(page.content!.id, same(before));
+      expect(page.content!.id, before);
       expect(await page.keep(SecureReason.hide), isTrue);
 
       expect(page.listed, isNotNull);
-      expect(page.content!.id, same(before));
+      expect(page.content!.id, before);
     },
   );
+
+  test('a listed image shows as the same content after a rename and a '
+      'move, so it is drawn once', () async {
+    final page = controllerOf(
+      shownFileOwner(listedFile(folder, name: 'a.jpg'), work()),
+    );
+    final before = page.content!.id;
+
+    await page.placeAt((
+      place: topOf(folder),
+      name: 'Cat',
+      newSubfolder: false,
+    ));
+    await page.placeAt((
+      place: topOf(folder),
+      name: 'Dog',
+      newSubfolder: false,
+    ));
+
+    expect(page.listed?.path, path('Dog.jpg'));
+    expect(page.content!.id, before);
+  });
+
+  test('a new image, once written, shows as the same content after a '
+      'rename', () async {
+    final page = newPhoto();
+    final before = page.content!.id;
+    expect(await page.keep(SecureReason.hide), isTrue);
+
+    await page.placeAt((
+      place: topOf(folder),
+      name: 'Cat',
+      newSubfolder: false,
+    ));
+
+    expect(page.listed?.path, path('Cat.jpg'));
+    expect(page.content!.id, before);
+  });
 
   test('a newer version shows as other content', () async {
     final file = listedFile(folder, name: 'a.jpg');

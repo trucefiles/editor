@@ -30,17 +30,11 @@ final class ViewPageController extends ChangeNotifier {
     required this.settingsOf,
     required this.editSettings,
     required this.endWait,
-  }) : _newBytes = switch (_owner.state) {
-         WaitingNew(:final file) => file.bytes,
-         _ => null,
-       } {
+  }) {
     _following = [
       _owner.changes.listen((_) => notifyListeners()),
       _owner.events.listen((event) {
-        if (event is NewWritten) {
-          _added = true;
-          _wroteVersion = versionStampOf(event.file);
-        }
+        if (event is NewWritten) _added = true;
       }),
     ];
   }
@@ -57,13 +51,6 @@ final class ViewPageController extends ChangeNotifier {
 
   /// Whether this page added the file, and it was written.
   bool _added = false;
-
-  /// The bytes of the new file this page added; they never change.
-  final Uint8List? _newBytes;
-
-  /// The version this page wrote of its new file; until the file
-  /// changes, it shows from [_newBytes], as already drawn.
-  Object? _wroteVersion;
 
   /// The new file this page added, as it is now: once written, and while
   /// it is still there (not deleted, moved elsewhere by others or gone);
@@ -98,23 +85,21 @@ final class ViewPageController extends ChangeNotifier {
     null => '',
   };
 
-  /// What the page shows of the file; `null` once dropped.
-  /// A new file shows by its bytes, wherever it goes, so it is drawn
-  /// once.
+  /// What the page shows of the file, by the owner's content tag, so it
+  /// is drawn once while its bytes stay the same, wherever it goes;
+  /// `null` once dropped.
   ShownContent? get content => switch (state) {
-    WaitingNew(:final file) => _shownFrom(file.bytes),
-    ShownListed(:final file) ||
-    ShownGone(last: final file) => switch (_newBytes) {
-      final bytes? when versionStampOf(file) == _wroteVersion => _shownFrom(
-        bytes,
-      ),
-      _ => listedContent(file, read),
-    },
+    WaitingNew(:final file, :final content) => ShownContent(
+      content,
+      () async => file.bytes,
+    ),
+    ShownListed(:final file, :final content) ||
+    ShownGone(
+      last: final file,
+      :final content,
+    ) => listedContent(file, read, id: content),
     ShownDropped() => null,
   };
-
-  static ShownContent _shownFrom(Uint8List bytes) =>
-      ShownContent(bytes, () async => bytes);
 
   /// The folders' contents changed.
   void observe(FolderContents contents) => _owner.send(SeeFolders(contents));
