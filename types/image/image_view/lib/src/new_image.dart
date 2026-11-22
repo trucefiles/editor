@@ -69,12 +69,11 @@ Future<ImageSource?> _askSource(
         for (final source in sources)
           ListTile(
             leading: Icon(switch (source) {
-              ImageSource.file ||
-              ImageSource.gallery => Icons.photo_library_outlined,
+              ImageSource.file => Icons.photo_library_outlined,
               ImageSource.camera => Icons.photo_camera_outlined,
             }),
             title: Text(switch (source) {
-              ImageSource.file || ImageSource.gallery => 'Choose image',
+              ImageSource.file => 'Choose image',
               ImageSource.camera => 'Take photo',
             }),
             onTap: () => Navigator.pop(context, source),

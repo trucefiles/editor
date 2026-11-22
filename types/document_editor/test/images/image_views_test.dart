@@ -41,7 +41,7 @@ void main() {
     final document = TestDocument('milk');
     final picking = FakePicking(
       null,
-      sources: const [ImageSource.gallery, ImageSource.camera],
+      sources: const [ImageSource.file, ImageSource.camera],
     );
     await pumpDocument(
       tester,

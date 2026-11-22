@@ -58,7 +58,7 @@ void main() {
   testWidgets('a new photo is named by its time', (tester) async {
     final picking = FakePicking(
       onePixelPng,
-      sources: const [ImageSource.gallery, ImageSource.camera],
+      sources: const [ImageSource.file, ImageSource.camera],
     );
 
     final made = await add(tester, picking, choose: 'Take photo');

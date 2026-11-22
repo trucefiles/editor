@@ -5,9 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart' as picker;
 import 'package:truce_images/truce_images.dart';
 
-/// Picks pictures on this platform from [sources]: a file dialog (on
-/// Linux through the desktop portal), the device's photos or its camera;
-/// made ready as [settings] says now.
+/// Picks pictures on this platform from [sources]: a file dialog or
+/// chooser, showing only pictures (on Linux through the desktop portal,
+/// on Android the system's file chooser), or the device's camera; made
+/// ready as [settings] says now.
 final class PlatformImagePicking implements ImagePicking {
   PlatformImagePicking({required this.sources, required this.read});
 
@@ -26,11 +27,6 @@ final class PlatformImagePicking implements ImagePicking {
       return switch (source) {
         ImageSource.file => await _named(
           await openFile(acceptedTypeGroups: [_images]),
-        ),
-        ImageSource.gallery => await _named(
-          await picker.ImagePicker().pickImage(
-            source: picker.ImageSource.gallery,
-          ),
         ),
         // A new photo has no name of its own.
         ImageSource.camera => switch (await picker.ImagePicker().pickImage(
