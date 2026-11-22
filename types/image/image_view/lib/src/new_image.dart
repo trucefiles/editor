@@ -6,8 +6,9 @@ import 'package:truce_images/truce_images.dart';
 
 /// Asks the user for a picture by [picking]: from its one source, or the
 /// one they pick of several; made ready as its settings say. A picked
-/// file keeps its name (with its kind's extension), a new photo is named
-/// by when it was taken ([now]). `null` if none was picked; [hint] tells
+/// file keeps its name (with its kind's extension); a picture without
+/// one (a new photo, one from the device's photos) is named by when it
+/// was taken, as it says, else by [now]. `null` if none was picked; [hint] tells
 /// if it was no picture the app shows. [prepare] makes it ready, away
 /// from the screen's thread.
 Future<NewContent?> askForImage(
@@ -34,7 +35,7 @@ Future<NewContent?> askForImage(
   return (
     bytes: prepared.bytes,
     name:
-        '${_baseOf(picked.name) ?? photoName(now())}.'
+        '${_baseOf(picked.name) ?? photoName(prepared.takenAt ?? now())}.'
         '${prepared.kind.extension}',
   );
 }

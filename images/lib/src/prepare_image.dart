@@ -6,6 +6,7 @@ import 'package:image/image.dart' as img;
 
 import 'image_kind.dart';
 import 'location_data.dart';
+import 'taken_at.dart';
 
 /// How pictures are made ready to keep: the device's settings.
 final class ImageSettings {
@@ -69,18 +70,21 @@ final class ImageSettings {
   int get hashCode => Object.hash(removeLocation, makeSmaller);
 }
 
-/// A picture ready to keep: its [bytes], of [kind].
+/// A picture ready to keep: its [bytes], of [kind]; [takenAt]: when it
+/// was taken, where it says.
 final class PreparedImage {
-  const PreparedImage(this.bytes, this.kind);
+  const PreparedImage(this.bytes, this.kind, {this.takenAt});
 
   final Uint8List bytes;
   final ImageKind kind;
+  final DateTime? takenAt;
 }
 
 /// [bytes], a picture the user picked, ready to keep by [settings]:
 /// encoded anew only when made smaller; else as picked, only its
-/// location data taken out if asked. `null` if it is not a picture of a
-/// kind the app takes, or can't be read as far as asked.
+/// location data taken out if asked; when it was taken is read from the
+/// bytes as picked. `null` if it is not a picture of a kind the app
+/// takes, or can't be read as far as asked.
 PreparedImage? prepareImage(Uint8List bytes, ImageSettings settings) {
   final kind = ImageKind.of(bytes);
   if (kind == null) return null;
@@ -95,7 +99,9 @@ PreparedImage? prepareImage(Uint8List bytes, ImageSettings settings) {
   }
   // On the final bytes: an encoder may carry location along.
   final kept = settings.removeLocation ? withoutLocation(sized, kind) : sized;
-  return kept == null ? null : PreparedImage(kept, kind);
+  return kept == null
+      ? null
+      : PreparedImage(kept, kind, takenAt: takenAt(bytes));
 }
 
 /// [prepareImage] away from the caller's thread: decoding and encoding a

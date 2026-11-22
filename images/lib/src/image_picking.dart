@@ -15,7 +15,8 @@ enum ImageSource {
 }
 
 /// A picture as the user picked it: its [bytes], and the [name] of its
-/// file where it had one (e.g. `beach.jpg`; none for a new photo).
+/// file where it has one the user knows (e.g. `beach.jpg`; none for a
+/// new photo, or where the platform hides it).
 typedef PickedImage = ({Uint8List bytes, String? name});
 
 /// How the app picks pictures on this device: from the app's wiring.
