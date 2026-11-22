@@ -54,6 +54,17 @@ void main() {
     );
   });
 
+  testApp('File info counts what was just typed', (tester) async {
+    await tester.openVisual(app, 'Shop', '# Shop\nmilk\n');
+    await tester.clickLine('milk', 4);
+
+    await tester.typeImeText(' and eggs');
+    await tester.chooseInMenu('File info');
+
+    expect(find.text('Words'), findsOne);
+    expect(find.text('5'), findsOne);
+  });
+
   testApp('list buttons turn lines into a list, change it and undo it', (
     tester,
   ) async {

@@ -66,6 +66,7 @@ void main() {
     await show(tester, facts: const [TextFact('Words', '12')]);
 
     expect(find.text('shopping.md'), findsOne);
+    expect(find.text('Folder'), findsOne);
     expect(find.text('Markdown'), findsOne);
     expect(find.text('0 bytes'), findsOne);
     expect(find.text('Sunday, November 22, 2026, 13:05'), findsOne);
@@ -104,6 +105,8 @@ void main() {
       ],
     );
     expect(find.text('Wednesday, July 1, 2026, 09:30'), findsOne);
+    // Where it was taken; where it is kept reads "Folder".
+    expect(find.text('Location'), findsOne);
 
     await tester.tap(find.text('48.14170, -11.50000'));
     await tester.pump();

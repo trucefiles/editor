@@ -97,7 +97,7 @@ final class MarkdownEditorPart implements EditorPart {
   };
 
   @override
-  List<FileFact> facts(String kept) => textFacts(kept);
+  List<FileFact> facts(String text) => textFacts(text);
 
   /// Keeps how the document's checked items show on this device, as
   /// [ask]ed from [current] once the document has a file; nothing moves.

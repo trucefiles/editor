@@ -42,6 +42,16 @@ void main() {
     );
   });
 
+  test('below a second, a fraction only where it is close to one', () {
+    String text(int numerator, int denominator) => exposureText(
+      Exposure(seconds: (numerator: numerator, denominator: denominator)),
+    );
+    expect(text(4, 5), '0.8 s');
+    expect(text(3, 10), '0.3 s');
+    expect(text(1, 2), '1/2 s');
+    expect(text(333, 10000), '1/30 s');
+  });
+
   test(
     'tells nothing of content that is no picture or cannot be read',
     () async {

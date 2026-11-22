@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 /// One chunk of a PNG or WebP picture: its [type] (e.g. `eXIf`, `EXIF`),
@@ -24,19 +25,18 @@ typedef JpegSegment = ({int marker, int start, int end, Uint8List data});
   while (at + 4 <= bytes.length && bytes[at] == 0xFF) {
     final marker = bytes[at + 1];
     if (marker == startOfScan) return (segments: segments, scan: at);
-    final end = _standsAlone(marker)
-        ? at + 2
-        : at + 2 + (bytes[at + 2] << 8 | bytes[at + 3]);
+    // A length counts its own two bytes, so it is never less than 2.
+    final length = _standsAlone(marker)
+        ? 0
+        : bytes[at + 2] << 8 | bytes[at + 3];
+    if (!_standsAlone(marker) && length < 2) return null;
+    final end = at + 2 + length;
     if (end > bytes.length) return null;
     segments.add((
       marker: marker,
       start: at,
       end: end,
-      data: Uint8List.sublistView(
-        bytes,
-        _standsAlone(marker) ? end : at + 4,
-        end,
-      ),
+      data: Uint8List.sublistView(bytes, min(at + 4, end), end),
     ));
     at = end;
   }

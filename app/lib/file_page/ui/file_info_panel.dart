@@ -55,7 +55,7 @@ class FileInfoPanel extends StatelessWidget {
             Text('File info', style: Theme.of(context).textTheme.titleLarge),
             _Row('Name', child: SelectableText(path.name)),
             _Row(
-              'Location',
+              'Folder',
               child: FolderBadge(folder, file: path, cutInMiddle: true),
             ),
             _Row('Type', child: Text(type.name)),

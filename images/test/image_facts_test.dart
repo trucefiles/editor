@@ -39,9 +39,15 @@ img.ExifData _phoneExif() {
 
 img.Image _picture() => img.Image(width: 8, height: 6)..exif = _phoneExif();
 
-/// [png] with an eXIf chunk holding [exif] after its header chunk.
-Uint8List _withPngExif(Uint8List png, img.ExifData exif) {
+/// [png] with an eXIf chunk holding [exif] after its header chunk; with
+/// the `Exif` start a JPEG has if [exifStart], as some programs write it.
+Uint8List _withPngExif(
+  Uint8List png,
+  img.ExifData exif, {
+  bool exifStart = false,
+}) {
   final out = img.OutputBuffer(bigEndian: true);
+  if (exifStart) out.writeBytes('Exif\u0000\u0000'.codeUnits);
   exif.write(out);
   final data = out.getBytes();
   final chunk = img.OutputBuffer(bigEndian: true)
@@ -83,6 +89,13 @@ void main() {
   test("reads a PNG's size and eXIf chunk", () {
     final png = img.encodePng(img.Image(width: 8, height: 6));
     expectPhoneFacts(imageFactsOf(_withPngExif(png, _phoneExif()))!);
+  });
+
+  test('reads an eXIf chunk that starts as in a JPEG', () {
+    final png = img.encodePng(img.Image(width: 8, height: 6));
+    expectPhoneFacts(
+      imageFactsOf(_withPngExif(png, _phoneExif(), exifStart: true))!,
+    );
   });
 
   test('reads where a sample was taken, north and east', () {
@@ -142,6 +155,16 @@ void main() {
     final facts = imageFactsOf(img.encodeJpg(img.Image(width: 5, height: 3)))!;
 
     expect((facts.width, facts.height), (5, 3));
+    expect(facts.camera, isNull);
+  });
+
+  test('a JPEG segment too short for its own length tells nothing', () {
+    // A length of 1, less than the two bytes it takes itself.
+    final broken = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0, 1, 0, 0]);
+
+    final facts = imageFactsOf(broken)!;
+
+    expect(facts.width, isNull);
     expect(facts.camera, isNull);
   });
 

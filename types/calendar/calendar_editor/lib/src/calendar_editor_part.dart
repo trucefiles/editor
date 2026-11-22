@@ -119,7 +119,7 @@ final class CalendarEditorPart extends FixedViewEditorPart {
   /// Its events and tasks, counted on the calendar it shows; none while
   /// the text is no calendar.
   @override
-  List<FileFact> facts(String kept) => switch (owner.state.calendar?.counts) {
+  List<FileFact> facts(String text) => switch (owner.state.calendar?.counts) {
     (:final events, :final tasks) => [
       TextFact('Events', '$events'),
       TextFact('Tasks', '$tasks'),

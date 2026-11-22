@@ -116,10 +116,7 @@ _Size? _headerSize(Uint8List bytes, img.Decoder decoder) {
       ),
       _ => null,
     },
-    _readExif(switch (segments.where(_isExif).firstOrNull) {
-      final segment? => Uint8List.sublistView(segment.data, _exifStart.length),
-      null => null,
-    }),
+    _readExif(segments.where(_isExif).firstOrNull?.data),
   );
 }
 
@@ -132,10 +129,13 @@ bool _isFrameHeader(JpegSegment segment) =>
 
 /// An APP1 segment that holds EXIF data.
 bool _isExif(JpegSegment segment) =>
-    segment.marker == 0xE1 &&
-    segment.data.length >= _exifStart.length &&
-    String.fromCharCodes(segment.data.take(_exifStart.length)) == _exifStart;
+    segment.marker == 0xE1 && _startsWithExif(segment.data);
 
+bool _startsWithExif(Uint8List data) =>
+    data.length >= _exifStart.length &&
+    String.fromCharCodes(data.take(_exifStart.length)) == _exifStart;
+
+/// What starts EXIF data in a JPEG, and in some PNG and WebP files too.
 const _exifStart = 'Exif\u0000\u0000';
 
 /// Own code for PNG and WebP: the `image` package reads their EXIF data
@@ -143,12 +143,16 @@ const _exifStart = 'Exif\u0000\u0000';
 img.ExifData? _exifIn(List<Chunk>? chunks, String type) =>
     _readExif(chunks?.where((chunk) => chunk.type == type).firstOrNull?.data);
 
-/// [data] as EXIF data; `null` where there is none or it can't be read
-/// (the `image` package throws on EXIF data it can't read).
+/// [data] as EXIF data, with or without the `Exif` start; `null` where
+/// there is none or it can't be read (the `image` package throws on EXIF
+/// data it can't read).
 img.ExifData? _readExif(Uint8List? data) {
   if (data == null) return null;
+  final tiff = _startsWithExif(data)
+      ? Uint8List.sublistView(data, _exifStart.length)
+      : data;
   try {
-    final exif = img.ExifData.fromInputBuffer(img.InputBuffer(data));
+    final exif = img.ExifData.fromInputBuffer(img.InputBuffer(tiff));
     return exif.isEmpty ? null : exif;
   } on Object {
     return null;

@@ -12,4 +12,10 @@ void main() {
     expect(sizeText(3 * 1024 * 1024 + 1024 * 200), '3.2 MB');
     expect(sizeText(5 * 1024 * 1024 * 1024), '5.0 GB');
   });
+
+  test('never reads 1024 of a unit, nor 10.0', () {
+    expect(sizeText(1024 * 1024 - 1), '1.0 MB');
+    expect(sizeText(1023 * 1024), '1023 KB');
+    expect(sizeText(10 * 1024 - 10), '10 KB');
+  });
 }

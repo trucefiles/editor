@@ -34,12 +34,15 @@ String exposureText(Exposure exposure) => [
   if (exposure.focalLength case final focal?) '${_short(focal)} mm',
 ].join(' · ');
 
-/// Below a second as a fraction of one, e.g. `1/125`; else as a number.
-String _seconds(({int numerator, int denominator}) time) =>
-    switch (time.numerator / time.denominator) {
-      final seconds when seconds >= 1 => _short(seconds),
-      final seconds => '1/${(1 / seconds).round()}',
-    };
+/// Below a second as a fraction of one where it is close to one, e.g.
+/// `1/125` (cameras round these), else as a number, e.g. `0.8`.
+String _seconds(({int numerator, int denominator}) time) {
+  final seconds = time.numerator / time.denominator;
+  final parts = (1 / seconds).round();
+  return seconds < 1 && (1 / parts - seconds).abs() <= seconds * 0.05
+      ? '1/$parts'
+      : _short(seconds);
+}
 
 /// With at most one decimal, none if it is 0.
 String _short(double value) => switch (value.toStringAsFixed(1)) {

@@ -26,5 +26,5 @@ final class PlainEditorPart extends FixedViewEditorPart {
   );
 
   @override
-  List<FileFact> facts(String kept) => textFacts(kept);
+  List<FileFact> facts(String text) => textFacts(text);
 }

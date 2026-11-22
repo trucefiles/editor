@@ -40,6 +40,13 @@ void main() {
     expect(session.saveState, SaveState.onDevice);
   });
 
+  test('the text now holds what was just typed', () {
+    final session = fixture.session()..type('x');
+
+    expect(session.text, 'one\n');
+    expect(session.textNow(), 'xone\n');
+  });
+
   test('securing as the app ends waits for the file', () async {
     final session = fixture.session()..type('x');
 

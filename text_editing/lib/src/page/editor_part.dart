@@ -51,10 +51,9 @@ abstract interface class EditorPart {
 
   /// The facts the type tells of the open file, beyond what every file
   /// has, from what the editor already holds (no new read or parse);
-  /// [kept] is the text the file's owner holds (its saved or last sent
-  /// text). May differ from what a closed file of the same bytes would
-  /// tell.
-  List<FileFact> facts(String kept);
+  /// [text] is the file's text as the editor shows it now. May differ
+  /// from what a closed file of the same bytes would tell.
+  List<FileFact> facts(String text);
 
   /// Fires when the page shows the part differently (e.g. another mode
   /// picked).
