@@ -15,8 +15,8 @@ Images now show in Recently edited, so a picture you just added is
 right on top. For a folder of photos, turn off **Show images in Recently
 edited** in that folder's settings.
 
-<img src="screenshots/file-info/file_info_image_desktop.png" width="600" alt="File info of a photo of mountains: name, location, type, size, last changed, dimensions, date taken, camera, lens, exposure and location">
-<img src="screenshots/file-info/file_info_document_touch.png" width="280" alt="On a phone with larger text, File info of a shopping list: name, location, type, size, last changed, lines and words">
+<img src="screenshots/file-info/file_info_image_desktop.png" width="600" alt="File info of a photo of mountains: name, folder, type, size, last changed, dimensions, date taken, camera, lens, exposure and location">
+<img src="screenshots/file-info/file_info_document_touch.png" width="280" alt="On a phone with larger text, File info of a shopping list: name, folder, type, size, last changed, lines and words">
 <img src="screenshots/file-info/folder_images_switch_touch.png" width="280" alt="A folder's settings on a phone: Show images in Recently edited, on">
 
 ## Images as files
