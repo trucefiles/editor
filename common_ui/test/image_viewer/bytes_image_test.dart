@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
@@ -151,32 +152,33 @@ void main() {
     expect(asked.last, const Within(3000, DecodeSize.largestSide));
   });
 
-  testWidgets('the zoomable view moves down as far as its top is covered', (
-    tester,
-  ) async {
-    tester.view
-      ..physicalSize = const Size(400, 600)
-      ..devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MediaQuery(
-          data: const MediaQueryData(
-            size: Size(400, 600),
-            padding: EdgeInsets.only(top: 50),
-          ),
-          child: ZoomableImage(
-            (size) => _Picture(() => _onePixel, size: size),
-            alt: 'a picture',
-          ),
-        ),
-      ),
-    );
+  testWidgets('at fit, the zoomable view stays in place when dragged, '
+      'even with its top covered', (tester) async {
+    await tester.pumpWidget(_zoomable(topCovered: 50));
 
     await tester.drag(find.byType(InteractiveViewer), const Offset(0, 200));
     await tester.pumpAndSettle();
 
-    expect(tester.getTopLeft(find.byType(Image)).dy, 50);
+    expect(tester.getTopLeft(find.byType(Image)).dy, 0);
+  });
+
+  testWidgets('a double tap zooms in on its spot, the next one goes back '
+      'to fit', (tester) async {
+    await tester.pumpWidget(_zoomable());
+    const spot = Offset(100, 150);
+    Matrix4 shown() => tester
+        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+        .transformationController!
+        .value;
+
+    await _doubleTap(tester, spot);
+
+    expect(shown().getMaxScaleOnAxis(), ZoomableImage.tapZoom);
+    expect(MatrixUtils.transformPoint(shown(), spot), spot);
+
+    await _doubleTap(tester, const Offset(300, 400));
+
+    expect(shown(), Matrix4.identity());
   });
 
   testWidgets('the zoomable view keeps showing a picture until the next '
@@ -200,4 +202,28 @@ void main() {
 
     expect(drawn().image, isNotNull);
   });
+}
+
+/// A zoomable picture on a 400 by 600 screen whose top [topCovered] is
+/// drawn over.
+Widget _zoomable({double topCovered = 0}) => MediaQuery(
+  data: MediaQueryData(
+    size: const Size(400, 600),
+    padding: EdgeInsets.only(top: topCovered),
+  ),
+  child: MaterialApp(
+    home: ZoomableImage(
+      (size) => _Picture(() => _onePixel, size: size),
+      alt: 'a picture',
+    ),
+  ),
+);
+
+/// Two taps at [spot], close enough to be a double tap, and the zoom
+/// after it.
+Future<void> _doubleTap(WidgetTester tester, Offset spot) async {
+  await tester.tapAt(spot);
+  await tester.pump(kDoubleTapMinTime);
+  await tester.tapAt(spot);
+  await tester.pumpAndSettle();
 }

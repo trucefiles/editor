@@ -37,7 +37,9 @@ void main() {
     expect(document.text, 'milk\n\n![](kept/1.png)\n\neggs');
   });
 
-  testWidgets('with camera and photos, Image asks which first', (tester) async {
+  testWidgets('with camera and photos, Image asks which first, on a sheet', (
+    tester,
+  ) async {
     final document = TestDocument('milk');
     final picking = FakePicking(
       null,
@@ -52,6 +54,7 @@ void main() {
     await tester.caretIn(paragraphNodeOf(), 2);
     await tester.tap(find.byTooltip('Image'));
     await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOne);
     await tester.tap(find.text('Take photo'));
     await tester.pumpAndSettle();
 

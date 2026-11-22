@@ -4,8 +4,8 @@ import 'package:flutter/widgets.dart';
 
 /// [view] filling the space, with [banners] (the page's banners, the
 /// file's place) over its top; [view]'s top padding says how far they
-/// cover it, so it can let its content move out from under them. The
-/// padding follows a frame after the banners change.
+/// cover it, so what it shows at its top (e.g. the pull's spinner) can
+/// sit below them. The padding follows a frame after the banners change.
 class ViewUnderBanners extends StatefulWidget {
   const ViewUnderBanners({
     required this.banners,

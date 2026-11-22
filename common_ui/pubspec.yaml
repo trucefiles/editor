@@ -1,5 +1,5 @@
 name: truce_common_ui
-description: UI parts with no app logic, for use across the app (the lazy masonry grid, the page width, the image viewer). Knows nothing of documents.
+description: UI parts with no app logic, for use across the app (the lazy masonry grid, the page width, the image viewer, where a picture comes from). Knows nothing of documents.
 publish_to: none
 resolution: workspace
 
@@ -11,6 +11,7 @@ dependencies:
   collection: ^1.19.1
   flutter:
     sdk: flutter
+  truce_images: any
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_images/truce_images.dart';
 
@@ -19,10 +20,7 @@ Future<NewContent?> askForImage(
       prepare =
       prepareInBackground,
 }) async {
-  final source = switch (picking.sources) {
-    [final only] => only,
-    final sources => await _askSource(context, sources),
-  };
+  final source = await askImageSource(context, picking.sources);
   if (source == null) return null;
   final picked = await picking.pick(source);
   if (picked == null) return null;
@@ -55,30 +53,3 @@ String photoName(DateTime at) {
   return 'Photo ${at.year}-${two(at.month)}-${two(at.day)} '
       '${two(at.hour)}-${two(at.minute)}-${two(at.second)}';
 }
-
-/// Which of [sources] the user picks from; `null` if they pick none.
-Future<ImageSource?> _askSource(
-  BuildContext context,
-  List<ImageSource> sources,
-) => showModalBottomSheet<ImageSource>(
-  context: context,
-  builder: (context) => SafeArea(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final source in sources)
-          ListTile(
-            leading: Icon(switch (source) {
-              ImageSource.file => Icons.photo_library_outlined,
-              ImageSource.camera => Icons.photo_camera_outlined,
-            }),
-            title: Text(switch (source) {
-              ImageSource.file => 'Choose image',
-              ImageSource.camera => 'Take photo',
-            }),
-            onTap: () => Navigator.pop(context, source),
-          ),
-      ],
-    ),
-  ),
-);

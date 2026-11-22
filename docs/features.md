@@ -23,7 +23,7 @@ edited** in that folder's settings.
 
 Pictures in your folders (JPEG, PNG, GIF, WebP, BMP) now show as cards
 with a thumbnail, with an **Image** chip to show only them. Tap one to
-see it full size and zoom in. Move, rename, pin, color or delete it as
+see it full size and zoom in; a double tap zooms in on that spot. Move, rename, pin, color or delete it as
 any file, with Undo. If two devices changed a picture, both show side by
 side to keep one, and both are backed up first. Backups show pictures
 too. **New file** has **Image**: choose one, or take a photo on a phone;
@@ -114,7 +114,7 @@ Links in an event's place and notes open with a tap, and a tap on the
 place opens it in your maps app.
 Tasks live in the same calendar, beside its events, as other calendar
 apps keep them. A task can have a due date, maybe a time, a repeat and
-an alert, or no date at all. It shows on its due day with a box to check
+alerts, or no date at all. It shows on its due day with a box to check
 it off; a task due at a time shows as the half hour before it. The
 **Tasks** view lists them all: overdue, today, later and with no date,
 and below them, folded, those done in the last 30 days. For a task that

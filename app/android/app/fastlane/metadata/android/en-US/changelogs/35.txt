@@ -1,0 +1,4 @@
+- Double tap a picture to zoom in on that spot, again to zoom out
+- Pictures no longer move when dragged at their first size
+- Several alerts per event or task
+- The Image button in a document asks on a sheet

@@ -12,10 +12,11 @@ const alertChoices = [
   Duration(days: 1),
 ];
 
-/// A form's alert: none or one of [alertChoices], picked from a list
-/// ([onAlerts] tells a pick); alerts the list doesn't offer show as they
-/// are, to keep. [at] names an alert right at the time they count from.
-/// Below it, which calendars' alerts ring.
+/// A form's alerts, each picked from [alertChoices] or, if the list
+/// doesn't offer it, shown as it is, to keep; one can be added or
+/// removed ([onAlerts] tells the new list). An alert's list leaves out
+/// the times other alerts have. [at] names an alert right at the time
+/// they count from. Below them, which calendars' alerts ring.
 class AlertField extends StatelessWidget {
   const AlertField({
     required this.alerts,
@@ -30,47 +31,90 @@ class AlertField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String text(Duration before) => alertText(before, at: at);
-    return DropdownButtonFormField<_Alerts>(
-      initialValue: _Alerts(alerts),
-      decoration: const InputDecoration(
-        labelText: 'Alert',
-        helperText: 'Rings for the calendars shown in the Calendars tab',
-      ),
-      items: [
-        const DropdownMenuItem(value: _Alerts([]), child: Text('None')),
-        if (alerts.isNotEmpty && !_offered(alerts))
-          DropdownMenuItem(
-            value: _Alerts(alerts),
-            child: Text(alerts.map(text).join(', ')),
+    final unused = alertChoices.whereNot(alerts.contains).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final (index, before) in alerts.indexed)
+          _AlertRow(
+            // A new key when a row's alert changes, so its list shows it.
+            key: ValueKey((index, before)),
+            before: before,
+            offered: [
+              ...{
+                ...alertChoices,
+                before,
+              }.where((choice) => choice == before || !alerts.contains(choice)),
+            ].sorted(),
+            at: at,
+            onPicked: (picked) => onAlerts([
+              for (final (other, alert) in alerts.indexed)
+                other == index ? picked : alert,
+            ]),
+            onRemove: () => onAlerts([
+              for (final (other, alert) in alerts.indexed)
+                if (other != index) alert,
+            ]),
           ),
-        for (final before in alertChoices)
-          DropdownMenuItem(value: _Alerts([before]), child: Text(text(before))),
+        if (unused.isNotEmpty)
+          TextButton.icon(
+            icon: const Icon(Icons.add_alert_outlined),
+            label: const Text('Add alert'),
+            onPressed: () => onAlerts([...alerts, unused.first]),
+          ),
+        Text(
+          'Rings for the calendars shown in the Calendars tab',
+          style: Theme.of(context).textTheme.bodySmall
+              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
       ],
-      onChanged: (picked) => onAlerts(picked?.before ?? const []),
     );
   }
-
-  /// Whether [alerts] is one the list offers.
-  static bool _offered(List<Duration> alerts) =>
-      alerts.length == 1 && alertChoices.contains(alerts.single);
 }
 
-/// The alerts a choice of the form's list stands for, equal by their
-/// times (a list alone is equal only to itself).
-final class _Alerts {
-  const _Alerts(this.before);
+/// One alert of an [AlertField]: picked from [offered], or removed.
+class _AlertRow extends StatelessWidget {
+  const _AlertRow({
+    required this.before,
+    required this.offered,
+    required this.at,
+    required this.onPicked,
+    required this.onRemove,
+    super.key,
+  });
 
-  final List<Duration> before;
-
-  static const _equality = ListEquality<Duration>();
+  final Duration before;
+  final List<Duration> offered;
+  final String at;
+  final ValueChanged<Duration> onPicked;
+  final VoidCallback onRemove;
 
   @override
-  bool operator ==(Object other) =>
-      other is _Alerts && _equality.equals(other.before, before);
-
-  @override
-  int get hashCode => _equality.hash(before);
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: DropdownButtonFormField<Duration>(
+          initialValue: before,
+          decoration: const InputDecoration(labelText: 'Alert'),
+          items: [
+            for (final choice in offered)
+              DropdownMenuItem(
+                value: choice,
+                child: Text(alertText(choice, at: at)),
+              ),
+          ],
+          onChanged: (picked) {
+            if (picked != null) onPicked(picked);
+          },
+        ),
+      ),
+      IconButton(
+        tooltip: 'Remove alert',
+        icon: const Icon(Icons.close),
+        onPressed: onRemove,
+      ),
+    ],
+  );
 }
 
 /// How an alert [before] the time it counts from reads; [at] names one
