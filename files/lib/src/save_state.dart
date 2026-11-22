@@ -1,5 +1,4 @@
-/// Where an open file's latest content is, as its save icon shows; the
-/// same for every type of file.
+/// Where an open file's latest content is, for every type of file.
 enum SaveState {
   /// Nothing to show: a new file with nothing to keep, or one that
   /// takes no more edits.

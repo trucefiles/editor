@@ -283,8 +283,8 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           if (acts) _menu(context, placeSpot: placeSpot),
         ],
       ),
-      // The picture fills the whole page, so it sits in the middle of the
-      // screen; the bar, banners and place go over it.
+      // The type's view fills the whole page ([ViewType.view]); the bar,
+      // banners and place go over it.
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
