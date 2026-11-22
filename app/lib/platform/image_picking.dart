@@ -27,18 +27,18 @@ final class PlatformImagePicking implements ImagePicking {
         ImageSource.file => await _named(
           await openFile(acceptedTypeGroups: [_images]),
         ),
-        // The device's photo picker hides a photo's own name (Android
-        // gives a number instead), and a new photo has none.
-        ImageSource.gallery => await _unnamed(
+        ImageSource.gallery => await _named(
           await picker.ImagePicker().pickImage(
             source: picker.ImageSource.gallery,
           ),
         ),
-        ImageSource.camera => await _unnamed(
-          await picker.ImagePicker().pickImage(
-            source: picker.ImageSource.camera,
-          ),
-        ),
+        // A new photo has no name of its own.
+        ImageSource.camera => switch (await picker.ImagePicker().pickImage(
+          source: picker.ImageSource.camera,
+        )) {
+          final photo? => (bytes: await photo.readAsBytes(), name: null),
+          null => null,
+        },
       };
     } on PlatformException {
       return null;
@@ -50,12 +50,6 @@ final class PlatformImagePicking implements ImagePicking {
   /// [file] with its name; `null` if none was picked.
   static Future<PickedImage?> _named(XFile? file) async => switch (file) {
     final file? => (bytes: await file.readAsBytes(), name: file.name),
-    null => null,
-  };
-
-  /// [file] without a name of its own; `null` if none was picked.
-  static Future<PickedImage?> _unnamed(XFile? file) async => switch (file) {
-    final file? => (bytes: await file.readAsBytes(), name: null),
     null => null,
   };
 }

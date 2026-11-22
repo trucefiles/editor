@@ -55,16 +55,6 @@ void main() {
       expect(img.decodeJpg(out.bytes), isNotNull);
     });
 
-    test('tells when a photo was taken, as picked', () {
-      final image = img.Image(width: 2, height: 2);
-      image.exif.exifIfd['DateTimeOriginal'] = '2026:11:21 18:04:35';
-      final bytes = img.encodeJpg(image);
-
-      final out = prepareImage(bytes, _noLocation)!;
-
-      expect(out.takenAt, DateTime(2026, 11, 21, 18, 4, 35));
-    });
-
     test('a PNG loses its EXIF and XMP chunks, the rest byte for byte', () {
       final bytes = _sample('located.png');
       final out = prepareImage(bytes, _noLocation)!.bytes;

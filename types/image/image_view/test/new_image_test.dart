@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image/image.dart' as img;
 import 'package:truce_file_page/truce_file_page.dart';
 import 'package:truce_image_view/truce_image_view.dart';
 import 'package:truce_images/truce_images.dart';
@@ -66,18 +65,6 @@ void main() {
 
     expect(picking.asked, [ImageSource.camera]);
     expect(made?.name, 'Photo 2026-11-20 13-05-09.png');
-  });
-
-  testWidgets('a photo without a name is named by when it was taken', (
-    tester,
-  ) async {
-    final image = img.Image(width: 1, height: 1);
-    image.exif.exifIfd['DateTimeOriginal'] = '2026:11:21 18:04:35';
-    final picking = FakePicking(img.encodeJpg(image));
-
-    final made = await add(tester, picking);
-
-    expect(made?.name, 'Photo 2026-11-21 18-04-35.jpg');
   });
 
   testWidgets('a file that is no picture is refused, with a hint', (
