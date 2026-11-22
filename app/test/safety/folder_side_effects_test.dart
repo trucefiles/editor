@@ -43,6 +43,7 @@ void main() {
       type: appFileTypes().of(entry.path)!.support,
       version: entry.version,
       modified: entry.modified,
+      size: 0,
     );
     return (await files.reload(listed)).value;
   }

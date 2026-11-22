@@ -23,6 +23,7 @@ import 'package:truce_markdown/truce_markdown.dart'
         RawTextLook,
         Request,
         ShowRow,
+        ShownTextAnswer,
         TextLook,
         editorOwner;
 import 'package:truce_test_support/truce_test_support.dart' show ManualTimers;
@@ -105,7 +106,7 @@ final class TestDocument {
             (UndoOffered() || UndoRefused() || HistoryEnd()),
       ):
         notices.add(notice);
-      case AskLink() || ShowRow() || Notice():
+      case AskLink() || ShowRow() || Notice() || ShownTextAnswer():
         break;
     }
   }

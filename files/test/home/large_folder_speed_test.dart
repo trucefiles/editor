@@ -39,6 +39,7 @@ FolderState _listing() {
         path('${index % 50}/IMG_$index.md'),
         version: FileVersion(index),
         modified: start.add(Duration(minutes: index)),
+        size: 0,
       ),
   ];
   return FolderState({

@@ -23,6 +23,7 @@ ListedFile _listed(Folder folder, String name, {int version = 0}) => ListedFile(
   type: const FakeFileType(),
   version: FileVersion(version),
   modified: DateTime(2000),
+  size: 0,
 );
 
 /// The folders as listed from [at] on, holding [files].
@@ -39,6 +40,7 @@ FolderContents _contents(List<ListedFile> files, {Moment? at}) =>
                       file.path,
                       version: file.version,
                       modified: file.modified,
+                      size: 0,
                     ),
               },
               conflicts: const {},

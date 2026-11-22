@@ -78,6 +78,7 @@ final class FolderFiles {
       type: type,
       version: entry.version,
       modified: entry.modified,
+      size: entry.size,
     );
   }
 

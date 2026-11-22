@@ -2,7 +2,7 @@ import 'package:meta/meta.dart';
 import 'package:truce_core/truce_core.dart';
 import 'package:truce_folders/truce_folders.dart';
 
-/// One file, as listed: where it is, its type, version and time;
+/// One file, as listed: where it is, its type, version, time and size;
 /// never its text (see `FileText`).
 @immutable
 final class ListedFile {
@@ -12,6 +12,7 @@ final class ListedFile {
     required this.type,
     required this.version,
     required this.modified,
+    required this.size,
   });
 
   /// The folder it is in.
@@ -29,6 +30,10 @@ final class ListedFile {
   /// When the file was last changed, for showing and sorting.
   final DateTime modified;
 
+  /// How many bytes the file holds, as last listed or written: what was
+  /// saved, not edits still in memory.
+  final int size;
+
   FileKey get key => (folder: folder.id, path: path);
 
   @override
@@ -38,10 +43,11 @@ final class ListedFile {
       other.path == path &&
       other.type == type &&
       other.version == version &&
-      other.modified == modified;
+      other.modified == modified &&
+      other.size == size;
 
   @override
-  int get hashCode => Object.hash(folder, path, type, version, modified);
+  int get hashCode => Object.hash(folder, path, type, version, modified, size);
 }
 
 /// Identifies a file across rescans and folder changes: its folder, by

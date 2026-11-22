@@ -46,6 +46,7 @@ void main() {
       type: const FakeFileType(),
       version: const FileVersion(1),
       modified: DateTime(2026, 11, 2),
+      size: 0,
     ),
     const TextFile.empty(),
   );

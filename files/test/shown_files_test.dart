@@ -80,6 +80,12 @@ void main() {
     expect(textOf(_copyName), isNull);
     expect(await backupsOf('a.md'), containsAll(['a:1\n', 'b:1\n']));
   });
+  test('a file read tells its size in bytes', () async {
+    put('a.md', 'hello!');
+
+    expect((await files().read(path('a.md'))).value.listed.size, 6);
+  });
+
   test('nothing merged where the type does not merge', () async {
     put('a.md', 'a:1\n');
     put(_copyName, 'b:1\n');

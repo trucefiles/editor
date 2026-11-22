@@ -24,6 +24,7 @@ FileBytes _file(List<int> bytes) => FileBytes(
     type: const CalendarSupport(),
     version: const FileVersion(0),
     modified: DateTime(2000),
+    size: 0,
   ),
   Uint8List.fromList(bytes),
 );

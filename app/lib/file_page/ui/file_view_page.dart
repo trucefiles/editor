@@ -30,6 +30,7 @@ import '../view_page_controller.dart';
 import '../view_pages.dart';
 import 'discard_dialog.dart';
 import 'edit_place.dart';
+import 'file_info_panel.dart';
 import 'file_place_chip.dart';
 import 'file_place_spot.dart';
 import 'page_close.dart';
@@ -194,33 +195,64 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
 
   void _refresh() => unawaited(_pull.currentState!.refresh());
 
-  Widget _menu(BuildContext context, {required FilePlaceSpot placeSpot}) {
-    final listed = _controller.listed;
-    return PopupMenuButton<VoidCallback>(
-      onSelected: (action) => action(),
-      itemBuilder: (_) => [
-        if (placeSpot == FilePlaceSpot.menu)
-          PopupMenuItem(
-            value: () => unawaited(_editPlace()),
-            child: const Text('$placeLabel…'),
-          ),
-        PopupMenuItem(
-          value: () => unawaited(_pinOrColor(context)),
-          child: const Text('Pin or color'),
-        ),
-        if (listed != null)
-          PopupMenuItem(
-            value: () => unawaited(_openBackups(context, listed)),
-            child: const Text('Backups'),
-          ),
-        if (usesTouch(Theme.of(context)))
-          PopupMenuItem(value: _refresh, child: const Text('Refresh')),
+  /// Shows what the file is, its type telling what it reads of the
+  /// content shown.
+  Future<void> _showInfo(BuildContext context) async {
+    final (place, content) = (_controller.place, _controller.content);
+    if (place == null || content == null) return;
+    await showFileInfo(context, (
+      folder: place.folder,
+      path: place.path,
+      type: widget.type,
+      saved: _controller.listed,
+    ), facts: widget.type.facts(content));
+  }
+
+  /// The file's menu: File info, and while it [acts] on the file, its
+  /// actions.
+  Widget _menu(
+    BuildContext context, {
+    required FilePlaceSpot placeSpot,
+    required bool acts,
+  }) => PopupMenuButton<VoidCallback>(
+    onSelected: (action) => action(),
+    itemBuilder: (_) => [
+      if (acts) ..._actionItems(context, placeSpot: placeSpot),
+      PopupMenuItem(
+        value: () => unawaited(_showInfo(context)),
+        child: const Text('File info'),
+      ),
+      if (acts)
         PopupMenuItem(
           value: () => _delete(context),
           child: const Text('Delete file'),
         ),
-      ],
-    );
+    ],
+  );
+
+  List<PopupMenuEntry<VoidCallback>> _actionItems(
+    BuildContext context, {
+    required FilePlaceSpot placeSpot,
+  }) {
+    final listed = _controller.listed;
+    return [
+      if (placeSpot == FilePlaceSpot.menu)
+        PopupMenuItem(
+          value: () => unawaited(_editPlace()),
+          child: const Text('$placeLabel…'),
+        ),
+      PopupMenuItem(
+        value: () => unawaited(_pinOrColor(context)),
+        child: const Text('Pin or color'),
+      ),
+      if (listed != null)
+        PopupMenuItem(
+          value: () => unawaited(_openBackups(context, listed)),
+          child: const Text('Backups'),
+        ),
+      if (usesTouch(Theme.of(context)))
+        PopupMenuItem(value: _refresh, child: const Text('Refresh')),
+    ];
   }
 
   @override
@@ -317,7 +349,7 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
               icon: const Icon(Icons.refresh),
               onPressed: _refresh,
             ),
-          if (acts) _menu(context, placeSpot: placeSpot),
+          _menu(context, placeSpot: placeSpot, acts: acts),
         ],
       ),
       body: switch (widget.type.underBanners) {

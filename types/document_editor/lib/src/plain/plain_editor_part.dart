@@ -1,6 +1,9 @@
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_plain_text/truce_plain_text.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
+
+import '../text_facts.dart';
 
 /// A plain text document's part of the document page: its editor owner,
 /// edited line by line as written, or only read while it can't be
@@ -21,4 +24,8 @@ final class PlainEditorPart extends FixedViewEditorPart {
     state: (state) => state.status,
     event: (event) => event.notice,
   );
+
+  /// The text as the editor shows it, typing not sent yet included.
+  @override
+  List<FileFact> facts() => textFacts(owner.state.text);
 }

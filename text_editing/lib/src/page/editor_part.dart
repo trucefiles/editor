@@ -49,6 +49,12 @@ abstract interface class EditorPart {
   /// What the type keeps of how the file shows changed to [view].
   void viewChanged(ViewSettings view);
 
+  /// The facts the type tells of the open file as it shows now, beyond
+  /// what every file has, asked of its own editor: no read or parse, and
+  /// nothing sent or kept. May differ from what a closed file of the same
+  /// bytes would tell.
+  FutureOr<List<FileFact>> facts();
+
   /// Fires when the page shows the part differently (e.g. another mode
   /// picked).
   Stream<void> get changes;

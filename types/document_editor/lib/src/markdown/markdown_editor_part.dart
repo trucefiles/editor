@@ -6,6 +6,7 @@ import 'package:truce_text_editing/truce_text_editing.dart';
 
 import '../editor_gate.dart';
 import '../first_mode.dart';
+import '../text_facts.dart';
 import 'markdown_page_editor.dart';
 
 /// A Markdown document's part of the document page: its editor owner,
@@ -93,6 +94,17 @@ final class MarkdownEditorPart implements EditorPart {
   bool get hasCheckboxes => switch (gate.state.content) {
     FormattedContent(:final view) => view.doc.hasCheckboxes,
     MarkdownContent(:final text) => DocumentSummary.of(text).hasCheckboxes,
+  };
+
+  /// The text as it shows: in Markdown edit as it is; else printed by
+  /// the editor owner, as it would be sent, but not sent. None once the
+  /// owner ended.
+  @override
+  FutureOr<List<FileFact>> facts() => switch (gate.state.content) {
+    MarkdownContent(:final text) => textFacts(text),
+    FormattedContent() => gate.shownText().then(
+      (text) => text == null ? const <FileFact>[] : textFacts(text),
+    ),
   };
 
   /// Keeps how the document's checked items show on this device, as

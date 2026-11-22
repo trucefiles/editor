@@ -127,4 +127,22 @@ void main() {
     await tester.pageBack();
     await tester.waitForFile(app.file('plan.txt'), 'Plan\nv1\n');
   });
+
+  testApp('File info tells a text file\'s lines and words as saved', (
+    tester,
+  ) async {
+    app.write('shopping.txt', 'Shopping\nmilk and eggs\n');
+    await tester.addFolder(app);
+    await tester.openFile('Shopping');
+
+    await tester.chooseInMenu('File info');
+
+    expect(find.text('shopping.txt'), findsOne);
+    expect(find.text('Plain text'), findsOne);
+    expect(find.text('23 bytes'), findsOne);
+    expect(find.text('Lines'), findsOne);
+    expect(find.text('2'), findsOne);
+    expect(find.text('Words'), findsOne);
+    expect(find.text('4'), findsOne);
+  });
 }

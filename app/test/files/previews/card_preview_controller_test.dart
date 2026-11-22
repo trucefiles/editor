@@ -107,6 +107,7 @@ void main() {
       type: before.type,
       version: FileVersion(-1),
       modified: before.modified,
+      size: 0,
     );
 
     final shown = container.listen(cardPreviewProvider(after), (_, _) {});

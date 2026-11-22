@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:truce_files/truce_files.dart';
 import 'package:truce_text_editing/truce_text_editing.dart';
 
 void main() {
@@ -23,4 +24,7 @@ final class _Part extends FixedViewEditorPart {
 
   @override
   PageEditor get editor => throw UnimplementedError();
+
+  @override
+  List<FileFact> facts() => const [];
 }

@@ -57,6 +57,7 @@ export 'src/page/text_save_state.dart';
 export 'src/text/extended_autolinks.dart';
 export 'src/text/lines.dart';
 export 'src/text/seen.dart';
+export 'src/text/text_counts.dart';
 export 'src/text/text_file.dart';
 export 'src/text/text_merge.dart';
 export 'src/text/text_summary.dart';

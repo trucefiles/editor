@@ -28,7 +28,6 @@ class SettingsScreen extends StatelessWidget {
           NewFilePlaceTile(),
           RecentCountTile(),
           RecentAgeTile(),
-          UneditedInRecentTile(),
           AddItemPlaceTile(),
           PlaceAboveTextTile(),
           ImageSettingTiles(),

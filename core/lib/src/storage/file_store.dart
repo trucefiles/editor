@@ -109,11 +109,15 @@ final class FileEntry {
     this.path, {
     required this.version,
     required this.modified,
+    required this.size,
     DateTime? arrived,
   }) : arrived = arrived ?? modified;
 
   final RelPath path;
   final FileVersion version;
+
+  /// How many bytes the file holds.
+  final int size;
 
   /// When the file was last changed, for showing and sorting only; change
   /// checks use [version].
@@ -129,10 +133,11 @@ final class FileEntry {
       other.path == path &&
       other.version == version &&
       other.modified == modified &&
+      other.size == size &&
       other.arrived == arrived;
 
   @override
-  int get hashCode => Object.hash(path, version, modified, arrived);
+  int get hashCode => Object.hash(path, version, modified, size, arrived);
 }
 
 final class FileContent {

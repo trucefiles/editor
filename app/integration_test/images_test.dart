@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:truce_editor/file_page/ui/file_info_panel.dart';
 import 'package:truce_editor/file_page/ui/file_place_chip.dart';
 import 'package:truce_editor/file_page/ui/file_view_page.dart';
 import 'package:truce_test_support/truce_test_support.dart';
@@ -28,12 +29,9 @@ void main() {
     timeout: const Duration(seconds: 15),
   );
 
-  /// Opens the image titled [title] from All files: Home's Recently
-  /// edited leaves images out.
-  Future<void> openImage(WidgetTester tester, String title) async {
-    await tester.tapAndSettle(find.text('Switch to all files'));
-    await tester.openFile(title);
-  }
+  /// Opens the image titled [title] from Home's Recently edited.
+  Future<void> openImage(WidgetTester tester, String title) =>
+      tester.openFile(title);
 
   testApp('an image opens on its page, and shows a change from elsewhere', (
     tester,
@@ -139,7 +137,8 @@ void main() {
     await tester.addFolder(app);
 
     await tester.tapAndSettle(find.byTooltip('New file'));
-    await tester.tapAndSettle(find.text('Image'));
+    // The New file sheet's, over the type chip of the same name.
+    await tester.tapAndSettle(find.text('Image').last);
     await tester.waitFor(find.byType(FileViewPage));
     await tester.runFor(const Duration(seconds: 2));
     expect(app.namesIn(), isEmpty);
@@ -148,6 +147,7 @@ void main() {
     await tester.waitFor(find.text('Saved to Documents'));
     await waitForPageClosed(tester);
     expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
+    await tester.waitFor(find.text('Milk'));
   });
 
   testApp('an added image shows it waits on this device, then is saved', (
@@ -159,12 +159,33 @@ void main() {
     await tester.addFolder(app);
 
     await tester.tapAndSettle(find.byTooltip('New file'));
-    await tester.tapAndSettle(find.text('Image'));
+    // The New file sheet's, over the type chip of the same name.
+    await tester.tapAndSettle(find.text('Image').last);
     await tester.waitFor(find.byIcon(Icons.save_outlined));
     expect(app.namesIn(), isEmpty);
     await tester.tapAndSettle(find.byIcon(Icons.save_outlined));
 
     await tester.waitFor(find.byIcon(Icons.cloud_done_outlined));
     expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
+  });
+
+  testApp("File info tells an image's size and dimensions", (tester) async {
+    app.writePicture('cat.png', width: 2);
+    await tester.addFolder(app);
+    await openImage(tester, 'cat');
+
+    await tester.chooseInMenu('File info');
+
+    await tester.waitFor(find.text('Dimensions'));
+    expect(find.text('cat.png'), findsOne);
+    expect(
+      find.descendant(
+        of: find.byType(FileInfoPanel),
+        matching: find.text('Image'),
+      ),
+      findsOne,
+    );
+    expect(find.text('${TestApp.picture(2).length} bytes'), findsOne);
+    expect(find.textContaining('2 × '), findsOne);
   });
 }

@@ -4,6 +4,7 @@ import 'package:truce_folders/truce_folders.dart';
 
 import '../platform/platform_wiring.dart';
 import '../platform/storage_access.dart';
+import '../settings/device_settings_controller.dart';
 import 'folder_selection.dart';
 import 'folders_controller.dart';
 
@@ -12,6 +13,9 @@ final folderActionsProvider = Provider<FolderActions>(
     folders: ref.watch(foldersProvider.notifier),
     access: ref.watch(storageAccessProvider),
     unpickFolder: ref.read(pickedFoldersProvider.notifier).drop,
+    forgetFolder: (folder) => ref
+        .read(deviceSettingsProvider.notifier)
+        .change((s) => s.copyWith(home: s.home.forgetting(folder))),
   ),
 );
 
@@ -19,16 +23,19 @@ final folderActionsProvider = Provider<FolderActions>(
 /// step by step (see `AddFolderFlow`). No UI: screens ask the user, then
 /// call these and show the result.
 final class FolderActions {
-  /// [_unpickFolder] stops filtering the files by a folder.
+  /// [_unpickFolder] stops filtering the files by a folder;
+  /// [_forgetFolder] drops what this device's settings keep for one.
   FolderActions({
     required this._folders,
     required this._access,
     required this._unpickFolder,
+    required this._forgetFolder,
   });
 
   final FoldersController _folders;
   final StorageAccess _access;
   final void Function(FolderId folderId) _unpickFolder;
+  final Future<void> Function(FolderId folderId) _forgetFolder;
 
   /// Whether the app may open folders; if not, [requestAccess] first.
   Future<bool> hasAccess() => _access.isGranted();
@@ -52,8 +59,11 @@ final class FolderActions {
 
   /// Forgets [folder] (its files stay untouched), stops filtering the
   /// files by it, and deletes its drafts: no edit is recovered into it.
-  Future<Result<void, FolderError>> remove(Folder folder) {
+  /// Once it is gone, this device's settings forget it too.
+  Future<Result<void, FolderError>> remove(Folder folder) async {
     _unpickFolder(folder.id);
-    return _folders.remove(folder);
+    final removed = await _folders.remove(folder);
+    if (removed is Ok) await _forgetFolder(folder.id);
+    return removed;
   }
 }

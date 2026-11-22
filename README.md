@@ -142,7 +142,8 @@ A Dart pub workspace. Sync plugins live in `plugins/`, file types in
   and how the user adds one. Flutter; uses common_ui, files, file_page,
   image_file and images.
 - `images`: pictures made ready to keep: their kind found, location data
-  taken out, large ones made smaller. Pure Dart, no UI.
+  taken out, large ones made smaller; and what a picture's header and
+  EXIF data tell of it. Pure Dart, no UI.
 - `plugins/syncthing/syncthing`: Syncthing's conventions behind core's
   interfaces. Pure Dart.
 - `plugins/local_folder/local_folder`: local folders, which no sync tool

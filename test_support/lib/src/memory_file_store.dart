@@ -152,6 +152,7 @@ final class MemoryFileStore implements FileStore {
     path,
     version: content.version,
     modified: content.modified,
+    size: content.bytes.length,
     arrived: arrivals[path],
   );
 }

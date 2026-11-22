@@ -1,4 +1,6 @@
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
+import 'package:truce_core/truce_core.dart';
 
 /// How All orders files.
 enum FileOrder {
@@ -20,7 +22,7 @@ final class HomeSettings {
     required this.order,
     required this.view,
     this.recentDays,
-    this.uneditedInRecent = false,
+    this.uneditedLeftOut = const {},
   });
 
   /// The last 50 files of any age in Recently edited; All newest first,
@@ -47,9 +49,28 @@ final class HomeSettings {
   final FileOrder order;
   final FileView view;
 
-  /// Whether Recently edited also shows files of types not edited in the
-  /// app (e.g. pictures), as if they were.
-  final bool uneditedInRecent;
+  /// The folders whose files of types not edited in the app (e.g.
+  /// pictures) stay out of Recently edited; every other folder's show
+  /// there as if they were edited, so a new folder shows them.
+  final Set<FolderId> uneditedLeftOut;
+
+  /// Whether Recently edited shows [folder]'s files of types not edited
+  /// in the app.
+  bool showsUneditedOf(FolderId folder) => !uneditedLeftOut.contains(folder);
+
+  /// These settings with [folder]'s files of types not edited in the app
+  /// [shown] in Recently edited or not.
+  HomeSettings withUneditedOf(FolderId folder, {required bool shown}) =>
+      _withLeftOut({
+        for (final id in uneditedLeftOut)
+          if (id != folder) id,
+        if (!shown) folder,
+      });
+
+  /// These settings with nothing kept for [folder], e.g. once it is
+  /// removed.
+  HomeSettings forgetting(FolderId folder) =>
+      withUneditedOf(folder, shown: true);
 
   /// The oldest change Recently edited shows at [now]; `null`: any age.
   DateTime? recentSince(DateTime now) => switch (recentDays) {
@@ -57,18 +78,14 @@ final class HomeSettings {
     final days => now.subtract(Duration(days: days)),
   };
 
-  HomeSettings copyWith({
-    int? recentCount,
-    FileOrder? order,
-    FileView? view,
-    bool? uneditedInRecent,
-  }) => HomeSettings(
-    recentCount: recentCount ?? this.recentCount,
-    recentDays: recentDays,
-    order: order ?? this.order,
-    view: view ?? this.view,
-    uneditedInRecent: uneditedInRecent ?? this.uneditedInRecent,
-  );
+  HomeSettings copyWith({int? recentCount, FileOrder? order, FileView? view}) =>
+      HomeSettings(
+        recentCount: recentCount ?? this.recentCount,
+        recentDays: recentDays,
+        order: order ?? this.order,
+        view: view ?? this.view,
+        uneditedLeftOut: uneditedLeftOut,
+      );
 
   /// These settings with the age limit [days] (`null`: none).
   HomeSettings withRecentDays(int? days) => HomeSettings(
@@ -76,7 +93,15 @@ final class HomeSettings {
     recentDays: days,
     order: order,
     view: view,
-    uneditedInRecent: uneditedInRecent,
+    uneditedLeftOut: uneditedLeftOut,
+  );
+
+  HomeSettings _withLeftOut(Set<FolderId> leftOut) => HomeSettings(
+    recentCount: recentCount,
+    recentDays: recentDays,
+    order: order,
+    view: view,
+    uneditedLeftOut: Set.unmodifiable(leftOut),
   );
 
   Map<String, Object> toJson() => {
@@ -84,13 +109,16 @@ final class HomeSettings {
     'recentDays': ?recentDays,
     'order': order.name,
     'view': view.name,
-    if (uneditedInRecent) 'uneditedInRecent': true,
+    if (uneditedLeftOut.isNotEmpty)
+      'uneditedLeftOut': [
+        for (final folder in uneditedLeftOut) [folder.plugin, folder.folder],
+      ],
   };
 
   /// `null` if [json] is not a setting written by [toJson], or names a
   /// count or an age limit the user can't pick. Settings written before
-  /// the age limit existed have none; anything but `true` for unedited
-  /// files in Recently edited reads as its default.
+  /// the age limit existed have none; folders left out that can't be
+  /// read are dropped (none: every folder shows its unedited files).
   static HomeSettings? fromJson(Object? json) => switch (json) {
     {
               'recentCount': final int recentCount,
@@ -111,11 +139,20 @@ final class HomeSettings {
             recentDays: days,
             order: order,
             view: view,
-            uneditedInRecent: map['uneditedInRecent'] == true,
+            uneditedLeftOut: _foldersOf(map['uneditedLeftOut']),
           ),
         _ => null,
       },
     _ => null,
+  };
+
+  static Set<FolderId> _foldersOf(Object? json) => switch (json) {
+    final List<Object?> folders => Set.unmodifiable({
+      for (final folder in folders)
+        if (folder case [final String plugin, final String id])
+          ?FolderId.parse(plugin, id),
+    }),
+    _ => const {},
   };
 
   @override
@@ -125,9 +162,17 @@ final class HomeSettings {
       other.recentDays == recentDays &&
       other.order == order &&
       other.view == view &&
-      other.uneditedInRecent == uneditedInRecent;
+      const SetEquality<FolderId>().equals(
+        other.uneditedLeftOut,
+        uneditedLeftOut,
+      );
 
   @override
-  int get hashCode =>
-      Object.hash(recentCount, recentDays, order, view, uneditedInRecent);
+  int get hashCode => Object.hash(
+    recentCount,
+    recentDays,
+    order,
+    view,
+    const SetEquality<FolderId>().hash(uneditedLeftOut),
+  );
 }
