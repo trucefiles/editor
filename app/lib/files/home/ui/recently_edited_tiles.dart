@@ -63,8 +63,10 @@ class UneditedInRecentTile extends ConsumerWidget {
 
   final FolderId folder;
 
+  /// Lined up with the folder screen's other rows.
   @override
   Widget build(BuildContext context, WidgetRef ref) => SwitchListTile(
+    contentPadding: EdgeInsets.zero,
     title: const Text('Show images in Recently edited'),
     value: ref.watch(
       deviceSettingsProvider.select(
