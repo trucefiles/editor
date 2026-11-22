@@ -1,6 +1,7 @@
 /// UI parts with no app logic, for use across the app: a sideways
 /// scrolling row of chips, whether the app is used by touch, how far a
-/// mouse wheel step goes, a full-screen image viewer that zooms, pictures
+/// mouse wheel step goes, a full-screen image viewer that zooms, a mark for views that zoom
+/// themselves, pictures
 /// read as bytes and decoded only as large as they show, a yes or no
 /// dialog, a check before a form is left with unsaved changes, Esc that
 /// closes a popup first, the lazy masonry grid for cards (items as tall
@@ -25,3 +26,4 @@ export 'src/text/first_fitting.dart';
 export 'src/text/line_height.dart';
 export 'src/touch/touch.dart';
 export 'src/wheel/wheel_step.dart';
+export 'src/zoom/zooms_itself.dart';

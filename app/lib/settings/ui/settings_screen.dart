@@ -32,7 +32,7 @@ class SettingsScreen extends StatelessWidget {
           AddItemPlaceTile(),
           PlaceAboveTextTile(),
           ImageSettingTiles(),
-          TextZoomTile(TextZoomTarget.documents),
+          TextZoomTile(TextZoomTarget.files),
           TextZoomTile(TextZoomTarget.app),
           RefreshSettingTile(),
           BackupSpaceTile(),

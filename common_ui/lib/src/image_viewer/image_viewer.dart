@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../zoom/zooms_itself.dart';
 import 'bytes_image.dart';
 
 /// Shows [image] full screen, zoomed by a pinch or the mouse wheel and
@@ -41,7 +42,8 @@ class ImageViewer extends StatelessWidget {
 }
 
 /// [image] as large as fits, zoomed by a pinch or the mouse wheel up to
-/// [maxZoom] and moved by a drag. [alt] is read out. It is decoded at
+/// [maxZoom] and moved by a drag; the pinch and wheel on it are its own
+/// ([ZoomsItself]). [alt] is read out. It is decoded at
 /// most at the screen's size times [sharpZoom], and never past
 /// [DecodeSize.largestSide] a side, so a huge picture never fills memory;
 /// deeper zoom gets a little soft.
@@ -68,17 +70,19 @@ class ZoomableImage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => InteractiveViewer(
-    maxScale: maxZoom,
-    child: SizedBox.expand(
-      child: Image(
-        image: image(_sizeOn(context)),
-        semanticLabel: alt,
-        fit: BoxFit.contain,
-        errorBuilder: (context, _, _) => Center(
-          child: Text(
-            "This image can't be shown.",
-            style: Theme.of(context).textTheme.bodyLarge,
+  Widget build(BuildContext context) => ZoomsItself(
+    child: InteractiveViewer(
+      maxScale: maxZoom,
+      child: SizedBox.expand(
+        child: Image(
+          image: image(_sizeOn(context)),
+          semanticLabel: alt,
+          fit: BoxFit.contain,
+          errorBuilder: (context, _, _) => Center(
+            child: Text(
+              "This image can't be shown.",
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
           ),
         ),
       ),

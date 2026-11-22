@@ -13,7 +13,7 @@ import '../../file_types/calendar_wiring.dart';
 import '../../files/file_colors.dart';
 import '../../files/ui/open_file.dart';
 import '../../folder_state/folder_state_controller.dart';
-import '../../text_zoom/ui/document_text_zoom.dart';
+import '../../text_zoom/ui/file_text_zoom.dart';
 import '../calendar_clock.dart';
 import '../calendar_tab_controller.dart';
 import '../tab_view_setting.dart';
@@ -86,7 +86,7 @@ class CalendarTabScreen extends ConsumerWidget {
                 ),
                 Expanded(
                   // Event text, zoomed like a calendar's own page.
-                  child: DocumentTextZoom(
+                  child: FileTextZoom(
                     child: EventLinks(
                       openers: ref.watch(eventOpenersProvider),
                       hint: (message) => showSnack(context, message),

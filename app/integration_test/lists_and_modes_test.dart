@@ -180,7 +180,7 @@ void main() {
     expect(find.byTooltip('Mode: Visual edit'), findsOne);
   });
 
-  testApp('Ctrl with + or =, - and 0 zoom document text, on every screen', (
+  testApp('Ctrl with + or =, - and 0 zoom file text, on every screen', (
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
@@ -216,7 +216,7 @@ void main() {
     await pressCtrl(LogicalKeyboardKey.equal);
     expect(scaled(), closeTo(base * 1.2, 0.01));
     expect(appText(), closeTo(base, 0.01), reason: 'app text stays');
-    expect(find.text('Document text size'), findsOne, reason: 'toast');
+    expect(find.text('File text size'), findsOne, reason: 'toast');
     expect(find.text('120 %'), findsOne);
     expect(
       find.textContaining('=', findRichText: true),
@@ -261,7 +261,7 @@ void main() {
     tester,
   ) async {
     app.write('todo.md', '# Todo\n- [ ] Call\n');
-    await app.useTextZoom(TextZoomTarget.documents, TextZoom.closestTo(150));
+    await app.useTextZoom(TextZoomTarget.files, TextZoom.closestTo(150));
     await app.useTextZoom(TextZoomTarget.app, TextZoom.closestTo(130));
     await app.launch(tester);
 

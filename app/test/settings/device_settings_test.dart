@@ -20,7 +20,7 @@ import '../support.dart';
 void main() {
   /// Every setting changed from the standard.
   final changed = DeviceSettings(
-    documentTextZoom: TextZoom.closestTo(130),
+    fileTextZoom: TextZoom.closestTo(130),
     appTextZoom: TextZoom.closestTo(150),
     newFilePlace: (folderId: folderId('f1'), subfolder: path('inbox')),
     refresh: const RefreshSettings(
@@ -78,7 +78,7 @@ void main() {
       );
 
       expect(settings.textZoomOf(TextZoomTarget.app), TextZoom.closestTo(120));
-      expect(settings.textZoomOf(TextZoomTarget.documents), TextZoom.normal);
+      expect(settings.textZoomOf(TextZoomTarget.files), TextZoom.normal);
     });
 
     test('copies keep the place for new documents, and can clear it', () {
@@ -183,15 +183,14 @@ void main() {
 
       await Future.wait([
         settings.change(
-          (s) =>
-              s.withTextZoom(TextZoomTarget.documents, TextZoom.normal.larger),
+          (s) => s.withTextZoom(TextZoomTarget.files, TextZoom.normal.larger),
         ),
         settings.change((s) => s.copyWith(addItemPlace: AddItemPlace.bottom)),
       ]);
 
       final next = await start();
       final saved = next.read(deviceSettingsProvider).requireValue;
-      expect(saved.documentTextZoom, TextZoom.closestTo(110));
+      expect(saved.fileTextZoom, TextZoom.closestTo(110));
       expect(saved.addItemPlace, AddItemPlace.bottom);
     });
   });

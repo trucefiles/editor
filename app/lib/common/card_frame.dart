@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_files/truce_files.dart' show FileCardSummary;
 
-import '../text_zoom/ui/document_text_zoom.dart';
+import '../text_zoom/ui/file_text_zoom.dart';
 
 /// The frame every card in a file grid shares: the title, after
-/// [leading] if given, and [body] at the document text zoom, [footer] at
+/// [leading] if given, and [body] at the file text zoom, [footer] at
 /// the bottom; as tall as they are.
 class CardFrame extends StatelessWidget {
   const CardFrame({
@@ -29,7 +29,7 @@ class CardFrame extends StatelessWidget {
   /// in it are as large as the title's letters, so they grow with them.
   final Widget? leading;
 
-  /// Document text under the title, usually a [CardLines].
+  /// File text under the title, usually a [CardLines].
   final Widget? body;
 
   final Widget footer;
@@ -68,7 +68,7 @@ class CardFrame extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DocumentTextZoom(
+              FileTextZoom(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,

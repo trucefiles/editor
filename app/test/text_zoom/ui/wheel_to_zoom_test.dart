@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_editor/text_zoom/ui/wheel_to_zoom.dart';
 
 void main() {
@@ -54,5 +55,34 @@ void main() {
 
     expect(asked, isEmpty);
     expect(scroll.offset, 550);
+  });
+
+  testWidgets('with Ctrl, the wheel on a view that zooms itself zooms it', (
+    tester,
+  ) async {
+    asked = [];
+    final view = TransformationController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: WheelToZoom(
+          onZoom: asked.add,
+          child: ZoomsItself(
+            child: InteractiveViewer(
+              transformationController: view,
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    final mouse = TestPointer(1, PointerDeviceKind.mouse)
+      ..hover(tester.getCenter(find.byType(InteractiveViewer)));
+    await tester.sendEventToBinding(mouse.scroll(const Offset(0, -50)));
+    await tester.pump();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    expect(asked, isEmpty);
+    expect(view.value.getMaxScaleOnAxis(), greaterThan(1));
   });
 }

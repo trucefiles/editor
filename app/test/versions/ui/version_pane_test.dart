@@ -3,19 +3,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
-import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
+import 'package:truce_editor/text_zoom/ui/file_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
 import 'package:truce_editor/versions/ui/diff_colors.dart';
 import 'package:truce_editor/versions/ui/version_content.dart';
 import 'package:truce_editor/versions/ui/version_pane.dart';
 
 void main() {
-  testWidgets("shows the version's text at the document text zoom, the rest at "
+  testWidgets("shows the version's text at the file text zoom, the rest at "
       "the app's", (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
-          home: DocumentTextZoomScope(
+          home: FileTextZoomScope(
             zoom: TextZoom.closestTo(150),
             child: TextZoomScale(
               zoom: TextZoom.closestTo(120),
