@@ -32,12 +32,12 @@ import 'discard_dialog.dart';
 import 'edit_place.dart';
 import 'file_place_chip.dart';
 import 'file_place_spot.dart';
-import 'height_reporter.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
 import 'save_indicator.dart';
 import 'shown_state_banners.dart';
 import 'unreachable_texts.dart';
+import 'view_under_notes.dart';
 
 /// The page of a file the app only shows (e.g. an image): its [type]
 /// draws it; the page has its name, place and actions. A new file is
@@ -194,18 +194,6 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
 
   void _refresh() => unawaited(_pull.currentState!.refresh());
 
-  /// How tall the banners and place drawn over the view are.
-  double _cover = 0;
-
-  void _coverChanged(double height) {
-    if (mounted && height != _cover) setState(() => _cover = height);
-  }
-
-  /// [page] with the banners and place counted in its top padding too.
-  MediaQueryData _coveredBy(MediaQueryData page) => page.copyWith(
-    padding: page.padding.copyWith(top: page.padding.top + _cover),
-  );
-
   Widget _menu(BuildContext context, {required FilePlaceSpot placeSpot}) {
     final listed = _controller.listed;
     return PopupMenuButton<VoidCallback>(
@@ -274,6 +262,45 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
       readOnly: !acts,
     );
     final tint = fileTint(mark.color, Theme.of(context).colorScheme);
+    // What the page tells above or over the file: banners and its place.
+    final notes = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (key != null)
+          if (shown?.conflicts.forFile(key) case final conflict?)
+            ConflictBanner(conflict),
+        if (place != null)
+          UnreachableBanner(
+            place.folder,
+            message: shownUnreachableText(_controller.state),
+          ),
+        ...shownStateBanners(
+          _controller.state,
+          close: () => closeIfOnTop(context),
+          retry: _controller.retry,
+        ),
+        if (place != null && placeSpot == FilePlaceSpot.aboveText)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: FilePlaceChip(
+                place.folder,
+                place.path,
+                onPressed: acts ? () => unawaited(_editPlace()) : null,
+              ),
+            ),
+          ),
+      ],
+    );
+    final view = PullToRefresh(
+      key: _pull,
+      onRefresh: ref.read(folderContentsProvider.notifier).refresh,
+      child: switch (content) {
+        final content? => widget.type.view(content, label: _controller.title),
+        null => const SizedBox.shrink(),
+      },
+    );
     return Scaffold(
       backgroundColor: tint,
       appBar: AppBar(
@@ -296,74 +323,15 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           if (acts) _menu(context, placeSpot: placeSpot),
         ],
       ),
-      // The type's view fills the whole page ([ViewType.view]); the bar,
-      // banners and place go over it, and its top padding says how far.
-      extendBodyBehindAppBar: true,
-      body: Builder(
-        builder: (body) => Stack(
+      body: switch (widget.type.underNotes) {
+        true => ViewUnderNotes(notes: notes, view: view),
+        false => Column(
           children: [
-            Positioned.fill(
-              child: MediaQuery(
-                data: _coveredBy(MediaQuery.of(body)),
-                child: PullToRefresh(
-                  key: _pull,
-                  onRefresh: ref.read(folderContentsProvider.notifier).refresh,
-                  child: switch (content) {
-                    final content? => widget.type.view(
-                      content,
-                      label: _controller.title,
-                    ),
-                    null => const SizedBox.shrink(),
-                  },
-                ),
-              ),
-            ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: SafeArea(
-                bottom: false,
-                child: HeightReporter(
-                  onHeight: _coverChanged,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (key != null)
-                        if (shown?.conflicts.forFile(key) case final conflict?)
-                          ConflictBanner(conflict),
-                      if (place != null)
-                        UnreachableBanner(
-                          place.folder,
-                          message: shownUnreachableText(_controller.state),
-                        ),
-                      ...shownStateBanners(
-                        _controller.state,
-                        close: () => closeIfOnTop(context),
-                        retry: _controller.retry,
-                      ),
-                      if (place != null && placeSpot == FilePlaceSpot.aboveText)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                          child: Align(
-                            alignment: AlignmentDirectional.centerStart,
-                            child: FilePlaceChip(
-                              place.folder,
-                              place.path,
-                              onPressed: acts
-                                  ? () => unawaited(_editPlace())
-                                  : null,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            ...notes.children,
+            Expanded(child: view),
           ],
         ),
-      ),
+      },
     );
   }
 }

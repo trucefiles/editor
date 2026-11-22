@@ -49,24 +49,27 @@ void main() {
     await tester.waitUntil(() => tester.shownPictureWidth == 2);
   });
 
-  testApp(
-    'an image sits in the middle of the screen, under its bar and place',
-    (tester) async {
-      app.writePicture('cat.png', width: 1);
-      await tester.addFolder(app);
-      await openImage(tester, 'cat');
-      await tester.waitUntil(() => tester.shownPictureWidth == 1);
+  testApp('an image fills the page below its bar, under its place', (
+    tester,
+  ) async {
+    app.writePicture('cat.png', width: 1);
+    await tester.addFolder(app);
+    await openImage(tester, 'cat');
+    await tester.waitUntil(() => tester.shownPictureWidth == 1);
 
-      final screen = tester.getRect(find.byType(FileViewPage));
-      final view = find.byType(InteractiveViewer);
-      expect(tester.getRect(view), screen);
-      expect(
-        MediaQuery.paddingOf(tester.element(view)).top,
-        tester.getBottomLeft(find.byType(FilePlaceChip)).dy,
-        reason: 'it knows how far the bar and place cover it',
-      );
-    },
-  );
+    final page = tester.getRect(find.byType(FileViewPage));
+    final bar = tester.getRect(find.byType(AppBar));
+    final view = find.byType(InteractiveViewer);
+    expect(
+      tester.getRect(view),
+      Rect.fromLTRB(page.left, bar.bottom, page.right, page.bottom),
+    );
+    expect(
+      MediaQuery.paddingOf(tester.element(view)).top,
+      tester.getBottomLeft(find.byType(FilePlaceChip)).dy - bar.bottom,
+      reason: 'it knows how far its place covers it',
+    );
+  });
 
   testApp('an image is renamed from its page', (tester) async {
     app.writePicture('cat.png', width: 1);

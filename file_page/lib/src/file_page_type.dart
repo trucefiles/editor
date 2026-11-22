@@ -34,11 +34,14 @@ typedef OpenedEditor = ({EditorPart part, EditorView view});
 abstract interface class ViewType implements FilePageType {
   /// [content] shown whole, to look at closely (e.g. zoomed): on the
   /// file's page and as a side of a comparison. [label] is read out.
-  /// It fills the space it is given. On the file's page that is the
-  /// whole page, so it sits in the middle of the screen; the page's bar,
-  /// banners and place go over its top, as far as its top padding
-  /// ([MediaQuery.paddingOf]) says.
+  /// It fills the space it is given; see [underNotes].
   Widget view(ShownContent content, {required String label});
+
+  /// Whether the view fills the page below its bar, with the page's
+  /// banners and the file's place over its top (e.g. a picture, so it
+  /// sits in the middle); its top padding ([MediaQuery.paddingOf]) then
+  /// says how far they cover it. Else it shows below them.
+  bool get underNotes;
 
   /// [content] small, as a card shows it, filling the space it gets.
   Widget thumbnail(ShownContent content, {required String label});
