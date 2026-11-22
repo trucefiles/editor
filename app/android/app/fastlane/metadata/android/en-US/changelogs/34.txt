@@ -1,0 +1,4 @@
+- File info: size, dates, words, and a photo's camera and place
+- Images in Recently edited, per folder
+- Pictures zoom by pinch and stay shown when renamed
+- Choose image on Android keeps the name

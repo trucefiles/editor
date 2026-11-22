@@ -67,6 +67,9 @@ final class _Work {
   bool createFails = false;
   Result<FileBytes, MoveFailure>? moveResult;
 
+  /// The version a reload finds; by default the one asked for.
+  int? reloadVersion;
+
   /// Drafts in a place that is a file, so none can be kept there.
   late final _refusing = FileDrafts(
     Directory('${(File('${tempFolder().path}/file')..createSync()).path}/d'),
@@ -81,7 +84,16 @@ final class _Work {
         );
 
   late final work = ShownWork(
-    reload: (file) async => Ok(FileBytes(file, Uint8List(0))),
+    reload: (file) async => Ok(
+      FileBytes(switch (reloadVersion) {
+        final version? => _listed(
+          file.folder,
+          file.path.name,
+          version: version,
+        ),
+        null => file,
+      }, Uint8List(0)),
+    ),
     draftsOf: draftsIn,
     create:
         (
@@ -158,7 +170,10 @@ void main() {
       owner.send(SeeFolders(_contents([newer])));
       await owner.close();
 
-      expect(owner.state, ShownListed(newer));
+      expect(
+        owner.state,
+        ShownListed(newer, content: ContentTag.listed(newer)),
+      );
     });
 
     test('is gone once deleted elsewhere, and never written again', () async {
@@ -169,7 +184,7 @@ void main() {
       expect(await _secure(owner, SecureReason.close), isTrue);
       await owner.close();
 
-      expect(owner.state, ShownGone(file));
+      expect(owner.state, ShownGone(file, content: ContentTag.listed(file)));
       expect(work.created, isEmpty);
     });
 
@@ -182,7 +197,10 @@ void main() {
       owner.send(SeeFolders(_contents([file], at: before)));
       await owner.close();
 
-      expect(owner.state, ShownListed(_listed(_work, 'b.md')));
+      expect(
+        owner.state,
+        ShownListed(_listed(_work, 'b.md'), content: ContentTag.listed(file)),
+      );
     });
 
     test('a move that fails says why, and the file stays', () async {
@@ -192,7 +210,100 @@ void main() {
 
       expect(await _place(owner, _work), isA<MoveBlockedByConflict>());
 
-      expect(owner.state, ShownListed(file));
+      expect(owner.state, ShownListed(file, content: ContentTag.listed(file)));
+    });
+  });
+
+  group('the content tag', () {
+    ContentTag contentOf(ShownFileOwner owner) => switch (owner.state) {
+      WaitingNew(:final content) ||
+      ShownListed(:final content) ||
+      ShownGone(:final content) => content,
+      ShownDropped() => throw StateError('No content once dropped.'),
+    };
+
+    test('of a file opened again is the same', () {
+      final file = _listed(_home, 'a.md');
+
+      expect(
+        contentOf(shownFileOwner(file, work.work)),
+        contentOf(shownFileOwner(file, work.work)),
+      );
+    });
+
+    test('stays after the owner renames or moves the file, and once the '
+        'moved file is listed', () async {
+      final owner = shownFileOwner(_listed(_home, 'a.md'), work.work);
+      final before = contentOf(owner);
+
+      await _place(owner, _home, title: 'b');
+      await _place(owner, _work, title: 'c');
+      owner.send(SeeFolders(_contents([_listed(_work, 'c.md')])));
+      await owner.close();
+
+      expect(owner.state, isA<ShownListed>());
+      expect(contentOf(owner), before);
+    });
+
+    test('changes when a move changed the bytes', () async {
+      final owner = shownFileOwner(_listed(_home, 'a.md'), work.work);
+      final before = contentOf(owner);
+      work.moveResult = Ok(
+        FileBytes(_listed(_work, 'b.md'), Uint8List.fromList([9])),
+      );
+
+      await _place(owner, _work, title: 'b');
+
+      expect(contentOf(owner), isNot(before));
+    });
+
+    test('changes when the moved file was changed elsewhere before the '
+        'listing showed it', () async {
+      final owner = shownFileOwner(_listed(_home, 'a.md'), work.work);
+      final before = contentOf(owner);
+      work.reloadVersion = 2;
+
+      await _place(owner, _work, title: 'b');
+
+      expect(contentOf(owner), isNot(before));
+    });
+
+    test('changes with a version the owner didn\'t write', () async {
+      final owner = shownFileOwner(_listed(_home, 'a.md'), work.work);
+      final before = contentOf(owner);
+
+      owner.send(SeeFolders(_contents([_listed(_home, 'a.md', version: 2)])));
+      await owner.close();
+
+      expect(contentOf(owner), isNot(before));
+    });
+
+    test('stays once the file is gone', () async {
+      final owner = shownFileOwner(_listed(_home, 'a.md'), work.work);
+      final before = contentOf(owner);
+
+      owner.send(SeeFolders(_contents([])));
+      await owner.close();
+
+      expect(owner.state, isA<ShownGone>());
+      expect(contentOf(owner), before);
+    });
+
+    test('of a new file stays as it goes elsewhere and once it is written, '
+        'and is its own', () async {
+      final owner = newShownFileOwner(_photo(_home), work.work);
+      final before = contentOf(owner);
+
+      await _place(owner, _work, title: 'Cat');
+      expect(contentOf(owner), before);
+      expect(await _secure(owner, SecureReason.close), isTrue);
+
+      expect(owner.state, isA<ShownListed>());
+      expect(contentOf(owner), before);
+      expect(
+        contentOf(newShownFileOwner(_photo(_home), work.work)),
+        isNot(before),
+      );
     });
   });
 

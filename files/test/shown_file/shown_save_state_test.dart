@@ -27,12 +27,16 @@ void main() {
       modified: DateTime(2000),
       size: 0,
     );
+    final content = ContentTag.unique();
     final cases = <ShownState, SaveState>{
-      WaitingNew(photo, kept: NewKept.keeping): SaveState.none,
-      WaitingNew(photo, kept: NewKept.onDevice): SaveState.onDevice,
-      WaitingNew(photo, kept: NewKept.nowhere): SaveState.none,
-      ShownListed(listed): SaveState.inFolder,
-      ShownGone(listed): SaveState.none,
+      WaitingNew(photo, kept: NewKept.keeping, content: content):
+          SaveState.none,
+      WaitingNew(photo, kept: NewKept.onDevice, content: content):
+          SaveState.onDevice,
+      WaitingNew(photo, kept: NewKept.nowhere, content: content):
+          SaveState.none,
+      ShownListed(listed, content: content): SaveState.inFolder,
+      ShownGone(listed, content: content): SaveState.none,
       const ShownDropped(): SaveState.none,
     };
 

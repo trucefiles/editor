@@ -62,7 +62,8 @@ abstract interface class ViewType implements FilePageType {
 
 /// The content of one version of a file, read once by [read] when it
 /// shows; contents with equal [id]s are the same, so what was drawn of
-/// one is drawn again (e.g. a file key with its version).
+/// one is drawn again (e.g. a file's version, or a tag that stays the
+/// same while the bytes do, wherever the file goes).
 final class ShownContent {
   const ShownContent(this.id, this.read);
 

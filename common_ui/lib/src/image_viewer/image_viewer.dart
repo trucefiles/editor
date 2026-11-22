@@ -80,6 +80,8 @@ class ZoomableImage extends StatelessWidget {
       child: SizedBox.expand(
         child: Image(
           image: image(_sizeOn(context)),
+          // A picture that changed stays until the new one is drawn.
+          gaplessPlayback: true,
           semanticLabel: alt,
           fit: BoxFit.contain,
           errorBuilder: (context, _, _) => Center(
