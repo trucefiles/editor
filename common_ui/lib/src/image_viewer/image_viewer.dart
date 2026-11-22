@@ -7,8 +7,8 @@ import 'bytes_image.dart';
 import 'tap_zoom.dart';
 
 /// Shows [image] full screen, zoomed by a pinch, the mouse wheel or a
-/// double tap and moved by a drag; Back, Esc (the app's, as for every page) or the close
-/// button go back. [alt] is read out.
+/// double tap and moved by a drag; Back, Esc (the app's, as for every
+/// page) or the close button go back. [alt] is read out.
 Future<void> showImageViewer(
   BuildContext context,
   SizedImage image, {
