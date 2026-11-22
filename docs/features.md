@@ -22,7 +22,7 @@ edited** in that folder's settings.
 ## Images as files
 
 Pictures in your folders (JPEG, PNG, GIF, WebP, BMP) now show as cards
-with a thumbnail, with an **Images** chip to show only them. Tap one to
+with a thumbnail, with an **Image** chip to show only them. Tap one to
 see it full size and zoom in. Move, rename, pin, color or delete it as
 any file, with Undo. If two devices changed a picture, both show side by
 side to keep one, and both are backed up first. Backups show pictures

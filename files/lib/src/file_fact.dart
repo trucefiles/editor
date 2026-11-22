@@ -1,9 +1,9 @@
 import 'package:meta/meta.dart';
 
-/// One thing the File info panel tells about a file, under its [label]
-/// (e.g. "Words", "Camera"): what a file type knows of its files beside
-/// what every file has. Its kind says how the panel shows its value, so
-/// dates and places look the same for every type.
+/// One fact a file type tells about a file, under its [label] (e.g.
+/// "Words", "Camera"), beside what every file has. Its kind says what
+/// its value is, so the app shows dates and places the same way for
+/// every type.
 @immutable
 sealed class FileFact {
   const FileFact(this.label);

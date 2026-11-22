@@ -30,8 +30,8 @@ final class ListedFile {
   /// When the file was last changed, for showing and sorting.
   final DateTime modified;
 
-  /// How many bytes the file holds on disk: what was last saved, not
-  /// edits still in memory.
+  /// How many bytes the file holds, as last listed or written: what was
+  /// saved, not edits still in memory.
   final int size;
 
   FileKey get key => (folder: folder.id, path: path);

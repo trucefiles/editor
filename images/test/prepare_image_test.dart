@@ -74,6 +74,27 @@ void main() {
       expect(img.decodeWebP(out)!.width, 64);
     });
 
+    test('a WebP keeps an empty chunk as it is', () {
+      final sample = _sample('located.webp');
+      final withEmpty = Uint8List.fromList([
+        ...sample,
+        ...'ZZZZ'.codeUnits,
+        0,
+        0,
+        0,
+        0,
+      ]);
+      ByteData.sublistView(
+        withEmpty,
+        4,
+      ).setUint32(0, withEmpty.length - 8, Endian.little);
+
+      final out = prepareImage(withEmpty, _noLocation)!.bytes;
+
+      expect(_holds(out, 'EXIF'), isFalse);
+      expect(out.sublist(out.length - 8), [...'ZZZZ'.codeUnits, 0, 0, 0, 0]);
+    });
+
     test('bytes after a picture\'s end go with its location', () {
       final trailing = utf8.encode('<x:xmpmeta GPSLatitude="1"/> and more');
       for (final name in ['located.jpg', 'located.png', 'located.webp']) {

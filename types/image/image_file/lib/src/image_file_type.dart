@@ -15,7 +15,7 @@ base class ImageFileType implements ShownFileType {
   ImageFileSupport get support => const ImageFileSupport();
 
   @override
-  String get name => 'Images';
+  String get name => 'Image';
 
   /// The user adds a picture they choose or take.
   @override

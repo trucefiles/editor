@@ -49,11 +49,11 @@ abstract interface class EditorPart {
   /// What the type keeps of how the file shows changed to [view].
   void viewChanged(ViewSettings view);
 
-  /// What the File info panel tells of the open file beyond what every
-  /// file has, from what the editor already holds (no new read or
-  /// parse); [kept] is the text the file's owner holds (its saved or
-  /// last sent text). May differ from what a closed file of the same
-  /// bytes would tell.
+  /// The facts the type tells of the open file, beyond what every file
+  /// has, from what the editor already holds (no new read or parse);
+  /// [kept] is the text the file's owner holds (its saved or last sent
+  /// text). May differ from what a closed file of the same bytes would
+  /// tell.
   List<FileFact> facts(String kept);
 
   /// Fires when the page shows the part differently (e.g. another mode

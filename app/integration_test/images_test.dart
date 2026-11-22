@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:truce_editor/file_page/ui/file_info_panel.dart';
 import 'package:truce_editor/file_page/ui/file_place_chip.dart';
 import 'package:truce_editor/file_page/ui/file_view_page.dart';
 import 'package:truce_test_support/truce_test_support.dart';
@@ -136,7 +137,8 @@ void main() {
     await tester.addFolder(app);
 
     await tester.tapAndSettle(find.byTooltip('New file'));
-    await tester.tapAndSettle(find.text('Image'));
+    // The New file sheet's, over the type chip of the same name.
+    await tester.tapAndSettle(find.text('Image').last);
     await tester.waitFor(find.byType(FileViewPage));
     await tester.runFor(const Duration(seconds: 2));
     expect(app.namesIn(), isEmpty);
@@ -157,7 +159,8 @@ void main() {
     await tester.addFolder(app);
 
     await tester.tapAndSettle(find.byTooltip('New file'));
-    await tester.tapAndSettle(find.text('Image'));
+    // The New file sheet's, over the type chip of the same name.
+    await tester.tapAndSettle(find.text('Image').last);
     await tester.waitFor(find.byIcon(Icons.save_outlined));
     expect(app.namesIn(), isEmpty);
     await tester.tapAndSettle(find.byIcon(Icons.save_outlined));
@@ -175,7 +178,13 @@ void main() {
 
     await tester.waitFor(find.text('Dimensions'));
     expect(find.text('cat.png'), findsOne);
-    expect(find.text('Images'), findsOne);
+    expect(
+      find.descendant(
+        of: find.byType(FileInfoPanel),
+        matching: find.text('Image'),
+      ),
+      findsOne,
+    );
     expect(find.text('${TestApp.picture(2).length} bytes'), findsOne);
     expect(find.textContaining('2 × '), findsOne);
   });

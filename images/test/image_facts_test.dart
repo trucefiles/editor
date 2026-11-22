@@ -125,6 +125,26 @@ void main() {
     expect(imageFactsOf(jpeg)!.taken, isNull);
   });
 
+  test("a JPEG's size and EXIF data are read before its picture data, "
+      'which is never walked', () {
+    final jpeg = img.encodeJpg(_picture());
+    // Cut a few bytes into the picture data: nothing after its start is
+    // needed.
+    final scan = List.generate(
+      jpeg.length - 1,
+      (at) => at,
+    ).firstWhere((at) => jpeg[at] == 0xFF && jpeg[at + 1] == 0xDA);
+
+    expectPhoneFacts(imageFactsOf(Uint8List.sublistView(jpeg, 0, scan + 20))!);
+  });
+
+  test('a JPEG without EXIF data tells its size', () {
+    final facts = imageFactsOf(img.encodeJpg(img.Image(width: 5, height: 3)))!;
+
+    expect((facts.width, facts.height), (5, 3));
+    expect(facts.camera, isNull);
+  });
+
   test('anything else than a known picture is none', () {
     expect(imageFactsOf(Uint8List.fromList('text'.codeUnits)), isNull);
   });

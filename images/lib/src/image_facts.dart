@@ -61,8 +61,19 @@ typedef MapPoint = ({double latitude, double longitude});
 ImageFacts? imageFactsOf(Uint8List bytes) {
   final kind = ImageKind.of(bytes);
   if (kind == null) return null;
-  final size = _sizeOf(bytes, kind);
-  final exif = _exifOf(bytes, kind);
+  final (size, exif) = switch (kind) {
+    ImageKind.jpeg => _jpegHeader(bytes),
+    ImageKind.png => (
+      _headerSize(bytes, img.PngDecoder()),
+      _exifIn(pngChunks(bytes), 'eXIf'),
+    ),
+    ImageKind.webp => (
+      _headerSize(bytes, img.WebPDecoder()),
+      _exifIn(webpChunks(bytes), 'EXIF'),
+    ),
+    ImageKind.gif => (_headerSize(bytes, img.GifDecoder()), null),
+    ImageKind.bmp => (_headerSize(bytes, img.BmpDecoder()), null),
+  };
   final turned = (exif?.imageIfd.orientation ?? 1) >= 5;
   return ImageFacts(
     width: turned ? size?.height : size?.width,
@@ -75,47 +86,74 @@ ImageFacts? imageFactsOf(Uint8List bytes) {
   );
 }
 
-/// The header's size; `null` if it can't be read (the `image` package
-/// may throw on a broken one).
-img.DecodeInfo? _sizeOf(Uint8List bytes, ImageKind kind) {
-  try {
-    return _decoderOf(kind).startDecode(bytes);
-  } on Object {
-    return null;
-  }
-}
+typedef _Size = ({int width, int height});
 
-img.Decoder _decoderOf(ImageKind kind) => switch (kind) {
-  ImageKind.jpeg => img.JpegDecoder(),
-  ImageKind.png => img.PngDecoder(),
-  ImageKind.gif => img.GifDecoder(),
-  ImageKind.webp => img.WebPDecoder(),
-  ImageKind.bmp => img.BmpDecoder(),
-};
-
-/// `null` where there is none, or it can't be read: the `image` package
-/// throws on EXIF data it can't read.
-img.ExifData? _exifOf(Uint8List bytes, ImageKind kind) {
+/// The size [decoder] reads from the header; `null` if it can't be read.
+_Size? _headerSize(Uint8List bytes, img.Decoder decoder) {
   try {
-    final exif = switch (kind) {
-      ImageKind.jpeg => img.decodeJpgExif(bytes),
-      ImageKind.png => _exifIn(pngChunks(bytes), 'eXIf'),
-      ImageKind.webp => _exifIn(webpChunks(bytes), 'EXIF'),
-      ImageKind.gif || ImageKind.bmp => null,
+    return switch (decoder.startDecode(bytes)) {
+      final info? => (width: info.width, height: info.height),
+      null => null,
     };
-    return exif == null || exif.isEmpty ? null : exif;
+    // The `image` package may throw on a broken header.
   } on Object {
     return null;
   }
 }
+
+/// A JPEG's size and EXIF data, from one walk of its segments. Own code:
+/// the `image` package's header read walks every byte of the picture
+/// data to its end (a visible cost on a large photo), and so does its
+/// EXIF read on a photo without EXIF data. Both sit before the picture
+/// data: the size in the first frame header, EXIF in an APP1 segment.
+(_Size?, img.ExifData?) _jpegHeader(Uint8List bytes) {
+  final segments = jpegSegments(bytes)?.segments ?? const [];
+  return (
+    switch (segments.where(_isFrameHeader).firstOrNull?.data) {
+      final data? when data.length >= 5 => (
+        height: data[1] << 8 | data[2],
+        width: data[3] << 8 | data[4],
+      ),
+      _ => null,
+    },
+    _readExif(switch (segments.where(_isExif).firstOrNull) {
+      final segment? => Uint8List.sublistView(segment.data, _exifStart.length),
+      null => null,
+    }),
+  );
+}
+
+/// Start-of-frame markers: 0xC0 to 0xCF, but for the tables (C4, CC)
+/// and a reserved one (C8).
+bool _isFrameHeader(JpegSegment segment) =>
+    segment.marker >= 0xC0 &&
+    segment.marker <= 0xCF &&
+    !const {0xC4, 0xC8, 0xCC}.contains(segment.marker);
+
+/// An APP1 segment that holds EXIF data.
+bool _isExif(JpegSegment segment) =>
+    segment.marker == 0xE1 &&
+    segment.data.length >= _exifStart.length &&
+    String.fromCharCodes(segment.data.take(_exifStart.length)) == _exifStart;
+
+const _exifStart = 'Exif\u0000\u0000';
 
 /// Own code for PNG and WebP: the `image` package reads their EXIF data
 /// only along with the pixels.
 img.ExifData? _exifIn(List<Chunk>? chunks, String type) =>
-    switch (chunks?.where((chunk) => chunk.type == type).firstOrNull) {
-      final chunk? => img.ExifData.fromInputBuffer(img.InputBuffer(chunk.data)),
-      null => null,
-    };
+    _readExif(chunks?.where((chunk) => chunk.type == type).firstOrNull?.data);
+
+/// [data] as EXIF data; `null` where there is none or it can't be read
+/// (the `image` package throws on EXIF data it can't read).
+img.ExifData? _readExif(Uint8List? data) {
+  if (data == null) return null;
+  try {
+    final exif = img.ExifData.fromInputBuffer(img.InputBuffer(data));
+    return exif.isEmpty ? null : exif;
+  } on Object {
+    return null;
+  }
+}
 
 const _make = 0x010f,
     _model = 0x0110,
