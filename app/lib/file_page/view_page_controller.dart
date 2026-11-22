@@ -97,7 +97,7 @@ final class ViewPageController extends ChangeNotifier {
     ShownGone(
       last: final file,
       :final content,
-    ) => listedContent(file, read, id: content),
+    ) => ShownContent(content, listedBytes(file, read)),
     ShownDropped() => null,
   };
 
