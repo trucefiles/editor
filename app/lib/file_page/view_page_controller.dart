@@ -188,7 +188,8 @@ final class ViewPageController extends ChangeNotifier {
         orElse: const MoveNotSaved(),
       );
 
-  /// Writes a new file kept on this device into its folder now.
+  /// Writes a new file kept on this device into its folder now: by the
+  /// rule for when the app hides, which writes to the folder first.
   Future<void> saveNow() => keep(SecureReason.hide);
 
   /// Tries again to keep a new file that could be kept nowhere.

@@ -1,14 +1,13 @@
 /// UI parts with no app logic, for use across the app: a sideways
 /// scrolling row of chips, whether the app is used by touch, how far a
-/// mouse wheel step goes, a full-screen image viewer that zooms, a mark for views that zoom
-/// themselves, pictures
-/// read as bytes and decoded only as large as they show, a yes or no
-/// dialog, a check before a form is left with unsaved changes, Esc that
-/// closes a popup first, the lazy masonry grid for cards (items as tall
-/// as their content, in columns), the page
-/// width that keeps settings and forms in one centered column, the keys
-/// the keypad stands for, and how text fits: a line's height, the first
-/// of some texts that fits.
+/// mouse wheel step goes, a full-screen image viewer that zooms, a mark
+/// for views that zoom themselves, pictures read as bytes and decoded
+/// only as large as they show, a yes or no dialog, a check before a form
+/// is left with unsaved changes, Esc that closes a popup first, the lazy
+/// masonry grid for cards (items as tall as their content, in columns),
+/// the page width that keeps settings and forms in one centered column,
+/// the keys the keypad stands for, and how text fits: a line's height,
+/// the first of some texts that fits.
 library;
 
 export 'src/chip_row/chip_row.dart';

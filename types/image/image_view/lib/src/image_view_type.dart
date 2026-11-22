@@ -19,9 +19,9 @@ final class ImageViewType extends ImageFileType implements ViewType {
   @override
   IconData get icon => Icons.image_outlined;
 
-  /// Centered on the page, moved out from under its notes by a drag.
+  /// Centered on the page, moved out from under its banners by a drag.
   @override
-  bool get underNotes => true;
+  bool get underBanners => true;
 
   /// Decoded no larger than the zoomable view asks.
   @override

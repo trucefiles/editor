@@ -2,24 +2,29 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
-/// [view] filling the space, with [notes] (banners, the file's place)
-/// over its top; [view]'s top padding says how far they cover it, so it
-/// can let its content move out from under them.
-class ViewUnderNotes extends StatefulWidget {
-  const ViewUnderNotes({required this.notes, required this.view, super.key});
+/// [view] filling the space, with [banners] (the page's banners, the
+/// file's place) over its top; [view]'s top padding says how far they
+/// cover it, so it can let its content move out from under them. The
+/// padding follows a frame after the banners change.
+class ViewUnderBanners extends StatefulWidget {
+  const ViewUnderBanners({
+    required this.banners,
+    required this.view,
+    super.key,
+  });
 
-  final Widget notes;
+  final List<Widget> banners;
   final Widget view;
 
   @override
-  State<ViewUnderNotes> createState() => _ViewUnderNotesState();
+  State<ViewUnderBanners> createState() => _ViewUnderBannersState();
 }
 
-class _ViewUnderNotesState extends State<ViewUnderNotes> {
-  /// How tall [ViewUnderNotes.notes] are.
+class _ViewUnderBannersState extends State<ViewUnderBanners> {
+  /// How tall [ViewUnderBanners.banners] are.
   double _covered = 0;
 
-  void _notesAre(double height) {
+  void _bannersAre(double height) {
     if (mounted && height != _covered) setState(() => _covered = height);
   }
 
@@ -42,7 +47,13 @@ class _ViewUnderNotesState extends State<ViewUnderNotes> {
           top: 0,
           left: 0,
           right: 0,
-          child: _HeightReporter(onHeight: _notesAre, child: widget.notes),
+          child: _HeightReporter(
+            onHeight: _bannersAre,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: widget.banners,
+            ),
+          ),
         ),
       ],
     );
