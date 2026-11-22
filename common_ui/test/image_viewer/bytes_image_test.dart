@@ -138,4 +138,32 @@ void main() {
 
     expect(asked.last, const Within(3000, DecodeSize.largestSide));
   });
+
+  testWidgets('the zoomable view moves down as far as its top is covered', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(400, 600)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(400, 600),
+            padding: EdgeInsets.only(top: 50),
+          ),
+          child: ZoomableImage(
+            (size) => _Picture(() => _onePixel, size: size),
+            alt: 'a picture',
+          ),
+        ),
+      ),
+    );
+
+    await tester.drag(find.byType(InteractiveViewer), const Offset(0, 200));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(find.byType(Image)).dy, 50);
+  });
 }

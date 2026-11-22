@@ -9,7 +9,7 @@ class ZoomsItself extends StatelessWidget {
 
   final Widget child;
 
-  static const _mark = Object();
+  static const _mark = _Mark();
 
   @override
   Widget build(BuildContext context) => MetaData(metaData: _mark, child: child);
@@ -26,4 +26,10 @@ bool zoomsItselfAt(Offset position, {required int viewId}) {
       _ => false,
     },
   );
+}
+
+/// The one mark [ZoomsItself] puts on its child: of a class of its own, so
+/// nothing else equals it.
+final class _Mark {
+  const _Mark();
 }

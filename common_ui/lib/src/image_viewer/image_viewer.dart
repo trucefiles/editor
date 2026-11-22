@@ -43,7 +43,9 @@ class ImageViewer extends StatelessWidget {
 
 /// [image] as large as fits, zoomed by a pinch or the mouse wheel up to
 /// [maxZoom] and moved by a drag; the pinch and wheel on it are its own
-/// ([ZoomsItself]). [alt] is read out. It is decoded at
+/// ([ZoomsItself]). Its top padding is what is drawn over its top: the
+/// picture can be moved down that far, so none of it stays hidden.
+/// [alt] is read out. It is decoded at
 /// most at the screen's size times [sharpZoom], and never past
 /// [DecodeSize.largestSide] a side, so a huge picture never fills memory;
 /// deeper zoom gets a little soft.
@@ -73,6 +75,8 @@ class ZoomableImage extends StatelessWidget {
   Widget build(BuildContext context) => ZoomsItself(
     child: InteractiveViewer(
       maxScale: maxZoom,
+      // It moves down past the top as far as what is drawn over it.
+      boundaryMargin: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
       child: SizedBox.expand(
         child: Image(
           image: image(_sizeOn(context)),

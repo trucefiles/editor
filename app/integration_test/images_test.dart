@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:truce_editor/file_page/ui/file_place_chip.dart';
 import 'package:truce_editor/file_page/ui/file_view_page.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -48,17 +49,24 @@ void main() {
     await tester.waitUntil(() => tester.shownPictureWidth == 2);
   });
 
-  testApp('an image sits in the middle of the screen, under its bar', (
-    tester,
-  ) async {
-    app.writePicture('cat.png', width: 1);
-    await tester.addFolder(app);
-    await openImage(tester, 'cat');
-    await tester.waitUntil(() => tester.shownPictureWidth == 1);
+  testApp(
+    'an image sits in the middle of the screen, under its bar and place',
+    (tester) async {
+      app.writePicture('cat.png', width: 1);
+      await tester.addFolder(app);
+      await openImage(tester, 'cat');
+      await tester.waitUntil(() => tester.shownPictureWidth == 1);
 
-    final screen = tester.getRect(find.byType(FileViewPage));
-    expect(tester.getRect(find.byType(InteractiveViewer)), screen);
-  });
+      final screen = tester.getRect(find.byType(FileViewPage));
+      final view = find.byType(InteractiveViewer);
+      expect(tester.getRect(view), screen);
+      expect(
+        MediaQuery.paddingOf(tester.element(view)).top,
+        tester.getBottomLeft(find.byType(FilePlaceChip)).dy,
+        reason: 'it knows how far the bar and place cover it',
+      );
+    },
+  );
 
   testApp('an image is renamed from its page', (tester) async {
     app.writePicture('cat.png', width: 1);
