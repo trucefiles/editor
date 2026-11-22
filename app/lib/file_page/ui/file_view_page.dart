@@ -34,8 +34,10 @@ import 'file_place_chip.dart';
 import 'file_place_spot.dart';
 import 'page_close.dart';
 import 'page_delete.dart';
+import 'save_indicator.dart';
 import 'shown_state_banners.dart';
 import 'unreachable_texts.dart';
+import 'view_under_banners.dart';
 
 /// The page of a file the app only shows (e.g. an image): its [type]
 /// draws it; the page has its name, place and actions. A new file is
@@ -260,6 +262,42 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
       readOnly: !acts,
     );
     final tint = fileTint(mark.color, Theme.of(context).colorScheme);
+    // What the page tells above or over the file: banners and its place.
+    final banners = [
+      if (key != null)
+        if (shown?.conflicts.forFile(key) case final conflict?)
+          ConflictBanner(conflict),
+      if (place != null)
+        UnreachableBanner(
+          place.folder,
+          message: shownUnreachableText(_controller.state),
+        ),
+      ...shownStateBanners(
+        _controller.state,
+        close: () => closeIfOnTop(context),
+        retry: _controller.retry,
+      ),
+      if (place != null && placeSpot == FilePlaceSpot.aboveText)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FilePlaceChip(
+              place.folder,
+              place.path,
+              onPressed: acts ? () => unawaited(_editPlace()) : null,
+            ),
+          ),
+        ),
+    ];
+    final view = PullToRefresh(
+      key: _pull,
+      onRefresh: ref.read(folderContentsProvider.notifier).refresh,
+      child: switch (content) {
+        final content? => widget.type.view(content, label: _controller.title),
+        null => const SizedBox.shrink(),
+      },
+    );
     return Scaffold(
       backgroundColor: tint,
       appBar: AppBar(
@@ -269,6 +307,10 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           edited: _controller.listed?.modified,
         ),
         actions: [
+          SaveIndicator(
+            _controller.saveState,
+            onSave: () => unawaited(_controller.saveNow()),
+          ),
           if (!acts || !usesTouch(Theme.of(context)))
             IconButton(
               tooltip: 'Refresh',
@@ -278,48 +320,15 @@ class _FileViewPageState extends ConsumerState<FileViewPage> {
           if (acts) _menu(context, placeSpot: placeSpot),
         ],
       ),
-      body: Column(
-        children: [
-          if (key != null)
-            if (shown?.conflicts.forFile(key) case final conflict?)
-              ConflictBanner(conflict),
-          if (place != null)
-            UnreachableBanner(
-              place.folder,
-              message: shownUnreachableText(_controller.state),
-            ),
-          ...shownStateBanners(
-            _controller.state,
-            close: () => closeIfOnTop(context),
-            retry: _controller.retry,
-          ),
-          if (place != null && placeSpot == FilePlaceSpot.aboveText)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: FilePlaceChip(
-                  place.folder,
-                  place.path,
-                  onPressed: acts ? () => unawaited(_editPlace()) : null,
-                ),
-              ),
-            ),
-          Expanded(
-            child: PullToRefresh(
-              key: _pull,
-              onRefresh: ref.read(folderContentsProvider.notifier).refresh,
-              child: switch (content) {
-                final content? => widget.type.view(
-                  content,
-                  label: _controller.title,
-                ),
-                null => const SizedBox.shrink(),
-              },
-            ),
-          ),
-        ],
-      ),
+      body: switch (widget.type.underBanners) {
+        true => ViewUnderBanners(banners: banners, view: view),
+        false => Column(
+          children: [
+            ...banners,
+            Expanded(child: view),
+          ],
+        ),
+      },
     );
   }
 }

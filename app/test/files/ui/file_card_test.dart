@@ -9,7 +9,7 @@ import 'package:truce_editor/files/ui/file_card.dart';
 import 'package:truce_editor/files/ui/file_grid.dart';
 import 'package:truce_editor/folders/ui/folder_badge.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
-import 'package:truce_editor/text_zoom/ui/document_text_zoom.dart';
+import 'package:truce_editor/text_zoom/ui/file_text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/text_zoom_scale.dart';
 import 'package:truce_editor/theme/app_theme.dart';
 import 'package:truce_files/truce_files.dart';
@@ -44,7 +44,7 @@ void main() {
       ProviderScope(
         overrides: [noImageFolders],
         child: MaterialApp(
-          home: DocumentTextZoomScope(
+          home: FileTextZoomScope(
             zoom: zoom,
             child: Scaffold(
               body: Align(
@@ -84,7 +84,7 @@ void main() {
     expect(previewLines(tester), FileCardSummary.previewLines);
   });
 
-  testWidgets('grows with the document text zoom, keeping its lines', (
+  testWidgets('grows with the file text zoom, keeping its lines', (
     tester,
   ) async {
     await show(tester);
@@ -106,7 +106,7 @@ void main() {
   });
 
   testWidgets('shows its type icon before the title, as large as its '
-      'letters, growing with the document text zoom', (tester) async {
+      'letters, growing with the file text zoom', (tester) async {
     Rect icon() => tester.getRect(
       find
           .descendant(of: find.byType(FileCard), matching: find.byType(Icon))
@@ -290,13 +290,13 @@ void main() {
   });
 
   testWidgets(
-    "shows the document at the document text zoom, the rest at the app's",
+    "shows the document at the file text zoom, the rest at the app's",
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [noImageFolders],
           child: MaterialApp(
-            home: DocumentTextZoomScope(
+            home: FileTextZoomScope(
               zoom: TextZoom.closestTo(150),
               child: TextZoomScale(
                 zoom: TextZoom.closestTo(120),
@@ -362,7 +362,7 @@ void main() {
       ProviderScope(
         overrides: [noImageFolders],
         child: MaterialApp(
-          home: DocumentTextZoomScope(
+          home: FileTextZoomScope(
             zoom: zoom,
             child: Scaffold(
               body: CustomScrollView(

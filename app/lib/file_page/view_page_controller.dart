@@ -72,6 +72,9 @@ final class ViewPageController extends ChangeNotifier {
 
   ShownState get state => _owner.state;
 
+  /// Where the file is, as its save icon shows.
+  SaveState get saveState => saveStateOfShown(state);
+
   /// The folder the file is in or goes to; `null` once dropped.
   FolderId? get folder => folderOfShown(state);
 
@@ -184,6 +187,10 @@ final class ViewPageController extends ChangeNotifier {
         read: (answer) => answer.failure,
         orElse: const MoveNotSaved(),
       );
+
+  /// Writes a new file kept on this device into its folder now: by the
+  /// rule for when the app hides, which writes to the folder first.
+  Future<void> saveNow() => keep(SecureReason.hide);
 
   /// Tries again to keep a new file that could be kept nowhere.
   void retry() => _owner.send(const KeepNew());

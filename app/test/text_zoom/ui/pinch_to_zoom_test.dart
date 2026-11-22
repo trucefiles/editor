@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_editor/text_zoom/text_zoom.dart';
 import 'package:truce_editor/text_zoom/ui/pinch_to_zoom.dart';
 
@@ -154,5 +155,30 @@ void main() {
     await b.up();
 
     expect(asked, isEmpty);
+  });
+
+  testWidgets('a pinch on a view that zooms itself zooms that view only', (
+    tester,
+  ) async {
+    asked = [];
+    final view = TransformationController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PinchToZoom(
+          zoom: TextZoom.normal,
+          onZoom: asked.add,
+          child: ZoomsItself(
+            child: InteractiveViewer(
+              transformationController: view,
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await pinch(tester, 100, 200);
+
+    expect(asked, isEmpty);
+    expect(view.value.getMaxScaleOnAxis(), greaterThan(1));
   });
 }

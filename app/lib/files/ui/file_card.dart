@@ -17,7 +17,7 @@ import '../file_colors.dart';
 import 'file_type_icon.dart';
 
 /// A file in the grid: its type's icon, title and first lines at the
-/// document text zoom (as its [preview] has them, as many as fit); the
+/// file text zoom (as its [preview] has them, as many as fit); the
 /// folder in the footer, which takes the room left, then last edit, pin
 /// and conflict.
 class FileCard extends ConsumerWidget {

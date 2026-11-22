@@ -14,7 +14,7 @@ import '../text_zoom/text_zoom_target.dart';
 @immutable
 final class DeviceSettings {
   const DeviceSettings({
-    required this.documentTextZoom,
+    required this.fileTextZoom,
     required this.appTextZoom,
     required this.newFilePlace,
     required this.refresh,
@@ -31,7 +31,7 @@ final class DeviceSettings {
 
   /// What a device starts with.
   static const standard = DeviceSettings(
-    documentTextZoom: TextZoom.normal,
+    fileTextZoom: TextZoom.normal,
     appTextZoom: TextZoom.normal,
     newFilePlace: null,
     refresh: RefreshSettings.standard,
@@ -46,7 +46,9 @@ final class DeviceSettings {
     images: ImageSettings.standard,
   );
 
-  final TextZoom documentTextZoom;
+  /// Stored under its old name, `documentTextZoom`, so a saved size
+  /// carries over.
+  final TextZoom fileTextZoom;
   final TextZoom appTextZoom;
 
   /// Where new files go; `null` for the default (see
@@ -85,21 +87,21 @@ final class DeviceSettings {
 
   /// How large the text of [target] shows.
   TextZoom textZoomOf(TextZoomTarget target) => switch (target) {
-    TextZoomTarget.documents => documentTextZoom,
+    TextZoomTarget.files => fileTextZoom,
     TextZoomTarget.app => appTextZoom,
   };
 
   /// These settings with [zoom] for [target].
   DeviceSettings withTextZoom(TextZoomTarget target, TextZoom zoom) =>
       switch (target) {
-        TextZoomTarget.documents => copyWith(documentTextZoom: zoom),
+        TextZoomTarget.files => copyWith(fileTextZoom: zoom),
         TextZoomTarget.app => copyWith(appTextZoom: zoom),
       };
 
   /// These settings with the given ones changed. [newFilePlace] gives the
   /// new place, which may be `null` for the default.
   DeviceSettings copyWith({
-    TextZoom? documentTextZoom,
+    TextZoom? fileTextZoom,
     TextZoom? appTextZoom,
     NewFilePlaceSetting? Function()? newFilePlace,
     RefreshSettings? refresh,
@@ -113,7 +115,7 @@ final class DeviceSettings {
     bool? startAtLogin,
     ImageSettings? images,
   }) => DeviceSettings(
-    documentTextZoom: documentTextZoom ?? this.documentTextZoom,
+    fileTextZoom: fileTextZoom ?? this.fileTextZoom,
     appTextZoom: appTextZoom ?? this.appTextZoom,
     newFilePlace: newFilePlace != null ? newFilePlace() : this.newFilePlace,
     refresh: refresh ?? this.refresh,
@@ -129,7 +131,7 @@ final class DeviceSettings {
   );
 
   Map<String, Object?> toJson() => {
-    'documentTextZoom': documentTextZoom.toJson(),
+    'documentTextZoom': fileTextZoom.toJson(),
     'appTextZoom': appTextZoom.toJson(),
     'newFilePlace': newFilePlaceToJson(newFilePlace),
     'refresh': refresh.toJson(),
@@ -152,9 +154,9 @@ final class DeviceSettings {
         ? json
         : const <String, Object?>{};
     return DeviceSettings(
-      documentTextZoom:
+      fileTextZoom:
           TextZoom.fromJson(fields['documentTextZoom']) ??
-          standard.documentTextZoom,
+          standard.fileTextZoom,
       appTextZoom:
           TextZoom.fromJson(fields['appTextZoom']) ?? standard.appTextZoom,
       newFilePlace: newFilePlaceFromJson(fields['newFilePlace']),
@@ -191,7 +193,7 @@ final class DeviceSettings {
   @override
   bool operator ==(Object other) =>
       other is DeviceSettings &&
-      other.documentTextZoom == documentTextZoom &&
+      other.fileTextZoom == fileTextZoom &&
       other.appTextZoom == appTextZoom &&
       other.newFilePlace == newFilePlace &&
       other.refresh == refresh &&
@@ -207,7 +209,7 @@ final class DeviceSettings {
 
   @override
   int get hashCode => Object.hash(
-    documentTextZoom,
+    fileTextZoom,
     appTextZoom,
     newFilePlace,
     refresh,

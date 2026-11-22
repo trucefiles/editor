@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:truce_text_editing/truce_text_editing.dart';
+import 'package:truce_files/truce_files.dart';
 
-/// App bar icon telling where an open file's edits are: being
+/// App bar icon telling where an open file's latest content is: being
 /// edited, saved on this device, or saved in its file in the folder.
-/// While they are saved on this device only, tapping it calls [onSave].
+/// While it is saved on this device only, tapping it calls [onSave].
 /// Nothing shows where there is nothing to tell.
 class SaveIndicator extends StatelessWidget {
   const SaveIndicator(this.state, {required this.onSave, super.key});
 
   final SaveState state;
 
-  /// Saves the edits in the file now.
+  /// Saves it in the folder now.
   final VoidCallback onSave;
 
   @override

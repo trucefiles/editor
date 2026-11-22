@@ -4,11 +4,9 @@ import 'prepare_image.dart';
 
 /// Where a picture can come from.
 enum ImageSource {
-  /// A file dialog, or the device's file picker.
+  /// A file dialog, or the device's file chooser: the picture keeps its
+  /// name.
   file,
-
-  /// The device's photos.
-  gallery,
 
   /// A new photo from the camera.
   camera,

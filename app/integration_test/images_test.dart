@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:truce_editor/file_page/ui/file_place_chip.dart';
 import 'package:truce_editor/file_page/ui/file_view_page.dart';
 import 'package:truce_test_support/truce_test_support.dart';
 
@@ -46,6 +47,28 @@ void main() {
     await tester.tapAndSettle(find.byTooltip('Refresh'));
 
     await tester.waitUntil(() => tester.shownPictureWidth == 2);
+  });
+
+  testApp('an image fills the page below its bar, under its place', (
+    tester,
+  ) async {
+    app.writePicture('cat.png', width: 1);
+    await tester.addFolder(app);
+    await openImage(tester, 'cat');
+    await tester.waitUntil(() => tester.shownPictureWidth == 1);
+
+    final page = tester.getRect(find.byType(FileViewPage));
+    final bar = tester.getRect(find.byType(AppBar));
+    final view = find.byType(InteractiveViewer);
+    expect(
+      tester.getRect(view),
+      Rect.fromLTRB(page.left, bar.bottom, page.right, page.bottom),
+    );
+    expect(
+      MediaQuery.paddingOf(tester.element(view)).top,
+      tester.getBottomLeft(find.byType(FilePlaceChip)).dy - bar.bottom,
+      reason: 'it knows how far its place covers it',
+    );
   });
 
   testApp('an image is renamed from its page', (tester) async {
@@ -124,6 +147,24 @@ void main() {
 
     await tester.waitFor(find.text('Saved to Documents'));
     await waitForPageClosed(tester);
+    expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
+  });
+
+  testApp('an added image shows it waits on this device, then is saved', (
+    tester,
+  ) async {
+    app.picking
+      ..picked = onePixelPng
+      ..name = 'Milk.png';
+    await tester.addFolder(app);
+
+    await tester.tapAndSettle(find.byTooltip('New file'));
+    await tester.tapAndSettle(find.text('Image'));
+    await tester.waitFor(find.byIcon(Icons.save_outlined));
+    expect(app.namesIn(), isEmpty);
+    await tester.tapAndSettle(find.byIcon(Icons.save_outlined));
+
+    await tester.waitFor(find.byIcon(Icons.cloud_done_outlined));
     expect(app.file('Milk.png').readAsBytesSync(), onePixelPng);
   });
 }

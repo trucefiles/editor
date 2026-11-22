@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:truce_files/truce_files.dart';
 
 import '../../common/time_texts.dart';
-import '../../text_zoom/ui/document_text_zoom.dart';
+import '../../text_zoom/ui/file_text_zoom.dart';
 import 'diff_colors.dart';
 import 'selectable_lines.dart';
 import 'version_content.dart';
@@ -17,7 +17,7 @@ enum OwnLines {
   removed,
 }
 
-/// One side of a conflict: its own text, at the document text zoom, with
+/// One side of a conflict: its own text, at the file text zoom, with
 /// the lines the other side lacks marked as [ownLines], and a button to
 /// keep it.
 class VersionPane extends ConsumerWidget {
@@ -72,8 +72,7 @@ class VersionPane extends ConsumerWidget {
               content,
               label: label,
             ),
-            SavedText(:final text) ||
-            EditorText(:final text) => DocumentTextZoom(
+            SavedText(:final text) || EditorText(:final text) => FileTextZoom(
               child: _HighlightedText(text, compareTo, ownLines),
             ),
           },

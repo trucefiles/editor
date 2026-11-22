@@ -22,12 +22,12 @@ class ImageButton extends StatelessWidget {
   final VoidCallback onDone;
 
   static String _label(ImageSource source) => switch (source) {
-    ImageSource.file || ImageSource.gallery => 'Choose image',
+    ImageSource.file => 'Choose image',
     ImageSource.camera => 'Take photo',
   };
 
   static IconData _icon(ImageSource source) => switch (source) {
-    ImageSource.file || ImageSource.gallery => Icons.photo_library_outlined,
+    ImageSource.file => Icons.photo_library_outlined,
     ImageSource.camera => Icons.photo_camera_outlined,
   };
 

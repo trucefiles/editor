@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 import '../text_zoom.dart';
 
@@ -8,7 +9,8 @@ import '../text_zoom.dart';
 /// ([onZoom]), step by step while they move. Two fingers on the screen
 /// are a pinch: the second finger takes both from what the first started
 /// (scrolling, a pull to refresh, swiping an item); one finger reaches
-/// [child] as before.
+/// [child] as before. A view that zooms itself ([ZoomsItself]) keeps the
+/// fingers on it.
 class PinchToZoom extends StatefulWidget {
   const PinchToZoom({
     required this.zoom,
@@ -68,6 +70,17 @@ class _PinchRecognizer extends ScaleGestureRecognizer {
 
   /// The fingers on the screen this recognizer follows.
   final _fingers = <int>{};
+
+  @override
+  bool isPointerAllowed(PointerDownEvent event) =>
+      super.isPointerAllowed(event) && !_onOwnZoom(event);
+
+  @override
+  bool isPointerPanZoomAllowed(PointerPanZoomStartEvent event) =>
+      super.isPointerPanZoomAllowed(event) && !_onOwnZoom(event);
+
+  static bool _onOwnZoom(PointerEvent event) =>
+      zoomsItselfAt(event.position, viewId: event.viewId);
 
   @override
   void handleEvent(PointerEvent event) {

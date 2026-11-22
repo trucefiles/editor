@@ -99,9 +99,9 @@ void main() {
   });
 
   testApp('the Calendar tab and its event sheet show events at the '
-      'document text size', (tester) async {
+      'file text size', (tester) async {
     app.write('Garden.ics', _garden);
-    await app.useTextZoom(TextZoomTarget.documents, TextZoom.closestTo(150));
+    await app.useTextZoom(TextZoomTarget.files, TextZoom.closestTo(150));
     await tester.addFolder(app);
     await tester.tapAndSettle(
       find.widgetWithText(NavigationDestination, 'Calendars'),

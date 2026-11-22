@@ -2,12 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 
 /// Turning the mouse wheel over [child] with Ctrl held asks for larger
 /// text when turned up, smaller when turned down ([onZoom] with `true` or
 /// `false`), one step per notch. Such a turn only zooms: nothing in
-/// [child] scrolls by it. Without Ctrl, the wheel reaches [child] as
-/// before.
+/// [child] scrolls by it. Without Ctrl, or on a view that zooms itself
+/// ([ZoomsItself]), the wheel reaches [child] as before.
 class WheelToZoom extends SingleChildRenderObjectWidget {
   const WheelToZoom({required this.onZoom, required super.child, super.key});
 
@@ -46,7 +47,8 @@ class RenderWheelToZoom extends RenderProxyBox {
     if (event is! PointerScrollEvent ||
         event.kind != PointerDeviceKind.mouse ||
         event.scrollDelta.dy == 0 ||
-        !HardwareKeyboard.instance.isControlPressed) {
+        !HardwareKeyboard.instance.isControlPressed ||
+        zoomsItselfAt(event.position, viewId: event.viewId)) {
       return;
     }
     GestureBinding.instance.pointerSignalResolver.register(

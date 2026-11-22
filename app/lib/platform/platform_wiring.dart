@@ -189,14 +189,14 @@ final alertCheckScheduleProvider = Provider<Future<void> Function()?>(
   (ref) => Platform.isAndroid ? scheduleAlertCheck : null,
 );
 
-/// How pictures are picked here: on Android from the photos or the
-/// camera, elsewhere by a file dialog; made ready as the image settings
-/// say at each pick.
+/// How pictures are picked here: by the file chooser (so a picture keeps
+/// its name), on Android also by the camera; made ready as the image
+/// settings say at each pick.
 final imagePickingProvider = Provider<ImagePicking>((ref) {
   final settings = followedSetting(ref, (s) => s.images);
   return PlatformImagePicking(
     sources: Platform.isAndroid
-        ? const [ImageSource.gallery, ImageSource.camera]
+        ? const [ImageSource.file, ImageSource.camera]
         : const [ImageSource.file],
     read: () => settings.value,
   );

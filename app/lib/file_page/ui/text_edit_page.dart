@@ -26,7 +26,7 @@ import '../../reach/folder_reach_controller.dart';
 import '../../reach/ui/unreachable_banner.dart';
 import '../../refresh/ui/pull_to_refresh.dart';
 import '../../settings/device_settings_controller.dart';
-import '../../text_zoom/ui/document_text_zoom.dart';
+import '../../text_zoom/ui/file_text_zoom.dart';
 import '../../versions/merge_outcome.dart';
 import '../file_page_wiring.dart';
 import '../file_pages.dart';
@@ -465,7 +465,7 @@ class _TextEditPageState extends ConsumerState<TextEditPage> {
             child: PullToRefresh(
               key: _pull,
               onRefresh: ref.read(folderContentsProvider.notifier).refresh,
-              child: DocumentTextZoom(
+              child: FileTextZoom(
                 child: _tinted(
                   tint,
                   _page.view.view(
