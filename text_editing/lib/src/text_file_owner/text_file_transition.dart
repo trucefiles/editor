@@ -256,6 +256,7 @@ final class _Step<V extends Version>
         backedUp: backUp ? expected.text : work.backedUp,
       ),
     );
+    events.add(FolderGets(rev));
     effects.add(switch ((kind, expected)) {
       (WriteKind.create, _) => Create(id, text, firstLine: work.firstLine!),
       (WriteKind.restore, final where?) => Restore(id, text, where: where),

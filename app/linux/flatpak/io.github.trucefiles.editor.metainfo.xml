@@ -24,6 +24,7 @@
         <ul>
           <li>In the Calendars tab, an event's Open in calendar and Edit show its calendar in the tab's view, on the event's day.</li>
           <li>In Visual edit, the cursor right after a picture now lines up with the picture.</li>
+          <li>Undoing a calendar edit before it was saved to the folder no longer saves the file again.</li>
         </ul>
       </description>
     </release>

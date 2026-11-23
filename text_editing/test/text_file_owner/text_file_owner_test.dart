@@ -134,6 +134,21 @@ void main() {
       expect(run.all<DropDraft>(), hasLength(1));
     });
 
+    test('tells the editor the folder may hold an edit once its write '
+        'starts, and a failed write leaves that', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..keep()
+        ..edit('abc', 2);
+      expect(run.all<FolderGets>(), isEmpty, reason: 'only kept on the device');
+      run
+        ..keep()
+        ..send(const SaveNow());
+      expect(run.last<FolderGets>().rev, 2);
+      run.wrote(const WriteFailed());
+      expect(run.all<FolderGets>(), hasLength(1));
+    });
+
     test('runs one I/O at a time: edits during a keep are kept after it', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)

@@ -1,2 +1,3 @@
 - Calendars tab: Open in calendar and Edit show the event's day in the tab's view
 - Visual edit: the cursor after a picture now lines up with it
+- Calendar: undoing an edit before it was saved no longer saves the file again

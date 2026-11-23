@@ -94,11 +94,10 @@ final class _Step
   /// [calendar] became [edited] by a user's action that wrote the units
   /// [written]: it shows, and is one undo step; nothing if it wrote none.
   void _edited(Calendar calendar, Calendar edited, List<UnitKey> written) {
-    if (UnitsChanged.of(calendar, edited, written) case final step?) {
-      _showCalendar(edited);
-      textChanged();
-      record(step, null);
-    }
+    if (written.isEmpty) return;
+    _showCalendar(edited);
+    textChanged();
+    record(UnitsChanged.of(calendar, edited, written, rev: book.rev)!, null);
   }
 
   @override
@@ -110,14 +109,14 @@ final class _Step
 
   @override
   void undo(CalendarStep step) => switch (step) {
-    UnitsChanged(:final before) => _bringBack(before),
+    UnitsChanged(:final before, :final rev) => _bringBack(before, rev),
     NameChanged(:final before) => _rename(before),
     TextReplaced(:final before) => _restore(before),
   };
 
   @override
   void redo(CalendarStep step) => switch (step) {
-    UnitsChanged(:final after) => _bringBack(after),
+    UnitsChanged(:final after, :final rev) => _bringBack(after, rev),
     NameChanged(:final after) => _rename(after),
     TextReplaced(:final after) => _restore(after),
   };
@@ -126,12 +125,21 @@ final class _Step
   /// redone on the calendar it was made on, so one shows.
   void _rename(String name) => _showCalendar(state.calendar!.named(name));
 
-  /// The [units] of one side of an edit show again, stamped as an edit
-  /// made when it was asked. A units step is only undone or redone on the
-  /// calendar it was made on, so one shows.
-  void _bringBack(Map<UnitKey, CalendarUnit?> units) => _showCalendar(
-    unitsBroughtBack(state.calendar!, units, _requestAt, filed: _filed),
-  );
+  /// The [units] of one side of an edit made as text change [rev] show
+  /// again. If that edit may be in the folder, they are stamped as an
+  /// edit made when it was asked, so a merge with another device's copy
+  /// keeps them; else no other device holds what it did, so they come
+  /// back exactly as they were (a unit it added simply goes), and a text
+  /// back to the folder's has nothing to write. A units step is only
+  /// undone or redone on the calendar it was made on, so one shows.
+  void _bringBack(Map<UnitKey, CalendarUnit?> units, int rev) {
+    final now = state.calendar!;
+    _showCalendar(
+      book.mayBeInFolder(rev)
+          ? unitsBroughtBack(now, units, _requestAt, filed: _filed)
+          : now.withUnitsChanged(units),
+    );
+  }
 
   /// [back] shows again: a calendar stamped as an edit made when it was
   /// asked; a text that is no calendar as it is.

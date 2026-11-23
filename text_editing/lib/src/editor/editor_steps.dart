@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:truce_core/truce_core.dart';
 
 import '../text/text_summary.dart';
@@ -98,6 +100,8 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
       case FromFile(message: Replaced()):
         // Not on the edits the editor holds: news to come is on them.
         break;
+      case FromFile(message: FolderGets(:final rev)):
+        book = book.copyWith(inFolderUpTo: max(book.inFolderUpTo, rev));
       case FromFile(message: Picked(:final text, :final version, :final rev)):
         book = book.copyWith(
           lineage: version,

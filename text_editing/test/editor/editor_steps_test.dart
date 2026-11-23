@@ -398,6 +398,23 @@ void main() {
       expect((editor.notices.last as ToFile).input, isA<SaveNow>());
     });
 
+    test('an edit may be in the folder once the folder gets its rev or a '
+        'later one, never less after', () {
+      final editor = _FakeEditor('a')
+        ..edit('ab')
+        ..edit('abc');
+      expect(editor.book.mayBeInFolder(1), isFalse);
+
+      editor.handleRequest(const FromFile(FolderGets(1)));
+      expect(editor.book.mayBeInFolder(1), isTrue);
+      expect(editor.book.mayBeInFolder(2), isFalse);
+
+      editor
+        ..handleRequest(const FromFile(FolderGets(2)))
+        ..handleRequest(const FromFile(FolderGets(1)));
+      expect(editor.book.mayBeInFolder(2), isTrue);
+    });
+
     test('nothing is sent twice', () {
       final editor = _FakeEditor('a')
         ..edit('ab')

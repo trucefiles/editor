@@ -264,6 +264,15 @@ final class Replaced extends ToEditor {
   final ReplacedBy by;
 }
 
+/// The folder is getting the text of edit [rev] (the editor's count of
+/// its text changes): from now on it may hold every edit up to [rev],
+/// even if the write later fails. Never lower than one told before.
+final class FolderGets extends ToEditor {
+  const FolderGets(this.rev);
+
+  final int rev;
+}
+
 /// [text] to show, descending from [version]: the version from elsewhere
 /// the user picked, or the file's after the edits were discarded. Always
 /// shown, the editor's rev going on from [rev]; edits the editor made
