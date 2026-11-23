@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show DateUtils, TimeOfDay;
 import 'package:truce_calendar/truce_calendar.dart';
 import 'package:truce_files/truce_files.dart';
 
@@ -47,17 +48,50 @@ final class EditTask extends CalendarStart {
   final DateTime? due;
 }
 
-/// Starts asked of calendar pages by file, e.g. by the Calendar tab
-/// before it opens the file: a page's view moves the one for its file
-/// into the page's own [PageStarts] when it shows. One for the whole app.
+/// Where a calendar's page shows first, this time only: the view [kind]
+/// on [day] (`null`: today), in the week and day views from [time]
+/// (`null`: the morning). The page's own remembered view stays as it is.
+final class ShowAt {
+  const ShowAt(this.kind, {this.day, this.time});
+
+  /// [occurrence] in the view [kind]: its day, and its time unless it
+  /// lasts all day.
+  ShowAt.occurrence(CalendarViewKind kind, EventOccurrence occurrence)
+    : this._at(kind, occurrence.start, allDay: occurrence.allDay);
+
+  /// [entry] in the view [kind]: its due day, and its due time unless it
+  /// is due all day; a task due never shows on today.
+  ShowAt.task(CalendarViewKind kind, TaskEntry entry)
+    : this._at(kind, entry.due, allDay: entry.allDay);
+
+  ShowAt._at(this.kind, DateTime? at, {required bool allDay})
+    : day = at == null ? null : DateUtils.dateOnly(at),
+      time = at == null || allDay ? null : TimeOfDay.fromDateTime(at);
+
+  final CalendarViewKind kind;
+  final DateTime? day;
+  final TimeOfDay? time;
+}
+
+/// What a calendar's page is asked when it opens: where it shows first
+/// ([showAt]; `null`: in its own view on today), and what it starts
+/// with ([start]; `null`: nothing).
+typedef PageOpening = ({ShowAt? showAt, CalendarStart? start});
+
+/// What calendar pages are asked when they open, by file, e.g. by the
+/// Calendar tab before it opens the file: a page's view moves the one
+/// for its file into the page's own [PageStarts] when it shows. One for
+/// the whole app.
 final class CalendarStarts {
-  final _asked = <FileKey, CalendarStart>{};
+  final _asked = <FileKey, PageOpening>{};
 
-  /// Asks the page of [file] to start with [start] once it opens.
-  void ask(FileKey file, CalendarStart start) => _asked[file] = start;
+  /// Asks the page of [file] to start with [start] once it opens, and to
+  /// show [showAt] first.
+  void ask(FileKey file, CalendarStart? start, {ShowAt? showAt}) =>
+      _asked[file] = (showAt: showAt, start: start);
 
-  /// The start asked for [file], now taken; `null` if none.
-  CalendarStart? take(FileKey file) => _asked.remove(file);
+  /// What was asked for [file], now taken; `null` if nothing.
+  PageOpening? take(FileKey file) => _asked.remove(file);
 
   /// Drops what was asked for [file] and not taken (e.g. its page didn't
   /// open), so a later open doesn't start it.
@@ -66,9 +100,21 @@ final class CalendarStarts {
 
 /// The starts asked of one calendar's page: what the app asked before it
 /// opened, and its Add button. The page takes each once its calendar can
-/// be edited; a later one replaces one not yet taken.
+/// be edited; a later one replaces one not yet taken. Also where the
+/// page shows first, taken once its views first show.
 final class PageStarts extends ChangeNotifier {
   CalendarStart? _asked;
+  ShowAt? _showAt;
+
+  /// Asks the page to show [showAt] first.
+  void showFirst(ShowAt showAt) => _showAt = showAt;
+
+  /// Where the page shows first, now taken; `null` if not asked.
+  ShowAt? takeShowAt() {
+    final showAt = _showAt;
+    _showAt = null;
+    return showAt;
+  }
 
   /// Asks the page to start with [start].
   void ask(CalendarStart start) {

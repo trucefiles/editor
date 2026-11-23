@@ -19,6 +19,13 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.20.1" date="2026-11-23">
+      <description>
+        <ul>
+          <li>In the Calendars tab, an event's Open in calendar and Edit show its calendar in the tab's view, on the event's day.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.20.0" date="2026-11-23">
       <description>
         <ul>

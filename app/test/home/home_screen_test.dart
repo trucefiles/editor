@@ -471,7 +471,7 @@ void main() {
 
     await tester.tap(find.text('Call'));
     await tester.pumpAndSettle();
-    expect(find.text('Open calendar'), findsOne);
+    expect(find.text('Open in calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit event'));
     expect(find.byType(TextEditPage), findsOne);
@@ -483,6 +483,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Edit event'), findsNothing);
     expect(find.byType(TextEditPage), findsOne);
+  });
+
+  testWidgets("an event's Open in calendar opens its calendar in the tab's "
+      'view, starting nothing', (tester) async {
+    // Tall enough for the month's rows to show their events.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
+    await showCalendarTab(tester);
+    await tester.tap(find.byTooltip('Pick a view'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Day').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open in calendar'));
+    await showsSoon(tester, find.byType(TextEditPage));
+    await tester.pumpAndSettle();
+
+    final page = find.byType(TextEditPage);
+    expect(
+      find.descendant(of: page, matching: find.byIcon(Icons.calendar_view_day)),
+      findsOne,
+      reason: "the tab's view, not the calendar's month",
+    );
+    expect(find.descendant(of: page, matching: find.text('Call')), findsOne);
+    expect(find.text('Edit event'), findsNothing);
   });
 
   testWidgets("Ctrl+Z in a calendar's name undoes only the typing there, "
@@ -536,7 +565,7 @@ void main() {
     expect(find.byTooltip('Mark as done'), findsNothing, reason: 'read only');
     await tester.tap(find.text('Water plants'));
     await tester.pumpAndSettle();
-    expect(find.text('Open calendar'), findsOne);
+    expect(find.text('Open in calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit task'));
     expect(find.byType(TextEditPage), findsOne);

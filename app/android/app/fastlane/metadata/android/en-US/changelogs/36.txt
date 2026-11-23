@@ -1,0 +1,1 @@
+- Calendars tab: Open in calendar and Edit show the event's day in the tab's view
