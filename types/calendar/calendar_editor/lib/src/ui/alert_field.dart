@@ -111,16 +111,20 @@ class _AlertRow extends StatelessWidget {
   );
 }
 
-/// How an alert [before] the time it counts from reads; [at] names one
-/// right at that time.
-String alertText(Duration before, {String at = 'At the start'}) =>
-    switch (before) {
-      Duration.zero => at,
-      _ when before.inDays > 0 && before.inHours % 24 == 0 =>
-        before.inDays == 1 ? '1 day before' : '${before.inDays} days before',
-      _ when before.inMinutes % 60 == 0 =>
-        before.inHours == 1
-            ? '1 hour before'
-            : '${before.inHours} hours before',
-      _ => '${before.inMinutes} minutes before',
-    };
+/// How an alert [before] the time it counts from reads (a negative one
+/// rings after it); [at] names one right at that time.
+String alertText(Duration before, {String at = 'At the start'}) {
+  if (before == Duration.zero) return at;
+  final side = before.isNegative ? 'after' : 'before';
+  final length = before.abs();
+  String count(int n, String unit) => n == 1 ? '1 $unit' : '$n ${unit}s';
+  final amount = switch (length) {
+    _ when length.inDays > 0 && length.inHours % 24 == 0 => count(
+      length.inDays,
+      'day',
+    ),
+    _ when length.inMinutes % 60 == 0 => count(length.inHours, 'hour'),
+    _ => count(length.inMinutes, 'minute'),
+  };
+  return '$amount $side';
+}

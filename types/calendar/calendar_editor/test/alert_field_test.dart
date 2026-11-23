@@ -47,6 +47,15 @@ void main() {
     expect(find.textContaining("doesn't remind you"), findsNothing);
   });
 
+  test('an alert reads before or after the time it counts from', () {
+    expect(alertText(Duration.zero), 'At the start');
+    expect(alertText(const Duration(minutes: 15)), '15 minutes before');
+    expect(alertText(const Duration(hours: 1)), '1 hour before');
+    expect(alertText(const Duration(days: 2)), '2 days before');
+    expect(alertText(const Duration(minutes: -15)), '15 minutes after');
+    expect(alertText(const Duration(hours: -1)), '1 hour after');
+  });
+
   group('several alerts', () {
     List<Duration> shown(WidgetTester tester) =>
         tester.state<_HarnessState>(find.byType(_Harness)).alerts;

@@ -537,14 +537,26 @@ ContentLine? _withoutCategories(
 }
 
 /// [item] with an alert for each of [draft]'s, in place of the alerts the
-/// form shows; other alarms stay (see [alertBefore]). A task's count from
-/// its due time (RFC 5545, 3.8.6.3).
+/// form shows: an alarm whose time stays keeps its lines and place, one
+/// whose time went is dropped, a new time is added at the end; other
+/// alarms stay (see [alertBefore]). A task's count from its due time
+/// (RFC 5545, 3.8.6.3).
 Component _withAlerts(Component item, ItemDraft draft) {
   final fromEnd = draft is TaskDraft;
-  return item.withChildren([
+  // The draft's times no alarm kept so far stands for; each kept alarm
+  // takes its time out.
+  final unmatched = [...draft.alerts];
+  final kept = [
     for (final child in item.children)
-      if (alertBefore(Alarm.of(child), fromEnd: fromEnd) == null) child,
-    for (final before in draft.alerts)
+      if (switch (alertBefore(Alarm.of(child), fromEnd: fromEnd)) {
+        null => true,
+        final before => unmatched.remove(before),
+      })
+        child,
+  ];
+  return item.withChildren([
+    ...kept,
+    for (final before in unmatched)
       Component('VALARM', [
         const ContentLine('ACTION', 'DISPLAY'),
         textLine('DESCRIPTION', draft.summary),

@@ -448,6 +448,47 @@ void main() {
     expect(edited.text, isNot(contains('TRIGGER:-PT10M')));
   });
 
+  test('an alert edit leaves the alarms whose times stay as they are', () {
+    const kept =
+        'BEGIN:VALARM\nUID:other-app-1\nACTION:DISPLAY\nDESCRIPTION:Soon\n'
+        'TRIGGER;VALUE=DURATION:-PT10M\nX-MOZ-LASTACK:20261101T080000Z\n'
+        'END:VALARM\n';
+    const text =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a@x\nDTSTART:20261103T180000\n'
+        'DTEND:20261103T190000\nSUMMARY:Call\n'
+        'BEGIN:VALARM\nUID:other-app-2\nACTION:DISPLAY\nTRIGGER:-P1D\n'
+        'END:VALARM\n${kept}END:VEVENT\nEND:VCALENDAR\n';
+    final draft = EventDraft.of(Calendar.read(text)!.eventOf('a@x')!.series);
+    expect(draft.alerts, [
+      const Duration(days: 1),
+      const Duration(minutes: 10),
+    ]);
+
+    final edited = _edited(
+      text,
+      ChangeSeries(
+        'a@x',
+        EventDraft(
+          summary: draft.summary,
+          start: draft.start,
+          end: draft.end,
+          alerts: const [Duration(minutes: 10), Duration(hours: 1)],
+        ),
+        from: draft,
+        at: _at,
+      ),
+    );
+
+    // In its place, first of the alarms, every line as it was.
+    expect(edited.text, contains('SEQUENCE:0\n$kept'));
+    expect(edited.text, isNot(contains('TRIGGER:-P1D')));
+    expect(edited.text, contains('TRIGGER:-PT1H\n'));
+    expect(edited.eventOf('a@x')!.series.alerts, [
+      const Duration(minutes: 10),
+      const Duration(hours: 1),
+    ]);
+  });
+
   test('long lines are folded at 75 octets, never inside a character', () {
     final summary = 'Ü' * 60;
     final calendar = _edited(
