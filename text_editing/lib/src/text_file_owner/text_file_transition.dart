@@ -183,8 +183,12 @@ final class _Step<V extends Version>
     }
   }
 
-  /// The file is asked to hold the edits as they are now.
-  void _askFolder() => _work(work.copyWith(folderRev: state.rev));
+  /// Asks to write the edits into the folder: from now on the folder may
+  /// get them, so the editor is told.
+  void _askFolder() {
+    _work(work.copyWith(folderRev: state.rev));
+    events.add(FolderGets(state.rev));
+  }
 
   // Drafts.
 
@@ -803,11 +807,13 @@ final class _Step<V extends Version>
   void _work(TextFileWork<V> next) => work = next;
 
   /// Sets the state; a status the edits can't be written in drops the
-  /// write asked.
+  /// write asked. Edits taken while a write is asked go with it, so the
+  /// editor is told the folder may get them.
   void _set({TextFileStatus<V>? status, String? text, int? rev}) {
     state = state.copyWith(status: status, text: text, rev: rev);
     if (status != null && status is! Editing && status is! SaveFailed) {
       _work(work.copyWith(folderRev: null));
     }
+    if (rev != null && work.folderRev != null) events.add(FolderGets(rev));
   }
 }

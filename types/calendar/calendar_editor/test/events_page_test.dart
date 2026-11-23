@@ -605,6 +605,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete all of them'));
     await tester.pumpAndSettle();
+    // The delete, the first edit, reached the folder.
+    part.editor.send(const FromFile(FolderGets(1)));
 
     now = DateTime.utc(2026, 11, 2, 8);
     part.editor.send(const Undo());

@@ -38,9 +38,12 @@ final class CalendarEditorView extends EditorView {
 
   @override
   Widget view(EditorHost host, {required bool autofocus}) {
-    if (_starts.take((folder: host.folder, path: host.path))
-        case final asked?) {
-      _pageStarts.ask(asked);
+    if (_starts.take((folder: host.folder, path: host.path)) case (
+      :final showAt,
+      :final start,
+    )) {
+      if (showAt != null) _pageStarts.showFirst(showAt);
+      if (start != null) _pageStarts.ask(start);
     }
     return EventLinks(
       openers: _openers,

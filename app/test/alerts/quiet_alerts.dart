@@ -1,12 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/misc.dart';
 import 'package:truce_calendar_alerts/truce_calendar_alerts.dart';
 import 'package:truce_editor/alerts/alert_tap.dart';
 import 'package:truce_editor/platform/platform_wiring.dart';
 
-/// Overrides that keep the system's notifications out of a test: no
-/// alert is ever tapped, and the ringer keeps what it is told.
-List<Override> quietAlerts([QuietRinger? ringer]) => [
-  alertTapsProvider.overrideWithValue(const _NoTaps()),
+/// Overrides that keep the system's notifications out of a test: alerts
+/// are tapped only as [taps] tells (by default never), and the ringer
+/// keeps what it is told.
+List<Override> quietAlerts([QuietRinger? ringer, AlertTaps? taps]) => [
+  alertTapsProvider.overrideWithValue(taps ?? const _NoTaps()),
   ringerProvider.overrideWithValue(ringer ?? QuietRinger()),
 ];
 
@@ -50,6 +53,21 @@ final class _NoTaps implements AlertTaps {
 
   @override
   Stream<AlertTap> get taps => const Stream.empty();
+
+  @override
+  Future<AlertTap?> launch() async => null;
+}
+
+/// Alerts the test taps, one at a time, while the app runs.
+final class TestTaps implements AlertTaps {
+  final _taps = StreamController<AlertTap>.broadcast();
+
+  /// The user taps [alert]'s notification.
+  void tap(PlannedAlert alert) =>
+      _taps.add(AlertTap(alert, number: 1, shown: AlertShown.notification));
+
+  @override
+  Stream<AlertTap> get taps => _taps.stream;
 
   @override
   Future<AlertTap?> launch() async => null;

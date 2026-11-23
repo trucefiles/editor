@@ -79,9 +79,9 @@ List<String> _sent(
       text,
 ];
 
-/// What shows goes to the file owner, as after a typing pause, so a
-/// file may hold it from then on.
-void _saved(
+/// What shows goes to the file owner, as after a typing pause, kept as
+/// the draft only.
+void _drafted(
   MachineRun<Object?, Object?, CalendarOwnerEvent, CalendarSaveTimer> run,
 ) => run.send(
   run
@@ -89,6 +89,24 @@ void _saved(
       .lastWhere((timer) => timer.delay == SaveTimer.pause.delay)
       .done,
 );
+
+/// What shows goes to the file owner and the folder starts getting it,
+/// so another device may hold it from then on.
+void _saved(
+  MachineRun<Object?, Object?, CalendarOwnerEvent, CalendarSaveTimer> run,
+) {
+  _drafted(run);
+  final rev = run.events
+      .map(
+        (event) => switch (event) {
+          CalendarNotice(notice: ToFile(input: Edited(:final rev))) => rev,
+          _ => null,
+        },
+      )
+      .nonNulls
+      .last;
+  run.send(CalendarRequest(FromFile(FolderGets(rev)), at: _at));
+}
 
 void main() {
   test('an edit shows at once and is one undo step', () {
@@ -107,6 +125,73 @@ void main() {
     run.send(CalendarRequest(const Redo(), at: _at));
     final gym = run.state.calendar!.eventOf('gym@t')!.series;
     expect((gym.deleted, gym.summary), (false, 'Gym'));
+  });
+
+  group('an undo of an edit no folder got', () {
+    final deleteAnn = DeleteItem(UidKey.event('ann@truce'), at: _at);
+
+    test('brings the event back exactly as the file has it, so nothing is '
+        'written, even after a draft', () {
+      final run = _run(birthday)..send(EditCalendar(deleteAnn, newUid: 'n@t'));
+      _drafted(run);
+      run.send(CalendarRequest(const Undo(), at: _later));
+      expect(run.state.text, birthday);
+    });
+
+    test('redone, deletes it as the first time', () {
+      final run = _run(birthday)..send(EditCalendar(deleteAnn, newUid: 'n@t'));
+      final deleted = run.state.text;
+      run
+        ..send(CalendarRequest(const Undo(), at: _later))
+        ..send(CalendarRequest(const Redo(), at: _later));
+      expect(run.state.text, deleted);
+    });
+
+    test('brings back a change as it was, though a later one reached the '
+        'folder', () {
+      final run = _run(birthday)
+        ..send(EditCalendar(_annRenamed, newUid: 'n@t'));
+      final renamed = run.state.text;
+      _saved(run);
+      run.send(EditCalendar(deleteAnn, newUid: 'n@t'));
+      run.send(CalendarRequest(const Undo(), at: _later));
+      expect(run.state.text, renamed, reason: 'the delete never left');
+
+      run.send(CalendarRequest(const Undo(), at: _later));
+      final ann = run.state.calendar!.eventOf('ann@truce')!.series;
+      expect(ann.summary, 'Ann');
+      expect(ann.component.value('SEQUENCE'), isNotNull, reason: 'stamped');
+    });
+
+    test('is stamped once the folder started getting it, as a write that '
+        'fails may still have landed', () {
+      final run = _run(birthday)..send(EditCalendar(deleteAnn, newUid: 'n@t'));
+      _saved(run);
+      run.send(CalendarRequest(const Undo(), at: _later));
+      expect(run.state.text, isNot(birthday));
+      expect(run.state.calendar!.eventOf('ann@truce')!.series.deleted, isFalse);
+    });
+
+    test('brings back what showed before a restored backup exactly, '
+        'stamped once the folder started getting the restore', () {
+      final run = _run(birthday)
+        ..send(EditCalendar(_annRenamed, newUid: 'n@t'));
+      final renamed = run.state.text;
+      _saved(run);
+      run
+        ..send(CalendarRequest(const ReplaceAll(birthday), at: _later))
+        ..send(CalendarRequest(const Undo(), at: _later));
+      expect(run.state.text, renamed, reason: 'the restore never left');
+
+      run.send(CalendarRequest(const Redo(), at: _later));
+      _saved(run);
+      run.send(CalendarRequest(const Undo(), at: _later));
+      expect(run.state.text, isNot(renamed), reason: 'stamped');
+      expect(
+        run.state.calendar!.eventOf('ann@truce')!.series.summary,
+        'Ann (birthday)',
+      );
+    });
   });
 
   test('an import is one undo step and tells what came of it', () {
@@ -239,10 +324,12 @@ void main() {
     expect(calendar.zones, {'Asia/Tokyo'});
   });
 
-  test('a restore over a calendar is undone and redone, stamped', () {
+  test('a restore over a calendar the folder got is undone and redone, '
+      'stamped', () {
     final run = _run(birthday)..send(EditCalendar(_tokyoCall, newUid: 'new@t'));
     _saved(run);
     run.send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+    _saved(run);
 
     run.send(CalendarRequest(const Undo(), at: _later));
     var calendar = run.state.calendar!;
@@ -287,6 +374,7 @@ void main() {
     );
     final run = _run(birthday)..send(EditCalendar(rename, newUid: 'new@t'));
     // Saved, then reached another device, before the undo.
+    _saved(run);
     final undone = run.state.text;
     run.send(
       CalendarRequest(const Undo(), at: _at.add(const Duration(minutes: 1))),
@@ -485,6 +573,7 @@ void main() {
             ),
           );
         expect(run.state.calendar!.taskOf('milk@t')!.series.done, isTrue);
+        _saved(run);
         run.send(CalendarRequest(const Undo(), at: _later));
         final task = run.state.calendar!.taskOf('milk@t')!.series;
         expect(task.done, isFalse);

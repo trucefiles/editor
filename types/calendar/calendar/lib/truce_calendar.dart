@@ -35,7 +35,7 @@ export 'src/model/calendar_unit.dart';
 export 'src/model/event_color.dart';
 export 'src/model/health_entry.dart';
 export 'src/model/item_part.dart'
-    show EventPart, ItemPart, TaskPart, taskLength;
+    show EventPart, ItemPart, TaskPart, taskTileStart;
 export 'src/model/repeat.dart';
 export 'src/model/time_zones.dart' show zoneNames;
 export 'src/owner/calendar_owner.dart';

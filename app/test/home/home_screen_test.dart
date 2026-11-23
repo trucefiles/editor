@@ -8,9 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_alerts/truce_calendar_alerts.dart'
+    show PlannedAlert;
 import 'package:truce_calendar_editor/truce_calendar_editor.dart'
     show CalendarDot;
 import 'package:truce_core/truce_core.dart';
+import 'package:truce_editor/alerts/alert_tap.dart' show AlertTaps;
 import 'package:truce_editor/app.dart';
 import 'package:truce_editor/file_page/ui/text_edit_page.dart';
 import 'package:truce_editor/files/file_settings_controller.dart';
@@ -54,6 +57,7 @@ void main() {
     DeviceSettings settings = DeviceSettings.standard,
     DateTime? changed,
     Finder? shows,
+    AlertTaps? taps,
   }) async {
     final dir = tempFolder();
     for (final MapEntry(key: name, value: text) in files.entries) {
@@ -68,7 +72,7 @@ void main() {
         deviceIdProvider.overrideWithValue('0123456789abcdef'),
         systemTrayProvider.overrideWithValue(null),
         linkOpenerProvider.overrideWithValue(links),
-        ...quietAlerts(),
+        ...quietAlerts(null, taps),
       ],
       child: const TruceApp(),
     );
@@ -471,7 +475,7 @@ void main() {
 
     await tester.tap(find.text('Call'));
     await tester.pumpAndSettle();
-    expect(find.text('Open calendar'), findsOne);
+    expect(find.text('Open in calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit event'));
     expect(find.byType(TextEditPage), findsOne);
@@ -483,6 +487,81 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Edit event'), findsNothing);
     expect(find.byType(TextEditPage), findsOne);
+  });
+
+  testWidgets("an event's Open in calendar opens its calendar in the tab's "
+      'view, starting nothing', (tester) async {
+    // Tall enough for the month's rows to show their events.
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await start(tester, {'notes.md': '# Notes', 'home.ics': homeWithCall()});
+    await showCalendarTab(tester);
+    await tester.tap(find.byTooltip('Pick a view'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Day').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Call'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open in calendar'));
+    await showsSoon(tester, find.byType(TextEditPage));
+    await tester.pumpAndSettle();
+
+    final page = find.byType(TextEditPage);
+    expect(
+      find.descendant(of: page, matching: find.byIcon(Icons.calendar_view_day)),
+      findsOne,
+      reason: "the tab's view, not the calendar's month",
+    );
+    expect(find.descendant(of: page, matching: find.text('Call')), findsOne);
+    expect(find.text('Edit event'), findsNothing);
+  });
+
+  testWidgets("an alert's tap opens its event's form on the calendar "
+      "page, the page on the event's day", (tester) async {
+    final taps = TestTaps();
+    final home = applyEdit(
+      Calendar.read(newCalendarText('Home'))!,
+      AddItem(
+        'call',
+        EventDraft(
+          summary: 'Call',
+          start: Floating(DateTime.utc(2030, 3, 14, 10)),
+          end: Floating(DateTime.utc(2030, 3, 14, 11)),
+        ),
+        at: DateTime.utc(2026, 11),
+      ),
+    ).text;
+    await start(tester, {'notes.md': '# Notes', 'home.ics': home}, taps: taps);
+
+    taps.tap(
+      PlannedAlert(
+        id: 'call',
+        file: (folder: folderId('f1'), path: RelPath.parse('home.ics')!),
+        at: DateTime(2030, 3, 14, 9, 50).toUtc(),
+        title: 'Call',
+        kind: ItemKind.event,
+        uid: 'call',
+        start: DateTime(2030, 3, 14, 10),
+        end: DateTime(2030, 3, 14, 11),
+      ),
+    );
+    await showsSoon(tester, find.text('Edit event'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(TextEditPage, skipOffstage: false),
+        matching: find.textContaining(
+          'March 2030',
+          findRichText: true,
+          skipOffstage: false,
+        ),
+      ),
+      findsOne,
+      reason: "the page behind the form shows the event's day, not today",
+    );
   });
 
   testWidgets("Ctrl+Z in a calendar's name undoes only the typing there, "
@@ -536,7 +615,7 @@ void main() {
     expect(find.byTooltip('Mark as done'), findsNothing, reason: 'read only');
     await tester.tap(find.text('Water plants'));
     await tester.pumpAndSettle();
-    expect(find.text('Open calendar'), findsOne);
+    expect(find.text('Open in calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit task'));
     expect(find.byType(TextEditPage), findsOne);

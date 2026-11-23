@@ -19,7 +19,8 @@ import 'new_kind.dart';
 /// an entry of a kind picked first; in the tasks view: a task); drag an
 /// event or a task, or an event's edge, to move that one date. It takes
 /// what [starts] asks (the Add button, the Calendar tab's Edit) once it
-/// can be edited. Only to read unless [edit] is given.
+/// can be edited, and shows first where they ask, else in its own view
+/// on today. Only to read unless [edit] is given.
 class EventsPage extends StatefulWidget {
   const EventsPage(
     this.calendar, {
@@ -50,9 +51,17 @@ class _EventsPageState extends State<EventsPage> {
   /// The day Add starts on, as the views tell it.
   late DateTime _addDay = DateUtils.dateOnly(widget.clock.now());
 
+  /// Where the views show first.
+  late final ShowAt? _showAt;
+
+  /// The view shown.
+  late CalendarViewKind _kind;
+
   @override
   void initState() {
     super.initState();
+    _showAt = widget.starts.takeShowAt();
+    _kind = _showAt?.kind ?? widget.viewChoice.last();
     widget.starts.addListener(_takeSoon);
     _takeSoon();
   }
@@ -179,8 +188,7 @@ class _EventsPageState extends State<EventsPage> {
   /// Whether adding adds a task, without asking: in the tasks view of a
   /// calendar that is no health calendar.
   bool get _addsTasks =>
-      !widget.calendar.isHealth &&
-      widget.viewChoice.last() == CalendarViewKind.tasks;
+      !widget.calendar.isHealth && _kind == CalendarViewKind.tasks;
 
   Future<void> _addTask(NewEventSpot? spot, MakeEdit edit) =>
       addTask(context, spot, edit, widget.deviceZone, today: _today);
@@ -193,8 +201,13 @@ class _EventsPageState extends State<EventsPage> {
     return CalendarViews<()>(
       calendars: {(): calendar},
       colorOf: (_) => widget.color,
-      kind: widget.viewChoice.last(),
-      onKind: (kind) => unawaited(widget.viewChoice.keep(kind)),
+      kind: _kind,
+      day: _showAt?.day,
+      time: _showAt?.time,
+      onKind: (kind) {
+        _kind = kind;
+        unawaited(widget.viewChoice.keep(kind));
+      },
       clock: widget.clock,
       onTap: (_, occurrence) => occurrence.part.health == null
           ? showOccurrence(context, occurrence, edit, deviceZone, today: _today)

@@ -178,6 +178,21 @@ void main() {
     expect(run.heard, 2);
   });
 
+  test('the folder getting a save is not heard: nothing shown changed', () {
+    final run = _Gate('- [ ] a')..type('x');
+    final heard = run.heard;
+
+    run.gate.external(const Request(FromFile(FolderGets(1))));
+    expect(run.heard, heard);
+
+    run.gate.external(
+      const Request(
+        FromFile(Replaced('- [ ] b\n', version: Version(2), ackRev: 1)),
+      ),
+    );
+    expect(run.heard, heard + 1);
+  });
+
   test('a change says whether it came from the user', () {
     final run = _Gate('- [ ] a')..type('x');
     expect(run.gate.fromUser, isTrue);

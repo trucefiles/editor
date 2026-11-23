@@ -26,10 +26,10 @@ import 'pick_calendar.dart';
 /// folders in the calendar views, each in its calendar's color; chips
 /// turn a calendar's items on and off, or hide it from the tab, and the
 /// last chip brings hidden ones back. It only shows: tap an event or a
-/// task to see it, then open its calendar or edit it there; a task is
-/// checked off on its calendar's page, not here; the floating button
-/// opens a calendar; a tap or drag on a free time says to open one.
-/// Every edit happens on the calendar's own page.
+/// task to see it, then open its calendar on its day in the tab's view,
+/// or edit it there; a task is checked off on its calendar's page, not
+/// here; the floating button opens a calendar; a tap or drag on a free
+/// time says to open one. Every edit happens on the calendar's own page.
 class CalendarTabScreen extends ConsumerWidget {
   const CalendarTabScreen({super.key});
 
@@ -110,6 +110,10 @@ class CalendarTabScreen extends ConsumerWidget {
                             shown[file]!,
                             colorOf(file),
                             edit: EditOccurrence.of(occurrence),
+                            showAt: ShowAt.occurrence(
+                              viewChoice.last(),
+                              occurrence,
+                            ),
                             sheet: (actions, calendar) => showOccurrenceSheet(
                               zoomed,
                               occurrence,
@@ -123,6 +127,7 @@ class CalendarTabScreen extends ConsumerWidget {
                             shown[file]!,
                             colorOf(file),
                             edit: EditTask.of(entry),
+                            showAt: ShowAt.task(viewChoice.last(), entry),
                             sheet: (actions, calendar) => showTaskSheet(
                               zoomed,
                               entry,
@@ -153,13 +158,15 @@ class CalendarTabScreen extends ConsumerWidget {
 
   /// Shows an event or a task of [calendar] whole in its [sheet], named
   /// with its [color] and title, with what can be done with it: open its
-  /// calendar, or [edit] it there.
+  /// calendar, or [edit] it there; either way the calendar shows
+  /// [showAt] first.
   Future<void> _showItem(
     BuildContext context,
     WidgetRef ref,
     ShownCalendar calendar,
     Color color, {
     required CalendarStart edit,
+    required ShowAt showAt,
     required Future<bool?> Function(
       List<OccurrenceAction<bool>> actions,
       SheetCalendar calendar,
@@ -171,7 +178,7 @@ class CalendarTabScreen extends ConsumerWidget {
       [
         (
           icon: Icons.calendar_month_outlined,
-          label: 'Open calendar',
+          label: 'Open in calendar',
           value: false,
         ),
         (icon: Icons.edit_outlined, label: 'Edit', value: true),
@@ -179,9 +186,13 @@ class CalendarTabScreen extends ConsumerWidget {
       (color: color, title: calendar.title),
     );
     if (editing == null || !context.mounted) return;
-    await (editing
-        ? openCalendar(context, ref, file, edit)
-        : openFile(context, ref, file));
+    await openCalendar(
+      context,
+      ref,
+      file,
+      editing ? edit : null,
+      showAt: showAt,
+    );
   }
 
   /// Opens one of the tab's calendars as they are now, the user's pick,

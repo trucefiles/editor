@@ -10,7 +10,8 @@ import '../../common/snack.dart';
 import '../../folder_state/folder_state_controller.dart';
 
 /// Opens [alert]'s event or task on its calendar's page, once the folders
-/// are listed; says so if its calendar is gone.
+/// are listed, the page on its day in its own view; says so if its
+/// calendar is gone.
 Future<void> openAlert(
   BuildContext context,
   WidgetRef ref,
@@ -22,12 +23,22 @@ Future<void> openAlert(
   if (file == null) {
     return showSnack(context, 'The calendar of this alert is gone.');
   }
-  await openCalendar(context, ref, file, switch (alert.kind) {
-    ItemKind.event => EditOccurrence(
-      alert.uid,
-      alert.date,
-      start: alert.start ?? alert.at.toLocal(),
+  final eventStart = alert.start ?? alert.at.toLocal();
+  final (edit, start) = switch (alert.kind) {
+    ItemKind.event => (
+      EditOccurrence(alert.uid, alert.date, start: eventStart),
+      eventStart,
     ),
-    ItemKind.task => EditTask(alert.uid, alert.date, due: alert.start),
-  });
+    ItemKind.task => (
+      EditTask(alert.uid, alert.date, due: alert.start),
+      alert.start,
+    ),
+  };
+  await openCalendar(
+    context,
+    ref,
+    file,
+    edit,
+    showAt: ShowAt.item(alert.kind, start, allDay: alert.allDay),
+  );
 }

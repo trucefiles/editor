@@ -59,6 +59,8 @@ class CalendarViews<K> extends StatefulWidget {
     required this.kind,
     required this.onKind,
     required this.clock,
+    this.day,
+    this.time,
     this.titleOf,
     this.onTap,
     this.onTask,
@@ -75,6 +77,12 @@ class CalendarViews<K> extends StatefulWidget {
   /// The view it starts in.
   final CalendarViewKind kind;
   final ValueChanged<CalendarViewKind> onKind;
+
+  /// The day it starts on; `null`: today.
+  final DateTime? day;
+
+  /// The time the week and day views start from; `null`: the morning.
+  final TimeOfDay? time;
 
   /// The calendars' clock; today shows from it.
   final CalendarClock clock;
@@ -144,6 +152,8 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
     _configurations = configurationsFor(
       firstDayOfWeek: firstDay,
       now: widget.clock.now,
+      day: widget.day,
+      time: widget.time,
     );
     final configuration = _kalenderConfiguration;
     switch (_kalender) {
@@ -414,53 +424,62 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
 
 /// The kalender view of each kind, for weeks that start on
 /// [firstDayOfWeek] (`DateTime.monday` and on), today from [now]; each
-/// pages over two hundred years and opens on today when it shows.
+/// pages over two hundred years and opens on [day] (`null`: today) when
+/// it shows, the week and day views from [time] (`null`: the morning).
 Map<CalendarViewKind, ViewConfiguration> configurationsFor({
   required int firstDayOfWeek,
   required DateTime Function() now,
+  DateTime? day,
+  TimeOfDay? time,
 }) {
   final range = KalenderDateTimeRange(
     start: _shownDays.from,
     end: _shownDays.to,
   );
-  const morning = KalenderTime(hour: 8, minute: 0);
-  final today = now();
+  final startTime = switch (time) {
+    TimeOfDay(:final hour, :final minute) => KalenderTime(
+      hour: hour,
+      minute: minute,
+    ),
+    null => const KalenderTime(hour: 8, minute: 0),
+  };
+  final first = day ?? now();
   // A new view opens on today where the old one showed it, else on the
   // old one's first day.
   FloatingDateTime focus(ViewTransitionContext transition) {
     final shown = transition.oldViewController.floatingVisibleRange.value;
-    final day = FloatingDateTime.fromExternal(now());
-    return day.isBefore(shown.start) || !day.isBefore(shown.end)
+    final today = FloatingDateTime.fromExternal(now());
+    return today.isBefore(shown.start) || !today.isBefore(shown.end)
         ? kCarryFocusDate(transition)
-        : day;
+        : today;
   }
 
   return {
     CalendarViewKind.month: MonthViewConfiguration.singleMonth(
-      initialDateTime: today,
+      initialDateTime: first,
       dateResolver: focus,
       nowCallback: now,
       displayRange: range,
       firstDayOfWeek: firstDayOfWeek,
     ),
     CalendarViewKind.week: MultiDayViewConfiguration.week(
-      initialDateTime: today,
+      initialDateTime: first,
       dateResolver: focus,
       nowCallback: now,
       displayRange: range,
       firstDayOfWeek: firstDayOfWeek,
-      initialTimeOfDay: morning,
+      initialTimeOfDay: startTime,
     ),
     CalendarViewKind.day: MultiDayViewConfiguration.singleDay(
-      initialDateTime: today,
+      initialDateTime: first,
       dateResolver: focus,
       nowCallback: now,
       displayRange: range,
       firstDayOfWeek: firstDayOfWeek,
-      initialTimeOfDay: morning,
+      initialTimeOfDay: startTime,
     ),
     CalendarViewKind.schedule: ScheduleViewConfiguration.paginated(
-      initialDateTime: today,
+      initialDateTime: first,
       dateResolver: focus,
       nowCallback: now,
       displayRange: range,

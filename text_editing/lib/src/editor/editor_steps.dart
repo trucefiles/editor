@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:truce_core/truce_core.dart';
 
 import '../text/text_summary.dart';
@@ -34,7 +36,8 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
   void reload(String text);
 
   /// [text] shows instead, from its start (a backup restored); gives
-  /// that edit as a step.
+  /// that edit as a step. Its text change already counts: it is edit
+  /// `book.rev`.
   S replaceText(String text);
 
   /// What the file says once the edits are sent, and what lists show of
@@ -98,6 +101,8 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
       case FromFile(message: Replaced()):
         // Not on the edits the editor holds: news to come is on them.
         break;
+      case FromFile(message: FolderGets(:final rev)):
+        book = book.copyWith(inFolderUpTo: max(book.inFolderUpTo, rev));
       case FromFile(message: Picked(:final text, :final version, :final rev)):
         book = book.copyWith(
           lineage: version,
@@ -168,9 +173,9 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
 
   /// Shows [text] in place of the text, as one step undo takes back.
   void replaceAsStep(String text) {
-    final step = replaceText(text);
-    _changedByHistory();
-    record(step, null);
+    textChanged();
+    record(replaceText(text), null);
+    if (sendsAtOnce) send();
   }
 
   /// A text change not typed: saved as typing is, and sent at once where

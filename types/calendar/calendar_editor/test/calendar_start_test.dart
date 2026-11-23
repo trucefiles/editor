@@ -5,6 +5,7 @@ import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 import 'package:truce_core/truce_core.dart';
 
 import 'page_harness.dart';
+import 'views_title.dart';
 
 final _today = DateTime(2026, 11, 3);
 
@@ -106,7 +107,10 @@ void main() {
     );
     expect(hints, ['This event is no longer in the calendar.']);
     expect(find.text('New event'), findsNothing);
-    expect(starts.take((folder: pageFolder, path: other)), isA<StartAdding>());
+    expect(
+      starts.take((folder: pageFolder, path: other))?.start,
+      isA<StartAdding>(),
+    );
   });
 
   testWidgets('the page Add button starts an hour from 9:00 today', (
@@ -187,5 +191,157 @@ void main() {
     );
     expect(hints, isEmpty);
     expect(find.text('Edit this one'), findsOne);
+  });
+
+  testWidgets('a page asked to show a day in a view shows it there, and '
+      'keeps its own view', (tester) async {
+    final kept = KeptView();
+    final starts = CalendarStarts()
+      ..ask(
+        pageFile,
+        null,
+        showAt: ShowAt(CalendarViewKind.day, day: DateTime(2027, 1, 14)),
+      );
+    await pumpPage(
+      tester,
+      calendarPart(_call.text, kept: kept),
+      today: _today,
+      starts: starts,
+    );
+    expect(viewsTitle('Thu, Jan 14'), findsOne);
+    expect(kept.kind, CalendarViewKind.month);
+    expect(find.text('New event'), findsNothing, reason: 'nothing started');
+  });
+
+  testWidgets('an event asked to edit at its day: the page behind its form '
+      'shows that day', (tester) async {
+    final call =
+        occurrences(_call, DateTime(2026, 11, 3), DateTime(2026, 11, 4)).single
+            as EventOccurrence;
+    final starts = CalendarStarts()
+      ..ask(
+        pageFile,
+        EditOccurrence.of(call),
+        showAt: ShowAt.occurrence(CalendarViewKind.day, call),
+      );
+    await pumpPage(
+      tester,
+      calendarPart(_call.text),
+      today: DateTime(2026, 12, 20),
+      starts: starts,
+    );
+    expect(find.text('Edit event'), findsOne);
+    Navigator.pop(tester.element(find.text('Edit event')));
+    await tester.pumpAndSettle();
+    expect(viewsTitle('Tue, Nov 3'), findsOne);
+    expect(find.text('Call'), findsOne);
+  });
+
+  testWidgets('a page shown in the tasks view adds a task, though it keeps '
+      'the month', (tester) async {
+    final starts = CalendarStarts()
+      ..ask(pageFile, null, showAt: const ShowAt(CalendarViewKind.tasks));
+    await pumpPage(
+      tester,
+      calendarPart(newCalendarText('Home')),
+      today: _today,
+      starts: starts,
+    );
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    expect(find.text('New task'), findsOne);
+  });
+
+  group('ShowAt', () {
+    const week = CalendarViewKind.week;
+
+    test('a timed event shows on its day from its time', () {
+      final call =
+          occurrences(
+                _call,
+                DateTime(2026, 11, 3),
+                DateTime(2026, 11, 4),
+              ).single
+              as EventOccurrence;
+      final at = ShowAt.occurrence(week, call);
+      expect(at.kind, week);
+      expect(at.day, DateTime(2026, 11, 3));
+      expect(at.time, const TimeOfDay(hour: 9, minute: 0));
+    });
+
+    test('an all-day event shows on its day from the morning', () {
+      final holiday = applyEdit(
+        Calendar.read(newCalendarText('Home'))!,
+        AddItem(
+          'off',
+          EventDraft(
+            summary: 'Off',
+            start: AllDay(DateTime.utc(2026, 11, 5)),
+            end: AllDay(DateTime.utc(2026, 11, 6)),
+          ),
+          at: editedAt,
+        ),
+      );
+      final off =
+          occurrences(
+                holiday,
+                DateTime(2026, 11, 5),
+                DateTime(2026, 11, 6),
+              ).single
+              as EventOccurrence;
+      final at = ShowAt.occurrence(week, off);
+      expect(at.day, DateTime(2026, 11, 5));
+      expect(at.time, isNull);
+    });
+
+    test('a timed task shows from where its tile starts, before it is '
+        'due', () {
+      final home = applyEdit(
+        Calendar.read(newCalendarText('Home'))!,
+        AddItem(
+          'water',
+          TaskDraft(
+            summary: 'Water',
+            due: Floating(DateTime.utc(2026, 11, 3, 9)),
+          ),
+          at: editedAt,
+        ),
+      );
+      final task =
+          occurrences(home, DateTime(2026, 11, 3), DateTime(2026, 11, 4)).single
+              as TaskOccurrence;
+      final at = ShowAt.task(week, TaskEntry.of(task));
+      expect(at.day, DateTime(2026, 11, 3));
+      expect(at.time, const TimeOfDay(hour: 8, minute: 30));
+    });
+
+    test('a task due never shows on today', () {
+      final home = applyEdit(
+        Calendar.read(newCalendarText('Home'))!,
+        AddItem('water', const TaskDraft(summary: 'Water'), at: editedAt),
+      );
+      final at = ShowAt.task(week, TaskEntry.undated(home.tasks.single));
+      expect(at.day, isNull);
+      expect(at.time, isNull);
+    });
+
+    test("an item from its start alone (an alert's) shows in the page's "
+        'own view, a timed task where its tile starts', () {
+      final task = ShowAt.item(
+        ItemKind.task,
+        DateTime(2026, 11, 3, 9),
+        allDay: false,
+      );
+      expect(task.kind, isNull);
+      expect(task.day, DateTime(2026, 11, 3));
+      expect(task.time, const TimeOfDay(hour: 8, minute: 30));
+
+      final event = ShowAt.item(
+        ItemKind.event,
+        DateTime(2026, 11, 3, 9),
+        allDay: false,
+      );
+      expect(event.time, const TimeOfDay(hour: 9, minute: 0));
+    });
   });
 }

@@ -1,6 +1,7 @@
 import 'package:truce_files/truce_files.dart';
 
 import '../text/text_summary.dart';
+import '../text_file_owner/text_file_contract.dart' show FolderGets;
 import 'editor_contract.dart';
 import 'history/edit_history.dart';
 import 'history/undoable_edit.dart';
@@ -16,6 +17,7 @@ final class EditorBook<S extends UndoableEdit<S>> {
     this.rev = 0,
     this.sentRev = 0,
     this.picks = 0,
+    this.inFolderUpTo = 0,
     this.clock = const SaveClock(),
     EditHistory<S>? history,
   }) : history = history ?? EditHistory<S>();
@@ -37,6 +39,14 @@ final class EditorBook<S extends UndoableEdit<S>> {
   /// Counts the picks taken.
   final int picks;
 
+  /// The last rev the folder may hold: none after it ever went there
+  /// (see [FolderGets]). At the start, the folder holds no edit.
+  final int inFolderUpTo;
+
+  /// Whether the edit made at [rev] may have reached the folder, so
+  /// another device may hold it.
+  bool mayBeInFolder(int rev) => rev <= inFolderUpTo;
+
   final SaveClock clock;
 
   /// The undo and redo steps of this editing session.
@@ -56,6 +66,7 @@ final class EditorBook<S extends UndoableEdit<S>> {
     int? rev,
     int? sentRev,
     int? picks,
+    int? inFolderUpTo,
     SaveClock? clock,
     EditHistory<S>? history,
   }) => EditorBook(
@@ -64,6 +75,7 @@ final class EditorBook<S extends UndoableEdit<S>> {
     rev: rev ?? this.rev,
     sentRev: sentRev ?? this.sentRev,
     picks: picks ?? this.picks,
+    inFolderUpTo: inFolderUpTo ?? this.inFolderUpTo,
     clock: clock ?? this.clock,
     history: history ?? this.history,
   );
