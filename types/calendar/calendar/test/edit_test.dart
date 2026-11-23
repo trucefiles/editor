@@ -479,13 +479,49 @@ void main() {
       ),
     );
 
-    // In its place, first of the alarms, every line as it was.
-    expect(edited.text, contains('SEQUENCE:0\n$kept'));
+    // The new time in the place of the one that went; the kept alarm
+    // after it, every line as it was.
+    expect(edited.text, contains('TRIGGER:-PT1H\nEND:VALARM\n$kept'));
     expect(edited.text, isNot(contains('TRIGGER:-P1D')));
-    expect(edited.text, contains('TRIGGER:-PT1H\n'));
     expect(edited.eventOf('a@x')!.series.alerts, [
-      const Duration(minutes: 10),
       const Duration(hours: 1),
+      const Duration(minutes: 10),
+    ]);
+  });
+
+  test('a changed alert keeps its place among the alarms', () {
+    String alarm(String trigger) =>
+        'BEGIN:VALARM\nACTION:DISPLAY\nTRIGGER:$trigger\nEND:VALARM\n';
+    final text =
+        'BEGIN:VCALENDAR\nBEGIN:VEVENT\nUID:a@x\nDTSTART:20261103T180000\n'
+        'DTEND:20261103T190000\nSUMMARY:Call\n'
+        '${alarm('-P1D')}${alarm('-PT1H')}${alarm('-PT5M')}'
+        'END:VEVENT\nEND:VCALENDAR\n';
+    final draft = EventDraft.of(Calendar.read(text)!.eventOf('a@x')!.series);
+
+    final edited = _edited(
+      text,
+      ChangeSeries(
+        'a@x',
+        EventDraft(
+          summary: draft.summary,
+          start: draft.start,
+          end: draft.end,
+          alerts: const [
+            Duration(days: 1),
+            Duration(minutes: 30),
+            Duration(minutes: 5),
+          ],
+        ),
+        from: draft,
+        at: _at,
+      ),
+    );
+
+    expect(edited.eventOf('a@x')!.series.alerts, const [
+      Duration(days: 1),
+      Duration(minutes: 30),
+      Duration(minutes: 5),
     ]);
   });
 

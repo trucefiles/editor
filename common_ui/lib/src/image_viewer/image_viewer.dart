@@ -46,11 +46,11 @@ class ImageViewer extends StatelessWidget {
 /// [maxZoom] and moved by a drag; a double tap or double click zooms in
 /// [tapZoom] times on that spot, and the next one goes back to fit. The
 /// pinch and wheel on it are its own ([ZoomsItself]). At fit it stays in
-/// place, under what is drawn over its top (its top padding); zoomed in,
-/// it can be moved down that far, so none of it stays hidden. [alt] is read out. It is decoded at most at the screen's
-/// size times [sharpZoom], and never past [DecodeSize.largestSide] a
-/// side, so a huge picture never fills memory; deeper zoom gets a little
-/// soft.
+/// place, under what is drawn over its top (its top padding); zoomed in, it
+/// can be moved down that far, so none of it stays hidden. [alt] is read
+/// out. It is decoded at most at the screen's size times [sharpZoom], and
+/// never past [DecodeSize.largestSide] a side, so a huge picture never
+/// fills memory; deeper zoom gets a little soft.
 class ZoomableImage extends StatefulWidget {
   const ZoomableImage(this.image, {required this.alt, super.key});
 
@@ -117,7 +117,7 @@ class _ZoomableImageState extends State<ZoomableImage>
   }
 
   void _zoomAtTap() => _moveTo(
-    tapZoomed(_view.value, spot: _tapped, zoom: ZoomableImage.tapZoom),
+    tapZoomed(zoomedIn: _zoomedIn, spot: _tapped, zoom: ZoomableImage.tapZoom),
   );
 
   /// Back at fit or below, it settles at fit, so it never stays moved.
