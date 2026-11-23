@@ -37,15 +37,10 @@ class AlertField extends StatelessWidget {
       children: [
         for (final (index, before) in alerts.indexed)
           _AlertRow(
-            // A new key when a row's alert changes, so its list shows it.
-            key: ValueKey((index, before)),
             before: before,
-            offered: [
-              ...{
-                ...alertChoices,
-                before,
-              }.where((choice) => choice == before || !alerts.contains(choice)),
-            ].sorted(),
+            offered: {...alertChoices, before}
+                .where((choice) => choice == before || !alerts.contains(choice))
+                .sorted(),
             at: at,
             onPicked: (picked) => onAlerts([
               for (final (other, alert) in alerts.indexed)
@@ -80,7 +75,6 @@ class _AlertRow extends StatelessWidget {
     required this.at,
     required this.onPicked,
     required this.onRemove,
-    super.key,
   });
 
   final Duration before;

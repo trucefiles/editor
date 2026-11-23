@@ -75,7 +75,9 @@ void main() {
       await tester.tap(find.byTooltip('Remove alert').first);
       await tester.pump();
       expect(shown(tester), [const Duration(hours: 1)]);
+      // The row left shows the alert that stays.
       expect(find.text('At the start'), findsNothing);
+      expect(find.text('1 hour before'), findsOne);
     });
 
     testWidgets("an alert's list leaves out the other alerts' times", (
