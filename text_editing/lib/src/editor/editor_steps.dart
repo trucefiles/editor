@@ -101,7 +101,7 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
         // Not on the edits the editor holds: news to come is on them.
         break;
       case FromFile(message: FolderGets(:final rev)):
-        book = book.copyWith(inFolderUpTo: max(book.inFolderUpTo, rev));
+        _folderMayGet(rev);
       case FromFile(message: Picked(:final text, :final version, :final rev)):
         book = book.copyWith(
           lineage: version,
@@ -115,6 +115,7 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
         _tick(book.clock.draftNow());
       case SecureEditor(:final ticket, :final reason):
         send();
+        _folderMayGet(book.sentRev);
         book = book.copyWith(clock: book.clock.left);
         notify(ToFile(Secure(ticket, reason)));
     }
@@ -184,6 +185,12 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
     if (sendsAtOnce) send();
   }
 
+  /// The folder may get every edit up to [rev] from now on: told by the
+  /// file owner, and known here at once as this editor asks it to save,
+  /// so an undo right after can't take it as never saved.
+  void _folderMayGet(int rev) =>
+      book = book.copyWith(inFolderUpTo: max(book.inFolderUpTo, rev));
+
   void _tick(Tick tick) {
     book = book.copyWith(clock: tick.clock);
     for (final (:timer, :id) in tick.started) {
@@ -194,6 +201,7 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
         send();
       case Save.folder:
         send();
+        _folderMayGet(book.sentRev);
         notify(const ToFile(SaveNow()));
       case null:
         break;

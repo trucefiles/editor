@@ -335,6 +335,7 @@ void main() {
       isA<Secure>().having((secure) => secure.ticket, 'ticket', ticket),
     ]);
     expect(editor.book.status.unsent, isFalse);
+    expect(editor.book.mayBeInFolder(1), isTrue);
   });
 
   test('a draft now sends typing that waits, once', () {
@@ -396,6 +397,17 @@ void main() {
 
       expect(editor.notices.last, isA<ToFile>());
       expect((editor.notices.last as ToFile).input, isA<SaveNow>());
+    });
+
+    test('asking the folder to save marks the edits as maybe there at '
+        'once, a draft does not', () {
+      final editor = _FakeEditor('a')
+        ..edit('ab')
+        ..fire(SaveTimer.pause.delay);
+      expect(editor.book.mayBeInFolder(1), isFalse);
+
+      editor.fire(SaveTimer.folder.delay);
+      expect(editor.book.mayBeInFolder(1), isTrue);
     });
 
     test('an edit may be in the folder once the folder gets its rev or a '

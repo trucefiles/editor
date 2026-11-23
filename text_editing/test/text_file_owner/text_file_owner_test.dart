@@ -149,6 +149,22 @@ void main() {
       expect(run.all<FolderGets>(), hasLength(1));
     });
 
+    test('tells the editor the folder may get an edit as soon as a write '
+        'is asked, and so for each edit that goes with it', () {
+      final run = _Run.opened('a')
+        ..edit('ab', 1)
+        ..send(const SaveNow());
+      expect(run.all<Write>(), isEmpty, reason: 'the draft is still kept');
+      expect(run.last<FolderGets>().rev, 1);
+
+      run.edit('abc', 2);
+      expect(run.last<FolderGets>().rev, 2);
+      run
+        ..keep()
+        ..keep();
+      expect(run.last<Write>().text, 'abc');
+    });
+
     test('runs one I/O at a time: edits during a keep are kept after it', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)

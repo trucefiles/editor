@@ -59,10 +59,15 @@ final class ShowAt {
   ShowAt.occurrence(CalendarViewKind kind, EventOccurrence occurrence)
     : this._at(kind, occurrence.start, allDay: occurrence.allDay);
 
-  /// [entry] in the view [kind]: its due day, and its due time unless it
-  /// is due all day; a task due never shows on today.
+  /// [entry] in the view [kind] where its tile starts: [taskLength]
+  /// before it is due, unless it is due all day (then its day); a task
+  /// due never shows on today.
   ShowAt.task(CalendarViewKind kind, TaskEntry entry)
-    : this._at(kind, entry.due, allDay: entry.allDay);
+    : this._at(
+        kind,
+        entry.allDay ? entry.due : entry.due?.subtract(taskLength),
+        allDay: entry.allDay,
+      );
 
   ShowAt._at(this.kind, DateTime? at, {required bool allDay})
     : day = at == null ? null : DateUtils.dateOnly(at),

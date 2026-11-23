@@ -294,6 +294,27 @@ void main() {
       expect(at.time, isNull);
     });
 
+    test('a timed task shows from where its tile starts, before it is '
+        'due', () {
+      final home = applyEdit(
+        Calendar.read(newCalendarText('Home'))!,
+        AddItem(
+          'water',
+          TaskDraft(
+            summary: 'Water',
+            due: Floating(DateTime.utc(2026, 11, 3, 9)),
+          ),
+          at: editedAt,
+        ),
+      );
+      final task =
+          occurrences(home, DateTime(2026, 11, 3), DateTime(2026, 11, 4)).single
+              as TaskOccurrence;
+      final at = ShowAt.task(week, TaskEntry.of(task));
+      expect(at.day, DateTime(2026, 11, 3));
+      expect(at.time, const TimeOfDay(hour: 8, minute: 30));
+    });
+
     test('a task due never shows on today', () {
       final home = applyEdit(
         Calendar.read(newCalendarText('Home'))!,
