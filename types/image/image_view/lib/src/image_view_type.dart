@@ -20,7 +20,8 @@ final class ImageViewType extends ImageFileType implements ViewType {
   @override
   IconData get icon => Icons.image_outlined;
 
-  /// Centered on the page; its banners hide at most a corner of it.
+  /// Centered on the page; zoomed in, it moves out from under its
+  /// banners by a drag.
   @override
   bool get underBanners => true;
 

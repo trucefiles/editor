@@ -35,23 +35,47 @@ void main() {
     expect(tester.getTopLeft(find.byType(Image)).dy, 0);
   });
 
+  testWidgets('zoomed in, it moves down as far as its top is covered', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_zoomable(topCovered: 50));
+    await _doubleTap(tester, const Offset(200, 0));
+
+    await tester.drag(find.byType(InteractiveViewer), const Offset(0, 200));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(find.byType(Image)).dy, 50);
+  });
+
+  testWidgets('zoomed back out, it settles at fit, never staying moved', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_zoomable(topCovered: 50));
+    await _doubleTap(tester, const Offset(200, 0));
+    await tester.drag(find.byType(InteractiveViewer), const Offset(0, 200));
+    await tester.pumpAndSettle();
+
+    final mouse = TestPointer(1, PointerDeviceKind.mouse);
+    tester.binding.handlePointerEvent(mouse.hover(const Offset(200, 300)));
+    tester.binding.handlePointerEvent(mouse.scroll(const Offset(0, 400)));
+    await tester.pumpAndSettle();
+
+    expect(_shown(tester), Matrix4.identity());
+  });
+
   testWidgets('a double tap zooms in on its spot, the next one goes back '
       'to fit', (tester) async {
     await tester.pumpWidget(_zoomable());
     const spot = Offset(100, 150);
-    Matrix4 shown() => tester
-        .widget<InteractiveViewer>(find.byType(InteractiveViewer))
-        .transformationController!
-        .value;
 
     await _doubleTap(tester, spot);
 
-    expect(shown().getMaxScaleOnAxis(), ZoomableImage.tapZoom);
-    expect(MatrixUtils.transformPoint(shown(), spot), spot);
+    expect(_shown(tester).getMaxScaleOnAxis(), ZoomableImage.tapZoom);
+    expect(MatrixUtils.transformPoint(_shown(tester), spot), spot);
 
     await _doubleTap(tester, const Offset(300, 400));
 
-    expect(shown(), Matrix4.identity());
+    expect(_shown(tester), Matrix4.identity());
   });
 
   testWidgets('the zoomable view keeps showing a picture until the next '
@@ -100,3 +124,9 @@ Future<void> _doubleTap(WidgetTester tester, Offset spot) async {
   await tester.tapAt(spot);
   await tester.pumpAndSettle();
 }
+
+/// How the zoomable view shows its picture now.
+Matrix4 _shown(WidgetTester tester) => tester
+    .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+    .transformationController!
+    .value;

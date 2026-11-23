@@ -46,8 +46,8 @@ class ImageViewer extends StatelessWidget {
 /// [maxZoom] and moved by a drag; a double tap or double click zooms in
 /// [tapZoom] times on that spot, and the next one goes back to fit. The
 /// pinch and wheel on it are its own ([ZoomsItself]). At fit it stays in
-/// place: what is drawn over its top (its top padding) only hides a
-/// corner of it. [alt] is read out. It is decoded at most at the screen's
+/// place, under what is drawn over its top (its top padding); zoomed in,
+/// it can be moved down that far, so none of it stays hidden. [alt] is read out. It is decoded at most at the screen's
 /// size times [sharpZoom], and never past [DecodeSize.largestSide] a
 /// side, so a huge picture never fills memory; deeper zoom gets a little
 /// soft.
@@ -82,32 +82,54 @@ class ZoomableImage extends StatefulWidget {
 
 class _ZoomableImageState extends State<ZoomableImage>
     with SingleTickerProviderStateMixin {
-  final _view = TransformationController();
+  late final _view = TransformationController()..addListener(_viewChanged);
 
-  /// Moves [_view] to where a double tap takes it.
-  late final _tapZoom = AnimationController(
+  /// Moves [_view] to where a double tap, or the settling at fit, takes
+  /// it.
+  late final _move = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 250),
-  )..addListener(_followTapZoom);
+  )..addListener(_followMove);
 
-  Animation<Matrix4>? _tapZoomPath;
+  Animation<Matrix4>? _movePath;
 
   /// Where the last double tap went down.
   Offset _tapped = Offset.zero;
 
-  void _followTapZoom() => _view.value = _tapZoomPath!.value;
+  /// How many times larger than fit it shows.
+  double _zoom = 1;
 
-  void _zoomAtTap() {
-    _tapZoomPath = Matrix4Tween(
+  bool get _zoomedIn => _zoom > 1;
+
+  void _viewChanged() {
+    final zoom = _view.value.getMaxScaleOnAxis();
+    if (zoom != _zoom) setState(() => _zoom = zoom);
+  }
+
+  void _followMove() => _view.value = _movePath!.value;
+
+  void _moveTo(Matrix4 end) {
+    _movePath = Matrix4Tween(
       begin: _view.value,
-      end: tapZoomed(_view.value, spot: _tapped, zoom: ZoomableImage.tapZoom),
-    ).animate(CurvedAnimation(parent: _tapZoom, curve: Curves.easeOut));
-    _tapZoom.forward(from: 0);
+      end: end,
+    ).animate(CurvedAnimation(parent: _move, curve: Curves.easeOut));
+    _move.forward(from: 0);
+  }
+
+  void _zoomAtTap() => _moveTo(
+    tapZoomed(_view.value, spot: _tapped, zoom: ZoomableImage.tapZoom),
+  );
+
+  /// Back at fit or below, it settles at fit, so it never stays moved.
+  void _settle() {
+    if (!_zoomedIn && _view.value != Matrix4.identity()) {
+      _moveTo(Matrix4.identity());
+    }
   }
 
   @override
   void dispose() {
-    _tapZoom.dispose();
+    _move.dispose();
     _view.dispose();
     super.dispose();
   }
@@ -120,8 +142,14 @@ class _ZoomableImageState extends State<ZoomableImage>
       child: InteractiveViewer(
         transformationController: _view,
         maxScale: ZoomableImage.maxZoom,
+        // Zoomed in, it moves down past the top as far as what is drawn
+        // over it; the margin is in the picture's own size, so zoomed.
+        boundaryMargin: EdgeInsets.only(
+          top: _zoomedIn ? MediaQuery.paddingOf(context).top / _zoom : 0,
+        ),
         // A pinch or drag takes over from a double tap's zoom.
-        onInteractionStart: (_) => _tapZoom.stop(),
+        onInteractionStart: (_) => _move.stop(),
+        onInteractionEnd: (_) => _settle(),
         child: SizedBox.expand(
           child: Image(
             image: widget.image(ZoomableImage._sizeOn(context)),
