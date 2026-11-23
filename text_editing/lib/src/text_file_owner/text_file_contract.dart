@@ -267,7 +267,8 @@ final class Replaced extends ToEditor {
 /// The folder is getting, or will get once the write asked starts, the
 /// text of edit [rev] (the editor's count of its text changes): from
 /// now on it may hold every edit up to [rev], even if the write later
-/// fails or is dropped.
+/// fails or is dropped. Told in the same go as the edit or the save ask
+/// that causes it, so it reaches the editor before any later input.
 final class FolderGets extends ToEditor {
   const FolderGets(this.rev);
 
