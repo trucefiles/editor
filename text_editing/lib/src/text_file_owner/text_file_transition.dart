@@ -183,7 +183,6 @@ final class _Step<V extends Version>
     }
   }
 
-  /// The file is asked to hold the edits as they are now.
   /// Asks to write the edits into the folder: from now on the folder may
   /// get them, so the editor is told.
   void _askFolder() {

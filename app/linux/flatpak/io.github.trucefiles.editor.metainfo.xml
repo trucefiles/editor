@@ -22,7 +22,7 @@
     <release version="0.20.1" date="2026-11-23">
       <description>
         <ul>
-          <li>In the Calendars tab, an event's Open in calendar and Edit show its calendar in the tab's view, on the event's day.</li>
+          <li>In the Calendars tab, Open in calendar and Edit on an event or task show its calendar in the tab's view, on its day.</li>
           <li>Opening an alert shows its calendar on the day of its event or task.</li>
           <li>In Visual edit, the cursor right after a picture now lines up with the picture.</li>
           <li>Undoing a calendar edit before it was saved to the folder no longer saves the file again.</li>

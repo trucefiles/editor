@@ -134,8 +134,8 @@ void main() {
       expect(run.all<DropDraft>(), hasLength(1));
     });
 
-    test('tells the editor the folder may hold an edit once its write '
-        'starts, and a failed write leaves that', () {
+    test('tells the editor the folder may hold an edit once its save is '
+        'asked, and a failed write leaves that', () {
       final run = _Run.opened('a')
         ..edit('ab', 1)
         ..keep()
