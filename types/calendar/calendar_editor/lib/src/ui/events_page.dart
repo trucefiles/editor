@@ -52,14 +52,16 @@ class _EventsPageState extends State<EventsPage> {
   late DateTime _addDay = DateUtils.dateOnly(widget.clock.now());
 
   /// Where the views show first.
-  late final ShowAt? _showAt = widget.starts.takeShowAt();
+  late final ShowAt? _showAt;
 
   /// The view shown.
-  late CalendarViewKind _kind = _showAt?.kind ?? widget.viewChoice.last();
+  late CalendarViewKind _kind;
 
   @override
   void initState() {
     super.initState();
+    _showAt = widget.starts.takeShowAt();
+    _kind = _showAt?.kind ?? widget.viewChoice.last();
     widget.starts.addListener(_takeSoon);
     _takeSoon();
   }

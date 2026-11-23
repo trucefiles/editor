@@ -97,7 +97,7 @@ final class _Step
     if (written.isEmpty) return;
     _showCalendar(edited);
     textChanged();
-    record(UnitsChanged.of(calendar, edited, written, rev: book.rev)!, null);
+    record(UnitsChanged.of(calendar, edited, written, rev: book.rev), null);
   }
 
   @override

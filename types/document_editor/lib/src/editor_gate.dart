@@ -7,8 +7,9 @@ import 'package:truce_markdown/truce_markdown.dart';
 /// The one way into an open document's editor owner. Holds box taps for a
 /// short wait, so quick taps move together and a mistap can be undone by
 /// a second tap; any other user input first sends the waiting ones.
-/// Listeners hear once after each call, however many inputs it sent, and
-/// whenever the owner's state changes on its own (a save timer).
+/// Listeners hear once after each user call, however many inputs it sent,
+/// after an input from elsewhere only if it changed the owner's state,
+/// and whenever the owner's state changes on its own (a save timer).
 final class EditorGate extends ChangeNotifier {
   EditorGate(
     this._owner, {
@@ -95,9 +96,16 @@ final class EditorGate extends ChangeNotifier {
   });
 
   /// An input not from the user (the file owner's message): the taps go
-  /// on waiting.
-  void external(EditorInput input) =>
-      _change(fromUser: false, () => _owner.send(input));
+  /// on waiting. Heard only if the owner's state changed (e.g. not when
+  /// the folder gets a save).
+  void external(EditorInput input) {
+    final before = _owner.state;
+    _change(
+      fromUser: false,
+      () => _owner.send(input),
+      changed: () => !identical(_owner.state, before),
+    );
+  }
 
   void _flush() {
     _timer?.cancel();
@@ -108,7 +116,13 @@ final class EditorGate extends ChangeNotifier {
     _owner.send(ToggleItems(items, revision: _tappedAt));
   }
 
-  void _change(void Function() change, {required bool fromUser}) {
+  /// Runs [change]; listeners hear once the outermost call ends, if
+  /// [changed] says it changed something (by default always).
+  void _change(
+    void Function() change, {
+    required bool fromUser,
+    bool Function()? changed,
+  }) {
     if (_depth == 0) _fromUser = fromUser;
     _depth++;
     try {
@@ -116,7 +130,7 @@ final class EditorGate extends ChangeNotifier {
     } finally {
       _depth--;
     }
-    if (_depth == 0) notifyListeners();
+    if (_depth == 0 && (changed?.call() ?? true)) notifyListeners();
   }
 
   /// Also closes the owner.

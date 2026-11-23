@@ -37,23 +37,17 @@ final class UnitsChanged extends CalendarStep {
   const UnitsChanged._(this.before, this.after, {required this.rev});
 
   /// The step of an edit of [calendar] into [edited] that wrote the
-  /// units [written], as text change [rev]; `null` if it wrote none.
-  static UnitsChanged? of(
+  /// units [written], as text change [rev].
+  factory UnitsChanged.of(
     Calendar calendar,
     Calendar edited,
     List<UnitKey> written, {
     required int rev,
-  }) => written.isEmpty
-      ? null
-      : UnitsChanged._(
-          Map.unmodifiable({
-            for (final key in written) key: calendar.unitOf(key),
-          }),
-          Map.unmodifiable({
-            for (final key in written) key: edited.unitOf(key)!,
-          }),
-          rev: rev,
-        );
+  }) => UnitsChanged._(
+    Map.unmodifiable({for (final key in written) key: calendar.unitOf(key)}),
+    Map.unmodifiable({for (final key in written) key: edited.unitOf(key)!}),
+    rev: rev,
+  );
 
   final Map<UnitKey, CalendarUnit?> before;
   final Map<UnitKey, CalendarUnit> after;

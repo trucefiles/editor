@@ -10,9 +10,13 @@ import 'package:truce_editor_test_support/truce_editor_test_support.dart';
 
 /// Where Visual edit draws the caret beside a picture in the text.
 void main() {
-  /// Shows "a ![p](p.png) b" with a picture 100 high in a line of text,
-  /// once the picture is drawn; gives the picture's box.
-  Future<Rect> pumpPicture(WidgetTester tester) async {
+  /// Shows [text] (by default "a ![p](p.png) b") with its picture 100
+  /// high in a line of text, once the picture is drawn; gives the
+  /// picture's box.
+  Future<Rect> pumpPicture(
+    WidgetTester tester, {
+    String text = 'a ![p](p.png) b',
+  }) async {
     final picture = await tester.runAsync(() async {
       final recorder = ui.PictureRecorder();
       Canvas(recorder).drawRect(
@@ -23,16 +27,12 @@ void main() {
       final png = await image.toByteData(format: ui.ImageByteFormat.png);
       return MemoryImage(png!.buffer.asUint8List());
     });
-    await pumpDocument(
-      tester,
-      TestDocument('a ![p](p.png) b'),
-      images: _OneImage(picture!),
-    );
+    await pumpDocument(tester, TestDocument(text), images: _OneImage(picture!));
     await tester.runAsync(
-      () => precacheImage(picture, tester.element(find.byType(Image))),
+      () => precacheImage(picture, tester.element(find.byType(Image).first)),
     );
     await tester.pumpAndSettle();
-    return tester.getRect(find.byType(Image));
+    return tester.getRect(find.byType(Image).first);
   }
 
   /// The caret's box at [offset] of the paragraph, [affinity] given.
@@ -65,6 +65,29 @@ void main() {
       ),
     )!;
     expect(edge.shift(layout).top, moreOrLessEquals(before.top));
+  });
+
+  testWidgets('a caret after a picture that ends its line stays at the '
+      'start of the next line', (tester) async {
+    final picture = await pumpPicture(
+      tester,
+      text: List.filled(30, '![p](p.png)').join(),
+    );
+    final layout = SuperEditorInspector.findDocumentLayout()
+        .getGlobalOffsetFromDocumentOffset(Offset.zero);
+    Rect at(int offset, TextAffinity affinity) =>
+        caretAt(offset, affinity).shift(layout);
+    // Where the line wraps: the upstream caret ends the first line.
+    final wrap = [for (var offset = 1; offset < 30; offset++) offset]
+        .firstWhere(
+          (offset) =>
+              at(offset, TextAffinity.upstream).left >
+              at(offset, TextAffinity.downstream).left,
+        );
+
+    final after = at(wrap, TextAffinity.downstream);
+    expect(after.left, moreOrLessEquals(picture.left));
+    expect(after.top, moreOrLessEquals(picture.bottom));
   });
 }
 
