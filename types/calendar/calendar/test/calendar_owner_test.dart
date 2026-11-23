@@ -171,6 +171,27 @@ void main() {
       expect(run.state.text, isNot(birthday));
       expect(run.state.calendar!.eventOf('ann@truce')!.series.deleted, isFalse);
     });
+
+    test('brings back what showed before a restored backup exactly, '
+        'stamped once the folder started getting the restore', () {
+      final run = _run(birthday)
+        ..send(EditCalendar(_annRenamed, newUid: 'n@t'));
+      final renamed = run.state.text;
+      _saved(run);
+      run
+        ..send(CalendarRequest(const ReplaceAll(birthday), at: _later))
+        ..send(CalendarRequest(const Undo(), at: _later));
+      expect(run.state.text, renamed, reason: 'the restore never left');
+
+      run.send(CalendarRequest(const Redo(), at: _later));
+      _saved(run);
+      run.send(CalendarRequest(const Undo(), at: _later));
+      expect(run.state.text, isNot(renamed), reason: 'stamped');
+      expect(
+        run.state.calendar!.eventOf('ann@truce')!.series.summary,
+        'Ann (birthday)',
+      );
+    });
   });
 
   test('an import is one undo step and tells what came of it', () {
@@ -303,10 +324,12 @@ void main() {
     expect(calendar.zones, {'Asia/Tokyo'});
   });
 
-  test('a restore over a calendar is undone and redone, stamped', () {
+  test('a restore over a calendar the folder got is undone and redone, '
+      'stamped', () {
     final run = _run(birthday)..send(EditCalendar(_tokyoCall, newUid: 'new@t'));
     _saved(run);
     run.send(CalendarRequest(const ReplaceAll(birthday), at: _later));
+    _saved(run);
 
     run.send(CalendarRequest(const Undo(), at: _later));
     var calendar = run.state.calendar!;

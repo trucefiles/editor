@@ -36,7 +36,8 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
   void reload(String text);
 
   /// [text] shows instead, from its start (a backup restored); gives
-  /// that edit as a step.
+  /// that edit as a step. Its text change already counts: it is edit
+  /// `book.rev`.
   S replaceText(String text);
 
   /// What the file says once the edits are sent, and what lists show of
@@ -172,9 +173,9 @@ mixin EditorSteps<S extends UndoableEdit<S>> {
 
   /// Shows [text] in place of the text, as one step undo takes back.
   void replaceAsStep(String text) {
-    final step = replaceText(text);
-    _changedByHistory();
-    record(step, null);
+    textChanged();
+    record(replaceText(text), null);
+    if (sendsAtOnce) send();
   }
 
   /// A text change not typed: saved as typing is, and sent at once where

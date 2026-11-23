@@ -181,7 +181,7 @@ final class TaskPart extends ItemPart {
   @override
   late final CalendarTime? from = switch (_shownAt) {
     final AllDay day => day,
-    final time? => time.at(time.wall.subtract(taskLength)),
+    final time? => time.at(taskTileStart(time.wall)),
     null => null,
   };
 
@@ -208,8 +208,12 @@ final class TaskPart extends ItemPart {
   };
 }
 
+/// Where the tile of a task due at the time [due] starts on a calendar:
+/// it shows for a while up to [due].
+DateTime taskTileStart(DateTime due) => due.subtract(_taskLength);
+
 /// How long a task with a due time shows on a calendar, up to it.
-const taskLength = Duration(minutes: 30);
+const _taskLength = Duration(minutes: 30);
 
 /// [start] plus [component]'s `DURATION`; `null` if it has none.
 CalendarTime? _after(CalendarTime start, Component component) =>

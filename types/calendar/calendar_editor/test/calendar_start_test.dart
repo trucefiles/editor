@@ -328,7 +328,6 @@ void main() {
     test("an item from its start alone (an alert's) shows in the page's "
         'own view, a timed task where its tile starts', () {
       final task = ShowAt.item(
-        null,
         ItemKind.task,
         DateTime(2026, 11, 3, 9),
         allDay: false,
@@ -338,7 +337,6 @@ void main() {
       expect(task.time, const TimeOfDay(hour: 8, minute: 30));
 
       final event = ShowAt.item(
-        null,
         ItemKind.event,
         DateTime(2026, 11, 3, 9),
         allDay: false,

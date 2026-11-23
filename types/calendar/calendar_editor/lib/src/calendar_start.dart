@@ -56,32 +56,31 @@ final class ShowAt {
   const ShowAt(this.kind, {this.day, this.time});
 
   /// An [item] that starts, or is due, at [start], in the view [kind]
-  /// where its tile starts: its day, and its time unless it lasts all
-  /// day; a timed task [taskLength] before it is due. Without [start],
-  /// on today.
+  /// (`null`: the page's own) where its tile starts: its
+  /// day, and its time unless it lasts all day. Without [start], on
+  /// today.
   ShowAt.item(
-    CalendarViewKind? kind,
     ItemKind item,
     DateTime? start, {
     required bool allDay,
-  }) : this._at(
-         kind,
-         item == ItemKind.task && !allDay ? start?.subtract(taskLength) : start,
-         allDay: allDay,
-       );
+    CalendarViewKind? kind,
+  }) : this._at(kind, switch (start) {
+         final due? when item == ItemKind.task && !allDay => taskTileStart(due),
+         _ => start,
+       }, allDay: allDay);
 
   /// [occurrence] in the view [kind].
   ShowAt.occurrence(CalendarViewKind kind, EventOccurrence occurrence)
     : this.item(
-        kind,
         ItemKind.event,
         occurrence.start,
         allDay: occurrence.allDay,
+        kind: kind,
       );
 
   /// [entry] in the view [kind].
   ShowAt.task(CalendarViewKind kind, TaskEntry entry)
-    : this.item(kind, ItemKind.task, entry.due, allDay: entry.allDay);
+    : this.item(ItemKind.task, entry.due, allDay: entry.allDay, kind: kind);
 
   ShowAt._at(this.kind, DateTime? at, {required bool allDay})
     : day = at == null ? null : DateUtils.dateOnly(at),

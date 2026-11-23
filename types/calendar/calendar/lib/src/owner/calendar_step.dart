@@ -54,11 +54,13 @@ final class UnitsChanged extends CalendarStep {
   final int rev;
 }
 
-/// A backup restored: the whole of what showed [before] and [after], as
-/// it may differ anywhere in the file, or be no calendar.
+/// A backup restored as text change [rev]: the whole of what showed
+/// [before] and [after], as it may differ anywhere in the file, or be no
+/// calendar.
 final class TextReplaced extends CalendarStep {
-  const TextReplaced(this.before, this.after);
+  const TextReplaced(this.before, this.after, {required this.rev});
 
   final CalendarShown before;
   final CalendarShown after;
+  final int rev;
 }

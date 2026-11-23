@@ -39,6 +39,6 @@ Future<void> openAlert(
     ref,
     file,
     edit,
-    showAt: ShowAt.item(null, alert.kind, start, allDay: alert.allDay),
+    showAt: ShowAt.item(alert.kind, start, allDay: alert.allDay),
   );
 }

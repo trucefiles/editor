@@ -111,14 +111,20 @@ final class _Step
   void undo(CalendarStep step) => switch (step) {
     UnitsChanged(:final before, :final rev) => _bringBack(before, rev),
     NameChanged(:final before) => _rename(before),
-    TextReplaced(:final before) => _restore(before),
+    TextReplaced(:final before, :final rev) => _restore(
+      before,
+      stamped: book.mayBeInFolder(rev),
+    ),
   };
 
   @override
   void redo(CalendarStep step) => switch (step) {
     UnitsChanged(:final after, :final rev) => _bringBack(after, rev),
     NameChanged(:final after) => _rename(after),
-    TextReplaced(:final after) => _restore(after),
+    TextReplaced(:final after, :final rev) => _restore(
+      after,
+      stamped: book.mayBeInFolder(rev),
+    ),
   };
 
   /// The calendar is named [name] again. A name step is only undone or
@@ -141,14 +147,15 @@ final class _Step
     );
   }
 
-  /// [back] shows again: a calendar stamped as an edit made when it was
-  /// asked; a text that is no calendar as it is.
-  void _restore(CalendarShown back) =>
+  /// [back] shows again: if [stamped], a calendar stamped as an edit made
+  /// when it was asked, so a merge with another device's copy keeps it;
+  /// else, and a text that is no calendar, as it is.
+  void _restore(CalendarShown back, {required bool stamped}) =>
       switch ((back.calendar, state.calendar)) {
-        (final back?, final now?) => _showCalendar(
+        (final back?, final now?) when stamped => _showCalendar(
           broughtBack(back, now, _requestAt, filed: _filed),
         ),
-        (final back?, null) => _showCalendar(back),
+        (final back?, _) => _showCalendar(back),
         (null, _) => reload(back.text),
       };
 
@@ -165,8 +172,8 @@ final class _Step
   @override
   CalendarStep replaceText(String text) {
     final before = _shown;
-    _restore((text: text, calendar: Calendar.read(text)));
-    return TextReplaced(before, _shown);
+    _restore((text: text, calendar: Calendar.read(text)), stamped: true);
+    return TextReplaced(before, _shown, rev: book.rev);
   }
 
   @override
