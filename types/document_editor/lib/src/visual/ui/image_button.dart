@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:truce_common_ui/truce_common_ui.dart';
 import 'package:truce_images/truce_images.dart';
 
 import '../image_insert.dart';
 
-/// The toolbar's Image button: with one source it picks from it at once,
-/// with more it asks which first ("Choose image", "Take photo"); a
-/// spinner in its place while an image is made ready and kept. Off while
-/// [enabled] is not.
+/// The toolbar's Image button: picks from one of [sources]
+/// ([askImageSource]); a spinner in its place while an image is made
+/// ready and kept. Off while [enabled] is not.
 class ImageButton extends StatelessWidget {
   const ImageButton(
     this.insert, {
@@ -20,16 +20,6 @@ class ImageButton extends StatelessWidget {
   final List<ImageSource> sources;
   final bool enabled;
   final VoidCallback onDone;
-
-  static String _label(ImageSource source) => switch (source) {
-    ImageSource.file => 'Choose image',
-    ImageSource.camera => 'Take photo',
-  };
-
-  static IconData _icon(ImageSource source) => switch (source) {
-    ImageSource.file => Icons.photo_library_outlined,
-    ImageSource.camera => Icons.photo_camera_outlined,
-  };
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
@@ -47,36 +37,9 @@ class ImageButton extends StatelessWidget {
   );
 
   Future<void> _pressed(BuildContext context) async {
-    final source = sources.length == 1 ? sources.single : await _ask(context);
+    final source = await askImageSource(context, sources);
     if (source == null || !context.mounted) return;
     await insert.from(source);
     if (context.mounted) onDone();
-  }
-
-  /// Which source, from a menu at the button.
-  Future<ImageSource?> _ask(BuildContext context) {
-    final box = context.findRenderObject()! as RenderBox;
-    final overlay =
-        Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
-    final at = box.localToGlobal(Offset.zero, ancestor: overlay);
-    return showMenu<ImageSource>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        at.dx,
-        at.dy,
-        overlay.size.width - at.dx - box.size.width,
-        overlay.size.height - at.dy,
-      ),
-      items: [
-        for (final source in sources)
-          PopupMenuItem(
-            value: source,
-            child: ListTile(
-              leading: Icon(_icon(source)),
-              title: Text(_label(source)),
-            ),
-          ),
-      ],
-    );
   }
 }

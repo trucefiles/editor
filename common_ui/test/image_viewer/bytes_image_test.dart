@@ -1,29 +1,10 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:truce_common_ui/truce_common_ui.dart';
 
-/// A PNG of one pixel.
-final _onePixel = base64.decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGA'
-  'hKmMIQAAAABJRU5ErkJggg==',
-);
-
-/// A picture whose bytes [read] gives, at [size].
-final class _Picture extends BytesImage<_Picture> {
-  const _Picture(this.read, {required super.size});
-
-  final Uint8List? Function() read;
-
-  @override
-  Future<Uint8List?> readBytes() async => read();
-
-  @override
-  List<Object?> get identity => const [];
-}
+import 'test_pictures.dart';
 
 /// A picture told apart by [name].
 final class _Named extends BytesImage<_Named> {
@@ -36,17 +17,6 @@ final class _Named extends BytesImage<_Named> {
 
   @override
   List<Object?> get identity => [name];
-}
-
-/// A picture whose bytes never come.
-final class _Pending extends BytesImage<_Pending> {
-  const _Pending({required super.size});
-
-  @override
-  Future<Uint8List?> readBytes() => Completer<Uint8List?>().future;
-
-  @override
-  List<Object?> get identity => const ['pending'];
 }
 
 void main() {
@@ -111,7 +81,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Image(
-            image: _Picture(() => bytes, size: const Within(100, 100)),
+            image: TestPicture(() => bytes, size: const Within(100, 100)),
             errorBuilder: (_, _, _) => const Text('broken'),
           ),
         ),
@@ -125,79 +95,10 @@ void main() {
     await show();
     expect(find.text('broken'), findsOne);
 
-    bytes = _onePixel;
+    bytes = onePixel;
     await tester.pumpWidget(const SizedBox());
     await show();
 
     expect(find.text('broken'), findsNothing);
-  });
-
-  testWidgets('the zoomable view decodes at most three screens, and never '
-      'past its largest side', (tester) async {
-    tester.view
-      ..physicalSize = const Size(1000, 2000)
-      ..devicePixelRatio = 2;
-    addTearDown(tester.view.reset);
-    final asked = <Within>[];
-    await tester.pumpWidget(
-      MaterialApp(
-        home: ZoomableImage((size) {
-          asked.add(size);
-          return _Picture(() => _onePixel, size: size);
-        }, alt: 'a picture'),
-      ),
-    );
-
-    expect(asked.last, const Within(3000, DecodeSize.largestSide));
-  });
-
-  testWidgets('the zoomable view moves down as far as its top is covered', (
-    tester,
-  ) async {
-    tester.view
-      ..physicalSize = const Size(400, 600)
-      ..devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: MediaQuery(
-          data: const MediaQueryData(
-            size: Size(400, 600),
-            padding: EdgeInsets.only(top: 50),
-          ),
-          child: ZoomableImage(
-            (size) => _Picture(() => _onePixel, size: size),
-            alt: 'a picture',
-          ),
-        ),
-      ),
-    );
-
-    await tester.drag(find.byType(InteractiveViewer), const Offset(0, 200));
-    await tester.pumpAndSettle();
-
-    expect(tester.getTopLeft(find.byType(Image)).dy, 50);
-  });
-
-  testWidgets('the zoomable view keeps showing a picture until the next '
-      'one is drawn', (tester) async {
-    Future<void> show(SizedImage image) async {
-      await tester.pumpWidget(
-        MaterialApp(home: ZoomableImage(image, alt: 'a picture')),
-      );
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 200)),
-      );
-      await tester.pump();
-    }
-
-    RawImage drawn() => tester.widget(find.byType(RawImage));
-
-    await show((size) => _Picture(() => _onePixel, size: size));
-    expect(drawn().image, isNotNull);
-
-    await show((size) => _Pending(size: size));
-
-    expect(drawn().image, isNotNull);
   });
 }

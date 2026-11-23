@@ -19,6 +19,16 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.20.0" date="2026-11-23">
+      <description>
+        <ul>
+          <li>Double tap or double click a picture to zoom in on that spot; again to zoom back out.</li>
+          <li>Pictures no longer move down when dragged at their first size.</li>
+          <li>Events and tasks can have several alerts.</li>
+          <li>The Image button in a document asks Choose image or Take photo on a sheet, like a new image file.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.19.0" date="2026-11-22">
       <description>
         <ul>

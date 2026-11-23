@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:collection/collection.dart';
 
 import '../alerts/alarm.dart';
@@ -537,20 +539,52 @@ ContentLine? _withoutCategories(
 }
 
 /// [item] with an alert for each of [draft]'s, in place of the alerts the
-/// form shows; other alarms stay (see [alertBefore]). A task's count from
-/// its due time (RFC 5545, 3.8.6.3).
+/// form shows: an alarm whose time stays keeps its lines and place; a
+/// new time takes the place of an alarm whose time went (so a changed
+/// alert stays where it was), the rest go at the end; other alarms stay
+/// (see [alertBefore]). A task's count from its due time (RFC 5545,
+/// 3.8.6.3).
 Component _withAlerts(Component item, ItemDraft draft) {
   final fromEnd = draft is TaskDraft;
-  return item.withChildren([
-    for (final child in item.children)
-      if (alertBefore(Alarm.of(child), fromEnd: fromEnd) == null) child,
-    for (final before in draft.alerts)
+  final (:children, :added) = _matchAlarms(
+    item.children,
+    draft.alerts,
+    fromEnd: fromEnd,
+  );
+  final fresh = Queue.of([
+    for (final before in added)
       Component('VALARM', [
         const ContentLine('ACTION', 'DISPLAY'),
         textLine('DESCRIPTION', draft.summary),
         alertTrigger(before, fromEnd: fromEnd),
       ]),
   ]);
+  final placed = <Component>[];
+  for (final child in children) {
+    if (child != null) {
+      placed.add(child);
+    } else if (fresh.isNotEmpty) {
+      placed.add(fresh.removeFirst());
+    }
+  }
+  return item.withChildren([...placed, ...fresh]);
+}
+
+/// [children] with each shown alarm whose time is one of [alerts] kept,
+/// each time matched once, and `null` where a shown alarm's time is
+/// not; [added] are the times no alarm matched, in [alerts]' order.
+({List<Component?> children, List<Duration> added}) _matchAlarms(
+  List<Component> children,
+  List<Duration> alerts, {
+  required bool fromEnd,
+}) {
+  final unmatched = [...alerts];
+  final matched = <Component?>[];
+  for (final child in children) {
+    final before = alertBefore(Alarm.of(child), fromEnd: fromEnd);
+    matched.add(before == null || unmatched.remove(before) ? child : null);
+  }
+  return (children: matched, added: unmatched);
 }
 
 extension on Component {
