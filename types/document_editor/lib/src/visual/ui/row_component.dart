@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../../library/caret_after_inline_widget.dart';
 import '../../library/child_text.dart';
 import '../visual_actions.dart';
 import 'framed_row.dart';
@@ -8,7 +9,7 @@ import 'row_builder.dart';
 
 /// One row with text (also a raw block open as text) as a [FramedRow],
 /// active while the caret is in it. Text in a checked item shows struck
-/// through.
+/// through; the caret after a picture stands as high as the line.
 class RowComponent extends StatefulWidget {
   const RowComponent({
     required this.viewModel,
@@ -27,8 +28,12 @@ class _RowComponentState extends State<RowComponent>
     with
         ProxyDocumentComponent<RowComponent>,
         ProxyTextComposable,
-        ChildText<RowComponent> {
+        ChildText<RowComponent>,
+        CaretAfterInlineWidget<RowComponent> {
   RowViewModel get _row => widget.viewModel;
+
+  @override
+  AttributedText get shownText => _row.text;
   VisualActions get _actions => widget.actions;
 
   TextStyle _style(Set<Attribution> attributions) {
