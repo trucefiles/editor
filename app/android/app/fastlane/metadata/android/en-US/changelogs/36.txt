@@ -1,3 +1,4 @@
 - Calendars tab: Open in calendar and Edit show the event's day in the tab's view
+- Alerts: opening one shows the calendar on its event's day
 - Visual edit: the cursor after a picture now lines up with it
 - Calendar: undoing an edit before it was saved no longer saves the file again

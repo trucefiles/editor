@@ -49,31 +49,45 @@ final class EditTask extends CalendarStart {
 }
 
 /// Where a calendar's page shows first, this time only: the view [kind]
-/// on [day] (`null`: today), in the week and day views from [time]
-/// (`null`: the morning). The page's own remembered view stays as it is.
+/// (`null`: its own) on [day] (`null`: today), in the week and day views
+/// from [time] (`null`: the morning). The page's own remembered view
+/// stays as it is.
 final class ShowAt {
   const ShowAt(this.kind, {this.day, this.time});
 
-  /// [occurrence] in the view [kind]: its day, and its time unless it
-  /// lasts all day.
-  ShowAt.occurrence(CalendarViewKind kind, EventOccurrence occurrence)
-    : this._at(kind, occurrence.start, allDay: occurrence.allDay);
+  /// An [item] that starts, or is due, at [start], in the view [kind]
+  /// where its tile starts: its day, and its time unless it lasts all
+  /// day; a timed task [taskLength] before it is due. Without [start],
+  /// on today.
+  ShowAt.item(
+    CalendarViewKind? kind,
+    ItemKind item,
+    DateTime? start, {
+    required bool allDay,
+  }) : this._at(
+         kind,
+         item == ItemKind.task && !allDay ? start?.subtract(taskLength) : start,
+         allDay: allDay,
+       );
 
-  /// [entry] in the view [kind] where its tile starts: [taskLength]
-  /// before it is due, unless it is due all day (then its day); a task
-  /// due never shows on today.
-  ShowAt.task(CalendarViewKind kind, TaskEntry entry)
-    : this._at(
+  /// [occurrence] in the view [kind].
+  ShowAt.occurrence(CalendarViewKind kind, EventOccurrence occurrence)
+    : this.item(
         kind,
-        entry.allDay ? entry.due : entry.due?.subtract(taskLength),
-        allDay: entry.allDay,
+        ItemKind.event,
+        occurrence.start,
+        allDay: occurrence.allDay,
       );
+
+  /// [entry] in the view [kind].
+  ShowAt.task(CalendarViewKind kind, TaskEntry entry)
+    : this.item(kind, ItemKind.task, entry.due, allDay: entry.allDay);
 
   ShowAt._at(this.kind, DateTime? at, {required bool allDay})
     : day = at == null ? null : DateUtils.dateOnly(at),
       time = at == null || allDay ? null : TimeOfDay.fromDateTime(at);
 
-  final CalendarViewKind kind;
+  final CalendarViewKind? kind;
   final DateTime? day;
   final TimeOfDay? time;
 }

@@ -324,5 +324,26 @@ void main() {
       expect(at.day, isNull);
       expect(at.time, isNull);
     });
+
+    test("an item from its start alone (an alert's) shows in the page's "
+        'own view, a timed task where its tile starts', () {
+      final task = ShowAt.item(
+        null,
+        ItemKind.task,
+        DateTime(2026, 11, 3, 9),
+        allDay: false,
+      );
+      expect(task.kind, isNull);
+      expect(task.day, DateTime(2026, 11, 3));
+      expect(task.time, const TimeOfDay(hour: 8, minute: 30));
+
+      final event = ShowAt.item(
+        null,
+        ItemKind.event,
+        DateTime(2026, 11, 3, 9),
+        allDay: false,
+      );
+      expect(event.time, const TimeOfDay(hour: 9, minute: 0));
+    });
   });
 }
