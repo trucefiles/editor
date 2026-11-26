@@ -146,8 +146,8 @@ class _Tile extends StatelessWidget {
         ? Colors.white
         : Colors.black;
     return Container(
-      margin: const EdgeInsets.all(1),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      margin: _tileMargin,
+      padding: _tilePadding,
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(4),
@@ -177,8 +177,29 @@ class _Tile extends StatelessWidget {
     // One line keeps as much of the title as fits, not whole words.
     softWrap: lines > 1,
     overflow: TextOverflow.ellipsis,
-    style: Theme.of(context).textTheme.labelMedium
+    style: _titleStyle(context)
         ?.copyWith(color: onColor)
         .merge(_doneStyle(occurrence)),
   );
+}
+
+const _tileMargin = EdgeInsets.all(1);
+const _tilePadding = EdgeInsets.symmetric(horizontal: 4, vertical: 1);
+
+/// How a tile's title is written, before its color.
+TextStyle? _titleStyle(BuildContext context) =>
+    Theme.of(context).textTheme.labelMedium;
+
+/// The least height of a tile of [eventTiles]: one line of its title at
+/// the user's text size, so a short event's title still shows.
+double oneLineTileHeight(BuildContext context) {
+  final line = TextPainter(
+    text: TextSpan(text: ' ', style: _titleStyle(context)),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final height = line.height;
+  line.dispose();
+  return height + _tileMargin.vertical + _tilePadding.vertical;
 }
