@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
+import 'package:truce_calendar_editor/src/views/event_tiles.dart';
 import 'package:truce_calendar_editor/src/views/stripes.dart';
 import 'package:truce_calendar_editor/truce_calendar_editor.dart';
 
@@ -12,15 +13,20 @@ import 'page_harness.dart' show testClock;
 import 'views_title.dart';
 
 /// A calendar named [name] with [event] on 3 November 2026 from [hour]
-/// for an hour.
-Calendar _calendar(String name, String event, int hour) => applyEdit(
+/// for [length].
+Calendar _calendar(
+  String name,
+  String event,
+  int hour, {
+  Duration length = const Duration(hours: 1),
+}) => applyEdit(
   Calendar.read(newCalendarText(name))!,
   AddItem(
     event,
     EventDraft(
       summary: event,
       start: Floating(DateTime.utc(2026, 11, 3, hour)),
-      end: Floating(DateTime.utc(2026, 11, 3, hour + 1)),
+      end: Floating(DateTime.utc(2026, 11, 3, hour).add(length)),
     ),
     at: DateTime.utc(2026, 11),
   ),
@@ -386,6 +392,71 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(shown.visibleDateTimeRange.value.start, first);
+  });
+
+  testWidgets("a short event's title shows a whole line in the day view, "
+      'also after the text size changes', (tester) async {
+    Future<void> show(double scale) => tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery.withClampedTextScaling(
+          minScaleFactor: scale,
+          maxScaleFactor: scale,
+          child: Scaffold(
+            body: CalendarViews<String>(
+              calendars: {
+                'trip': _calendar(
+                  'Trip',
+                  'Check-in',
+                  11,
+                  length: const Duration(minutes: 5),
+                ),
+              },
+              colorOf: (_) => Colors.teal,
+              kind: CalendarViewKind.day,
+              onKind: (_) {},
+              clock: testClock(() => DateTime(2026, 11, 3, 8)),
+            ),
+          ),
+        ),
+      ),
+    );
+    void expectWholeLine() {
+      final title = tester.renderObject<RenderBox>(find.text('Check-in'));
+      expect(
+        title.size.height,
+        greaterThanOrEqualTo(title.getMaxIntrinsicHeight(title.size.width)),
+        reason: 'not cut',
+      );
+    }
+
+    await show(1);
+    await tester.pumpAndSettle();
+    expectWholeLine();
+
+    await show(2);
+    await tester.pumpAndSettle();
+    expectWholeLine();
+  });
+
+  testWidgets("at small text, a one-line tile still fits a task's box", (
+    tester,
+  ) async {
+    late double height;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery.withClampedTextScaling(
+          minScaleFactor: 0.5,
+          maxScaleFactor: 0.5,
+          child: Builder(
+            builder: (context) {
+              height = oneLineTileHeight(context);
+              return const SizedBox();
+            },
+          ),
+        ),
+      ),
+    );
+    expect(height, greaterThanOrEqualTo(14 + 4));
   });
 
   testWidgets("a calendar's new color shows on its events", (tester) async {

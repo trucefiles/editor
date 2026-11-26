@@ -388,6 +388,9 @@ class _CalendarViewsState<K> extends State<CalendarViews<K>> {
           header: MultiDayHeader(tileComponents: _rowTiles),
           body: MultiDayBody(
             tileComponents: _timedTiles,
+            configuration: MultiDayBodyConfiguration(
+              minimumTileHeight: oneLineTileHeight(context),
+            ),
             // Not to the current time: it would carry its minutes
             // and seconds into the event.
             snapping: const KalenderSnapping(

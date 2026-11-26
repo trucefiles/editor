@@ -475,7 +475,7 @@ void main() {
 
     await tester.tap(find.text('Call'));
     await tester.pumpAndSettle();
-    expect(find.text('Open in calendar'), findsOne);
+    expect(find.text('Show in calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit event'));
     expect(find.byType(TextEditPage), findsOne);
@@ -489,7 +489,7 @@ void main() {
     expect(find.byType(TextEditPage), findsOne);
   });
 
-  testWidgets("an event's Open in calendar opens its calendar in the tab's "
+  testWidgets("an event's Show in calendar opens its calendar in the tab's "
       'view, starting nothing', (tester) async {
     // Tall enough for the month's rows to show their events.
     tester.view.physicalSize = const Size(800, 1400);
@@ -504,7 +504,7 @@ void main() {
 
     await tester.tap(find.text('Call'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Open in calendar'));
+    await tester.tap(find.text('Show in calendar'));
     await showsSoon(tester, find.byType(TextEditPage));
     await tester.pumpAndSettle();
 
@@ -615,7 +615,7 @@ void main() {
     expect(find.byTooltip('Mark as done'), findsNothing, reason: 'read only');
     await tester.tap(find.text('Water plants'));
     await tester.pumpAndSettle();
-    expect(find.text('Open in calendar'), findsOne);
+    expect(find.text('Show in calendar'), findsOne);
     await tester.tap(find.text('Edit'));
     await showsSoon(tester, find.text('Edit task'));
     expect(find.byType(TextEditPage), findsOne);

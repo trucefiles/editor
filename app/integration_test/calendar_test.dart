@@ -60,9 +60,9 @@ void main() {
     await tester.waitFor(find.widgetWithText(FilterChip, 'Family'));
     expect(find.text('Dentist'), findsOneWidget);
 
-    // An event in the tab shows; Open in calendar opens its page.
+    // An event in the tab shows; Show in calendar opens its page.
     await tester.tapAndSettle(find.text('Dentist'));
-    await tester.tapAndSettle(find.text('Open in calendar'));
+    await tester.tapAndSettle(find.text('Show in calendar'));
     expect(find.byType(FloatingActionButton), findsOneWidget);
     expect(find.text('Dentist'), findsOneWidget);
   });
@@ -116,7 +116,7 @@ void main() {
     // An event's sheet too, but not its actions.
     await tester.tapAndSettle(find.text('Pruning'));
     expect(scaled(find.text('Pruning').last), closeTo(appText * 1.5, 0.01));
-    expect(scaled(find.text('Open in calendar')), closeTo(appText, 0.01));
+    expect(scaled(find.text('Show in calendar')), closeTo(appText, 0.01));
   });
 
   testApp('events imported from a file are merged in and written', (
