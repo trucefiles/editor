@@ -19,6 +19,14 @@
   <url type="homepage">https://github.com/trucefiles/editor</url>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="0.20.2" date="2026-11-26">
+      <description>
+        <ul>
+          <li>In the week and day views, a short event now shows its title on a whole line.</li>
+          <li>In the Calendars tab, Open in calendar is now called Show in calendar.</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.20.1" date="2026-11-23">
       <description>
         <ul>

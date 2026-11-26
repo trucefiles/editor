@@ -178,7 +178,7 @@ class CalendarTabScreen extends ConsumerWidget {
       [
         (
           icon: Icons.calendar_month_outlined,
-          label: 'Open in calendar',
+          label: 'Show in calendar',
           value: false,
         ),
         (icon: Icons.edit_outlined, label: 'Edit', value: true),

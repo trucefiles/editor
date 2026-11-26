@@ -163,7 +163,7 @@ Tap an alert to open its event or task.
 <img src="screenshots/calendar/calendar_tasks_touch_large.png" width="300" alt="The Tasks view on a phone with larger text">
 <img src="screenshots/calendar/calendar_tab_desktop.png" width="600" alt="The Calendars tab: calendars as chips in one row above one month, faintly striped as it only shows, the open calendar button at the bottom">
 <img src="screenshots/calendar/calendar_tab_open_touch.png" width="300" alt="The calendar button on a phone: pick which calendar to open, each with its color">
-<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, then its title, time, place and notes, each on its own line with an icon, with Open in calendar and Edit">
+<img src="screenshots/calendar/calendar_tab_sheet_touch.png" width="300" alt="An event tapped in the Calendars tab: its calendar, then its title, time, place and notes, each on its own line with an icon, with Show in calendar and Edit">
 <img src="screenshots/calendar/calendar_event_zones_touch.png" width="300" alt="The event form of a flight: start and end each with its own time zone">
 <img src="screenshots/calendar/calendar_event_links_touch.png" width="300" alt="An event's sheet: its place and the links in its notes underlined, to open with a tap">
 <img src="screenshots/calendar/calendar_alarm_touch.png" width="300" alt="An alert ringing as an alarm on a phone: its title and time, with Dismiss, Snooze 10 min and Open">

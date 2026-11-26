@@ -1,0 +1,2 @@
+- Calendar: a short event now shows its title on a whole line in the week and day views
+- Calendars tab: Open in calendar is now called Show in calendar
