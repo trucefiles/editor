@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:kalender/kalender.dart';
 import 'package:truce_calendar/truce_calendar.dart';
@@ -159,7 +161,7 @@ class _Tile extends StatelessWidget {
             TaskBox(
               done: task.done,
               color: onColor,
-              size: 14,
+              size: _taskBoxSize,
               onChanged: onCheck,
             ),
             const SizedBox(width: 2),
@@ -184,6 +186,7 @@ class _Tile extends StatelessWidget {
 }
 
 const _tileMargin = EdgeInsets.all(1);
+const _taskBoxSize = 14.0;
 const _tilePadding = EdgeInsets.symmetric(horizontal: 4, vertical: 1);
 
 /// How a tile's title is written, before its color.
@@ -191,7 +194,8 @@ TextStyle? _titleStyle(BuildContext context) =>
     Theme.of(context).textTheme.labelMedium;
 
 /// The least height of a tile of [eventTiles]: one line of its title at
-/// the user's text size, so a short event's title still shows.
+/// the user's text size (or a task's box, if taller), so a short event's
+/// title still shows.
 double oneLineTileHeight(BuildContext context) {
   final line = TextPainter(
     text: TextSpan(text: ' ', style: _titleStyle(context)),
@@ -201,5 +205,7 @@ double oneLineTileHeight(BuildContext context) {
   )..layout();
   final height = line.height;
   line.dispose();
-  return height + _tileMargin.vertical + _tilePadding.vertical;
+  return max(height, _taskBoxSize) +
+      _tileMargin.vertical +
+      _tilePadding.vertical;
 }
